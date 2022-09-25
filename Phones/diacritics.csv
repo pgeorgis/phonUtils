@@ -1,0 +1,107 @@
+Diacritic	Description	Type	Feature	Value	Position
+ ͡	ligature tie	connection			inter
+ ͜	ligature tie	connection			inter
+ʼ	ejective	airstream mechanism	constrictedGlottis	+	post
+ʼ	ejective	airstream mechanism	raisedLarynxEjective	+	post
+ʼ	ejective	airstream mechanism	spreadGlottis	-	post
+ʼ	ejective	airstream mechanism	loweredLarynxImplosive	-	post
+͈	fortis	articulation strength	fortis	+	post
+͉	lenis	articulation strength	fortis	-	post
+̟	advanced	backness modification			post
+̈	centralized	backness modification			post
+̠	retracted	backness modification			post
+̺	apical	coronal modifications	coronal	+	post
+̺	apical	coronal modifications	distributed	-	post
+̪	dental	coronal modifications	coronal	+	post
+̪	dental	coronal modifications	distributed	+	post
+̪	dental	coronal modifications	anterior	+	post
+̻	laminal	coronal modifications	coronal	+	post
+̻	laminal	coronal modifications	distributed	+	post
+͇	non-sibilant	coronal modifications	strident	-	post
+ᴱ	epilaryngeal source	epilaryngeal phonation	epilaryngealSource	+	post
+̞	lowered	height modifications			post
+̝	raised	height modifications			post
+ʰ	aspirated	laryngeal	spreadGlottis	+	post
+ʰ	aspirated	laryngeal	constrictedGlottis	-	post
+ʱ	aspirated	laryngeal	spreadGlottis	+	post
+ʱ	aspirated	laryngeal	constrictedGlottis	-	post
+˭	tenuis	laryngeal	spreadGlottis	-	post
+˭	tenuis	laryngeal	constrictedGlottis	-	post
+˭	tenuis	laryngeal	periodicGlottalSource	-	post
+̬	voiced	laryngeal	periodicGlottalSource	+	post
+̥	voiceless	laryngeal	periodicGlottalSource	-	post
+̊	voiceless	laryngeal	periodicGlottalSource	-	post
+̃	nasalized	nasality	nasal	+	post
+͊ 	non-nasal	nasality	nasal	-	post
+ˡ	lateral release	release	lateral	+	post
+ˡ	lateral release	release	delayedRelease	+	post
+̚	unreleased	release	delayedRelease	-	post
+˞	rhotacized	rhoticity	coronal	+	post
+˞	rhotacized	rhoticity	distributed	+	post
+˞	rhotacized	rhoticity	anterior	-	post
+˞	rhotacized	rhoticity	dorsal	+	post
+ʷ	labialized	secondary articulation	labial	+	post
+ʷ	labialized	secondary articulation	round	+	post
+ᶣ	labio-palatalized	secondary articulation	high	+	post
+ᶣ	labio-palatalized	secondary articulation	back	-	post
+ᶣ	labio-palatalized	secondary articulation	front	+	post
+ᶣ	labio-palatalized	secondary articulation	low	-	post
+ᶣ	labio-palatalized	secondary articulation	labial	+	post
+ᶣ	labio-palatalized	secondary articulation	round	+	post
+̼	linguolabial	secondary articulation	labial	+	post
+̼	linguolabial	secondary articulation	coronal	+	post
+ʲ	palatalized	secondary articulation	high	+	post
+ʲ	palatalized	secondary articulation	back	-	post
+ʲ	palatalized	secondary articulation	front	+	post
+ʲ	palatalized	secondary articulation	low	-	post
+ˤ	pharyngealized	secondary articulation	low	+	post
+ˤ	pharyngealized	secondary articulation	back	+	post
+ˤ	pharyngealized	secondary articulation	retractedTongueRoot	+	post
+ˤ	pharyngealized	secondary articulation	advancedTongueRoot	-	post
+ˠ	velarized	secondary articulation	back	+	post
+ˠ	velarized	secondary articulation	high	+	post
+ˠ	velarized	secondary articulation	low	-	post
+ˠ	velarized	secondary articulation	front	-	post
+ˑ	half-long	suprasegmental	short	+	post
+ˑ	half-long	suprasegmental	long	+	post
+ː	long	suprasegmental	long	+	post
+ː	long	suprasegmental	short	-	post
+̆	short	suprasegmental	short	+	post
+̂	tone: falling	suprasegmental	tone	+	post
+̂	tone: falling	suprasegmental	tone_contour	+	post
+̂	tone: falling	suprasegmental	tone_falling	+	post
+́	tone: high	suprasegmental	tone	+	post
+́	tone: high	suprasegmental	tone_high	+	post
+́	tone: high	suprasegmental	tone_central	+	post
+̀	tone: low	suprasegmental	tone	+	post
+̀	tone: low	suprasegmental	tone_central	+	post
+̄	tone: mid	suprasegmental	tone	+	post
+̄	tone: mid	suprasegmental	tone_mid	+	post
+̄	tone: mid	suprasegmental	tone_central	+	post
+̌	tone: rising	suprasegmental	tone	+	post
+̌	tone: rising	suprasegmental	tone_contour	+	post
+̌	tone: rising	suprasegmental	tone_rising	+	post
+̏	tone: extra low	suprasegmental	tone	+	post
+̋	tone: extra high	suprasegmental	tone	+	post
+̋	tone: extra high	suprasegmental	tone_high	+	post
+̯	non-syllabic	syllabicity	syllabic	-	post
+̩	syllabic	syllabicity	syllabic	+	post
+̍	syllabic	syllabicity	syllabic	+	post
+̘	advanced tongue root	tongue root state	advancedTongueRoot	+	post
+̘	advanced tongue root	tongue root state	retractedTongueRoot	-	post
+̙	retracted tongue root	tongue root state	retractedTongueRoot	+	post
+̙	retracted tongue root	tongue root state	advancedTongueRoot	-	post
+̤	breathy voiced	voice quality	spreadGlottis	+	post
+̤	breathy voiced	voice quality	constrictedGlottis	-	post
+̤	breathy voiced	voice quality	periodicGlottalSource	+	post
+̰	creaky voiced	voice quality	constrictedGlottis	+	post
+̰	creaky voiced	voice quality	spreadGlottis	-	post
+̰	creaky voiced	voice quality	periodicGlottalSource	+	post
+ˀ	glottalized	voice quality	constrictedGlottis	+	post
+ˀ	glottalized	voice quality	spreadGlottis	-	post
+ᵐ	prenasalized	nasality	nasal	+	pre
+ᶬ	prenasalized	nasality	nasal	+	pre
+ⁿ	prenasalized	nasality	nasal	+	pre
+ᵑ	prenasalized	nasality	nasal	+	pre
+ˈ	stress: primary	suprasegmental	stress	+	pre
+ˌ	stress: secondary	suprasegmental	stress	+	pre

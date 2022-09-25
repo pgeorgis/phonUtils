@@ -1,0 +1,45 @@
+Feature	Path
+approximant	root
+consonantal	root
+nasal	root
+sonorant	root
+syllabic	root
+epilaryngealSource	root | laryngeal
+constrictedGlottis	root | laryngeal | glottis
+periodicGlottalSource	root | laryngeal | glottis
+spreadGlottis	root | laryngeal | glottis
+fortis	root | laryngeal | larynx
+loweredLarynxImplosive	root | laryngeal | larynx
+raisedLarynxEjective	root | laryngeal | larynx
+coronal	root | place
+dorsal	root | place
+labial	root | place
+anterior	root | place | coronal
+distributed	root | place | coronal
+strident	root | place | coronal
+back	root | place | dorsal | tongue position
+front	root | place | dorsal | tongue position
+high	root | place | dorsal | tongue position
+low	root | place | dorsal | tongue position
+tense	root | place | dorsal | tongue position
+advancedTongueRoot	root | place | dorsal | tongue root
+retractedTongueRoot	root | place | dorsal | tongue root
+labiodental	root | place | labial
+round	root | place | labial
+click	root | supralaryngeal
+continuant	root | supralaryngeal
+delayedRelease	root | supralaryngeal
+lateral	root | supralaryngeal
+tap	root | supralaryngeal
+trill	root | supralaryngeal
+long	root | suprasegmental | length
+short	root | suprasegmental | length
+stress	root | suprasegmental | prosody
+tone	root | suprasegmental | prosody
+tone_central	root | suprasegmental | prosody | tone
+tone_contour	root | suprasegmental | prosody | tone
+tone_high	root | suprasegmental | prosody | tone
+tone_mid	root | suprasegmental | prosody | tone
+tone_convex	root | suprasegmental | prosody | tone | tone_contour
+tone_falling	root | suprasegmental | prosody | tone | tone_contour
+tone_rising	root | suprasegmental | prosody | tone | tone_contour
