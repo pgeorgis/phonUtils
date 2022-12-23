@@ -1,7 +1,6 @@
 #PHONETIC SEGMENT ANALYSIS AND PHONETIC DISTANCE
 #Code written by Philip Georgis (2021)
 
-
 #LOAD REQUIRED PACKAGES AND FUNCTIONS
 import re, math, os
 import pandas as pd
@@ -13,8 +12,8 @@ def strip_ch(string, to_remove):
     """Removes a set of characters from strings"""
     return ''.join([ch for ch in string if ch not in to_remove])
 
-#IMPORT SOUND DATA
-save_dir = '/'.join(__file__.split('/')[:-1])
+#IMPORT PHONE DATA
+save_dir = '/' + os.path.join(*os.path.realpath(__file__).split('/')[:-1])
 phone_data = pd.read_csv(os.path.join(save_dir, 'Phones/segments.csv'), sep=',')
 
 def binary_feature(feature):
@@ -27,17 +26,14 @@ def binary_feature(feature):
 #Dictionary of basic phones with their phonetic features
 phone_features = {phone_data['segment'][i]:{feature:binary_feature(phone_data[feature][i])
                                           for feature in phone_data.columns
-                                          if feature not in ['segment',
-                                                             #'stress',
-                                                             #'tone',
-                                                             'sonority']
+                                          if feature not in ['segment', 'sonority']
                                           if pd.isnull(phone_data[feature][i]) == False}
                   for i in range(len(phone_data))}
 
 features = set(feature for sound in phone_features for feature in phone_features[sound])
 
 #%%
-#Dictionary of basic phone with their sonority levels
+#Dictionary of basic phones with their sonority levels
 phone_sonority = {phone_data['segment'][i]:int(phone_data['sonority'][i])
                   for i in range(len(phone_data))}
 
@@ -484,6 +480,14 @@ def prosodic_environment_weight(segments, i):
 #WORD SEGMENTATION
 def segment_word(word, remove_ch=[]):
     """Returns a list of segmented phones from the word"""
+
+    #Assert that all characters in string are recognized IPA characters
+    unk_ch = verify_charset(word)
+    try:
+        assert len(unk_ch) == 0
+    except AssertionError:
+        unk_ch_str = '>, <'.join(unk_ch)
+        raise AssertionError(f'Invalid IPA character(s) <{unk_ch_str}> found in form "{word}"!')
     
     #Remove spaces and other specified characters/diacritics (e.g. stress)
     word = ''.join([ch for ch in word if ch not in remove_ch+[' ']])
