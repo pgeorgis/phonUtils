@@ -112,12 +112,18 @@ def strip_diacritics(string, excepted=[]):
             f.write(f'Unable to parse phonetic characters in form: {string}')
         raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
 
-
-def verify_charset(text):
-    """Verifies that all characters are recognized as IPA characters or diacritics"""
-    chs = set(list(text))
+def invalid_ch(string):
+    """Returns set of unrecognized (non-IPA) characters in phonetic string"""
+    chs = set(list(string))
     unk_ch = set(ch for ch in chs if ch not in set(all_sounds+diacritics+tonemes+[' ']))
     return unk_ch
+
+def verify_charset(string):
+    """Verifies that all characters are valid IPA characters or diacritics, otherwise raises error"""
+    unk_ch = invalid_ch(string)
+    if len(unk_ch) > 0:
+        unk_ch_str = '>, <'.join(unk_ch)
+        raise ValueError(f'Invalid IPA character(s) <{unk_ch_str}> found in "{string}"!')
 
 def is_ch(ch, l):
     try:
@@ -146,6 +152,9 @@ def phone_id(segment):
     if segment in phone_ids:
         return phone_ids[segment]
     
+    # Verify that all characters in phone are valid IPA characters
+    verify_charset(segment)
+
     # Otherwise generate a new phone feature dictionary
     seg_dict = defaultdict(lambda:0)
     
@@ -488,12 +497,7 @@ def segment_word(word, remove_ch=[]):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
-    unk_ch = verify_charset(word)
-    try:
-        assert len(unk_ch) == 0
-    except AssertionError:
-        unk_ch_str = '>, <'.join(unk_ch)
-        raise AssertionError(f'Invalid IPA character(s) <{unk_ch_str}> found in form "{word}"!')
+    verify_charset(word)
     
     # Remove spaces and other specified characters/diacritics (e.g. stress)
     word = ''.join([ch for ch in word if ch not in remove_ch+[' ']])
