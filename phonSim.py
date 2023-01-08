@@ -1,7 +1,7 @@
-#PHONETIC SEGMENT ANALYSIS AND PHONETIC DISTANCE
-#Code written by Philip Georgis (2021)
+# PHONETIC SEGMENT ANALYSIS AND PHONETIC DISTANCE
+# Code written by Philip Georgis (2021)
 
-#LOAD REQUIRED PACKAGES AND FUNCTIONS
+# LOAD REQUIRED PACKAGES AND FUNCTIONS
 import re, math, os
 import pandas as pd
 from collections import defaultdict
@@ -14,7 +14,7 @@ def strip_ch(string, to_remove):
         string = re.sub(ch, '', string)
     return string
 
-#IMPORT PHONE DATA
+# IMPORT PHONE DATA
 save_dir = os.path.dirname(__file__)
 phone_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'segments.csv'), sep=',')
 
@@ -25,7 +25,7 @@ def binary_feature(feature):
     else:
         return 0
 
-#Dictionary of basic phones with their phonetic features
+# Dictionary of basic phones with their phonetic features
 phone_features = {phone_data['segment'][i]:{feature:binary_feature(phone_data[feature][i])
                                           for feature in phone_data.columns
                                           if feature not in ['segment', 'sonority']
@@ -34,54 +34,54 @@ phone_features = {phone_data['segment'][i]:{feature:binary_feature(phone_data[fe
 
 features = set(feature for sound in phone_features for feature in phone_features[sound])
 
-#%%
-#Dictionary of basic phones with their sonority levels
+
+# Dictionary of basic phones with their sonority levels
 phone_sonority = {phone_data['segment'][i]:int(phone_data['sonority'][i])
                   for i in range(len(phone_data))}
 
 max_sonority = max(phone_sonority.values())
 
-#%%
-#Load basic groupings of phones; e.g. plosive, fricative, velar, palatal
+
+# Load basic groupings of phones; e.g. plosive, fricative, velar, palatal
 phone_groups = pd.read_csv(os.path.join(save_dir, 'Phones/phone_classes.csv'))
 phone_groups = {phone_groups['Group'][i]:phone_groups['Phones'][i].split()
                 for i in range(len(phone_groups))}
 
-#Set these phone groups as global variables so that they are callable by name
+# Set these phone groups as global variables so that they are callable by name
 globals().update(phone_groups)
 
-#Set basic consonants and vowels using syllabic feature
+# Set basic consonants and vowels using syllabic feature
 consonants = [phone for phone in phone_features
               if phone_features[phone]['syllabic'] == 0
               if phone not in tonemes]
 vowels = [phone for phone in phone_features if phone not in consonants+tonemes]
 
-#List of all basic sounds
+# List of all basic sounds
 all_sounds = list(set(vowels + consonants))
 
-#%%
-#IMPORT DIACRITICS DATA
+
+# IMPORT DIACRITICS DATA
 diacritics_data = pd.read_csv(os.path.join(save_dir, 'Phones/diacritics.csv'), sep='\t')
 
-#Create dictionary of diacritic characters with affected features and values
+# Create dictionary of diacritic characters with affected features and values
 diacritics_effects = defaultdict(lambda:[])
 for i in range(len(diacritics_data)):
     effect = (diacritics_data['Feature'][i], binary_feature(diacritics_data['Value'][i]))
     
-    #Skip diacritics which have no effect on features
+    # Skip diacritics which have no effect on features
     if type(effect[0]) != float:
         
-        #Add to dictionary, with diacritic as key
+        # Add to dictionary, with diacritic as key
         diacritics_effects[diacritics_data['Diacritic'][i]].append(effect)
 
-#Isolate suprasegmental diacritics
+# Isolate suprasegmental diacritics
 suprasegmental_diacritics = set(diacritics_data.Diacritic[i] 
                                 for i in range(len(diacritics_data)) 
                                 if diacritics_data.Type[i] == 'suprasegmental')
-suprasegmental_diacritics.remove('ː') #don't include length as a suprasegmental
+suprasegmental_diacritics.remove('ː') # don't include length as a suprasegmental
 
 
-#Diacritics by position with respect to base segments
+# Diacritics by position with respect to base segments
 inter_diacritics = ['͡', '͜']
 pre_diacritics = set([diacritics_data['Diacritic'][i] 
                       for i in range(len(diacritics_data))
@@ -89,10 +89,10 @@ pre_diacritics = set([diacritics_data['Diacritic'][i]
 post_diacritics = set([diacritics_data['Diacritic'][i]
                        for i in range(len(diacritics_data))
                        if diacritics_data['Position'][i] == 'post'])
-prepost_diacritics = {'ʰ', 'ʱ', 'ⁿ'} #diacritics which can appear before or after
+prepost_diacritics = {'ʰ', 'ʱ', 'ⁿ'} # diacritics which can appear before or after
 
 
-#List of all diacritic characters
+# List of all diacritic characters
 diacritics = list(pre_diacritics) + list(post_diacritics) + inter_diacritics
 
 def strip_diacritics(string, excepted=[]):
@@ -106,7 +106,7 @@ def strip_diacritics(string, excepted=[]):
         for ch in to_remove:
             string = re.sub(ch, '', string)
         return string
-        
+
     except RecursionError:
         with open('error.out', 'w') as f:
             f.write(f'Unable to parse phonetic characters in form: {string}')
@@ -137,37 +137,37 @@ def is_consonant(ch):
 def is_glide(ch):
     return is_ch(ch, glides)
 
-#%%
-#BASIC PHONE ANALYSIS: Methods for yielding feature dictionaries of phone segments
-phone_ids = {} #Dictionary of phone feature dicts 
+
+# BASIC PHONE ANALYSIS: Methods for yielding feature dictionaries of phone segments
+phone_ids = {} # Dictionary of phone feature dicts 
 def phone_id(segment):
     """Returns a dictionary of phonetic feature values for the segment"""
-    #If feature dictionary for segment has been created already, retrieve this
+    # If feature dictionary for segment has been created already, retrieve this
     if segment in phone_ids:
         return phone_ids[segment]
     
-    #Otherwise generate a new phone feature dictionary
+    # Otherwise generate a new phone feature dictionary
     seg_dict = defaultdict(lambda:0)
     
-    #Split segment into component parts, if relevant
+    # Split segment into component parts, if relevant
     parts = re.split('͡|͜', segment)
     
-    #Generate feature dictionary for each part and add to main feature dict
+    # Generate feature dictionary for each part and add to main feature dict
     for part in parts:
         if len(part.strip()) > 0:
             part_id = compact_diacritics(part)
             for feature in part_id:
-                #Value = 1 (+) overrides value = 0 (-,0)
+                # Value = 1 (+) overrides value = 0 (-,0)
                 seg_dict[feature] = max(seg_dict[feature], part_id[feature])
     
-    #Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
+    # Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
     if len(parts) > 1:
         if strip_diacritics(parts[0]) in plosive:
             if strip_diacritics(parts[-1]) in fricative:
                 seg_dict['delayedRelease'] = 1 
                 seg_dict['continuant'] = 0 
     
-    #Add segment's feature dictionary to phone_ids; return the feature dictionary
+    # Add segment's feature dictionary to phone_ids; return the feature dictionary
     phone_ids[segment] = seg_dict
     return seg_dict 
 
@@ -176,22 +176,22 @@ def diphthong_dict(diphthong):
     """Returns dictionary of features for diphthongal segment"""
     components = segment_word(diphthong)
     
-    #Create weights: 1 for syllabic components and 0.5 for non-syllabic components
+    # Create weights: 1 for syllabic components and 0.5 for non-syllabic components
     weights = [1 if phone_id(component)['syllabic'] == 1 else 0.5 
                for component in components]
     
-    #Normalize the weights
+    # Normalize the weights
     weight_sum = sum(weights)
     weights = [i/weight_sum for i in weights]
     
-    #Create combined dictionary using features of component segments
+    # Create combined dictionary using features of component segments
     diphth_dict = defaultdict(lambda:0)
     for segment, weight in zip(components, weights):
         feature_id = phone_id(segment)
         for feature in feature_id:
             diphth_dict[feature] += (weight * feature_id[feature])
     
-    #Length feature should be either 0 or 1
+    # Length feature should be either 0 or 1
     if diphth_dict['long'] > 0:
         diphth_dict['long'] = 1
         
@@ -200,46 +200,46 @@ def diphthong_dict(diphthong):
 
 def compact_diacritics(segment):
     """Applies diacritic effects to relevant segments"""
-    #Base of the segment is the non-diacritic portion
+    # Base of the segment is the non-diacritic portion
     base = strip_diacritics(segment)
     
-    #If the length of the base > 1, the segment is a diphthong or complex toneme
-    #Filter out tonemes
+    # If the length of the base > 1, the segment is a diphthong or complex toneme
+    # Filter out tonemes
     if ((len(base) > 1) and (base[0] not in tonemes)):
         return diphthong_dict(segment)
     
     else:
-        #Retrieve basic dictionary of phone features for the base segment
-        #If the segment is a toneme, use the first component as its base
+        # Retrieve basic dictionary of phone features for the base segment
+        # If the segment is a toneme, use the first component as its base
         if base[0] in tonemes:
             seg_id = tonal_features(segment)
         
         else:
-            #Create copy of original feature dictionary, or else it modifies the source
+            # Create copy of original feature dictionary, or else it modifies the source
             seg_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
             
-        #Modifiers are whichever diacritics may have been in the segment string
+        # Modifiers are whichever diacritics may have been in the segment string
         modifiers = [ch for ch in segment if ch not in base]
         
-        #Apply diacritic effects to feature dictionary
+        # Apply diacritic effects to feature dictionary
         for modifier in modifiers:
             for effect in diacritics_effects[modifier]:
                 feature, value = effect[0], effect[1] 
                 seg_id[feature] = value
                 
-            if modifier == '̞': #lowered diacritic, for turning fricatives into approximants
+            if modifier == '̞': # lowered diacritic, for turning fricatives into approximants
                 if base[0] in fricative:
                     seg_id['approximant'] = 1
                     seg_id['consonantal'] = 0
                     seg_id['delayedRelease'] = 0
                     seg_id['sonorant'] = 1
             
-            elif modifier == '̝': #raised diacritic
-                #for turning approximants/trills into fricativized approximants
+            elif modifier == '̝': # raised diacritic
+                # for turning approximants/trills into fricativized approximants
                 if base[0] in approximants+trills:
                     seg_id['delayedRelease'] = 1
                     
-                #for turning fricatives into plosives
+                # for turning fricatives into plosives
                 elif base[0] in fricative:
                     seg_id['continuant'] = 0
                     seg_id['delayedRelease'] = 0
@@ -257,62 +257,62 @@ tone_levels = {'˩':1, '¹':1,
 def tonal_features(toneme):
     """Computes complex tonal features"""
     
-    #Set the base as the first component of the toneme
+    # Set the base as the first component of the toneme
     base = toneme[0]
     
-    #Create copy of original feature dictionary, or else it modifies the source
+    # Create copy of original feature dictionary, or else it modifies the source
     toneme_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
     
-    #Get the tone level of each tonal component of the toneme
+    # Get the tone level of each tonal component of the toneme
     toneme_levels = [tone_levels[t] for t in toneme if t in tonemes]
     
-    #Compute the complex tone features if not just a level tone
+    # Compute the complex tone features if not just a level tone
     if len(set(toneme_levels)) > 1:
         
-        #Add feature tone_contour to all non-level tones
+        # Add feature tone_contour to all non-level tones
         toneme_id['tone_contour'] = 1
         
-        #Ensure that contour tones do not have features tone_mid and tone_central
-        #(which are unique to level tones)
+        # Ensure that contour tones do not have features tone_mid and tone_central
+        # (which are unique to level tones)
         toneme_id['tone_central'] = 0
         toneme_id['tone_mid'] = 0
     
-        #Get the maximum tonal level
+        # Get the maximum tonal level
         max_level = max(toneme_levels)
         
-        #Add feature tone_high if the maximum tone level is at least 4
+        # Add feature tone_high if the maximum tone level is at least 4
         if max_level >= 4:
             toneme_id['tone_high'] = 1
         
-        #Check whether any subsequence of the tonal components is rising or falling
+        # Check whether any subsequence of the tonal components is rising or falling
         contours = {}
         for t in range(len(toneme_levels)-1):
             t_seq = toneme_levels[t:t+2]
             
-            #Check for a tonal rise
+            # Check for a tonal rise
             if t_seq[0] < t_seq[1]:
                 toneme_id['tone_rising'] = 1
                 contours[t] = 'rise'
             
-            #Check for a tonal fall
+            # Check for a tonal fall
             elif t_seq[0] > t_seq[1]:
                 toneme_id['tone_falling'] = 1
                 contours[t] = 'fall'
                 
-                #If a subsequence is falling, check whether the previous subsequence was rising
-                #in order to determine whether the tone is convex (rising-falling)
+                # If a subsequence is falling, check whether the previous subsequence was rising
+                # in order to determine whether the tone is convex (rising-falling)
                 if t > 0:
                     if contours[t-1] == 'rise':
                         toneme_id['tone_convex'] = 1
                                             
-            #Otherwise two equal tone levels in a row, e.g. '⁴⁴²'
+            # Otherwise two equal tone levels in a row, e.g. '⁴⁴²'
             else:
                 contours[t] = 'level'
     
     return toneme_id
     
 
-#%%
+
 def get_sonority(sound):
     """Returns the sonority level of a sound according to Parker's (2002) 
     universal sonority hierarchy
@@ -321,104 +321,104 @@ def get_sonority(sound):
     https://www.researchgate.net/publication/336652515/figure/fig1/AS:815405140561923@1571419143959/Adapted-version-of-Parkers-2002-sonority-hierarchy.ppm
     
     TO DO: DIPHTHONGS, Complex plosives, e.g. /k͡p̚/"""
-    #If sonority for this sound has already been calculated, retrieve this
+    # If sonority for this sound has already been calculated, retrieve this
     if sound in phone_sonority:
         return phone_sonority[sound]
     
-    #Strip diacritics
+    # Strip diacritics
     strip_sound = strip_diacritics(sound)
     
-    #Feature dictionary for sound
+    # Feature dictionary for sound
     phone = phone_id(sound)
     
-    #Determine appropriate sonority level by checking membership in sound 
-    #groups (manner/place of articulation) and/or relevant features     
+    # Determine appropriate sonority level by checking membership in sound 
+    # groups (manner/place of articulation) and/or relevant features     
 
-    #Vowels
+    # Vowels
     if strip_sound in vowels:
-        #Treat as glide if non-syllabic
+        # Treat as glide if non-syllabic
         if phone['syllabic'] == 0:
             sonority = 11
         
-        #Schwa /ə/ and /ɨ/ have special sonority
+        # Schwa /ə/ and /ɨ/ have special sonority
         elif strip_sound == 'ə':
             sonority = 13
         elif strip_sound == 'ɨ':
             sonority = 12
         
-        #Open and near-open vowels
+        # Open and near-open vowels
         elif ((phone['high'] == 0) and (phone['low'] == 1)): 
             sonority = 16
         
-        #Open-mid, mid, close-mid vowels other than schwa /ə/
+        # Open-mid, mid, close-mid vowels other than schwa /ə/
         elif phone['high'] == 0:  
             sonority = 15
         
-        #Near-close and close vowels other than /ɨ/
+        # Near-close and close vowels other than /ɨ/
         elif phone['high'] == 1:
             sonority = 14
 
-    #Consonants
+    # Consonants
     elif strip_sound[0] in consonants: 
-        #index 0, for affricates or complex plosives, such as /p͡f/ and /k͡p/, written with >1 character
+        # index 0, for affricates or complex plosives, such as /p͡f/ and /k͡p/, written with >1 character
         
-        #Glides
+        # Glides
         if strip_sound in glides:
             sonority = 11
         
-        #/r/
+        # /r/
         elif strip_sound == 'r':
             sonority = 10
         
-        #Laterals
+        # Laterals
         elif phone['lateral'] == 1:
             sonority = 9
         
-        #Taps/flaps
+        # Taps/flaps
         elif strip_sound in tap_flap:
             sonority = 8
            
-        #Trills
+        # Trills
         elif strip_sound in trills:
             sonority = 7
         
-        #Nasals
+        # Nasals
         elif strip_sound in nasals:
             sonority = 6
         
-        #/h/
+        # /h/
         elif strip_sound == 'h':
             sonority = 5
         
-        #Fricatives
+        # Fricatives
         elif strip_sound in fricative:
             
-            #Voiced fricatives
+            # Voiced fricatives
             if phone['periodicGlottalSource'] == 1:
                 sonority = 4
             
-            #Voiceless fricatives
+            # Voiceless fricatives
             else:
                 sonority = 3
         
-        #Affricates, plosives, implosives, clicks
+        # Affricates, plosives, implosives, clicks
         else:
         
-            #Voiced
+            # Voiced
             if phone['periodicGlottalSource'] == 1:
                 sonority = 2
                 
-            #Voiceless 
+            # Voiceless 
             else:
                 sonority = 1
     
-    #Tonemes
+    # Tonemes
     elif strip_sound[0] in tonemes:
         sonority = 0
     
-    #Other sounds: raise error message
+    # Other sounds: raise error message
     else:
-        #Diphthong: calculate sonority as maximum sonority of component parts
+        # Diphthong: calculate sonority as maximum sonority of component parts
         if strip_sound[0] in vowels:
             diphthong_components = segment_word(sound)
             sonorities = [get_sonority(v) for v in diphthong_components]
@@ -428,7 +428,7 @@ def get_sonority(sound):
         else:
             raise ValueError(f'Error: the sonority of phone "{sound}" cannot be determined!')
    
-    #Save sonority level of this sound in sonority dictionary, return sonority level
+    # Save sonority level of this sound in sonority dictionary, return sonority level
     phone_sonority[sound] = sonority
     return sonority
 
@@ -437,57 +437,57 @@ def prosodic_environment_weight(segments, i):
     """Returns the relative prosodic environment weight of a segment within
     a word, based on List (2012)"""
     
-    #Word-initial segments
+    # Word-initial segments
     if i == 0:
-        #Word-initial consonants: weight 7
+        # Word-initial consonants: weight 7
         if strip_diacritics(segments[i])[0] in consonants:
             return 7
         
-        #Word-initial vowels: weight 6
+        # Word-initial vowels: weight 6
         else:
             return 6
     
-    #Word-final segments
+    # Word-final segments
     elif i == len(segments)-1:
         stripped_segment = strip_diacritics(segments[i])[0]
         
-        #Word-final consonants: weight 2
+        # Word-final consonants: weight 2
         if stripped_segment in consonants:
             return 2
         
-        #Word-final vowels: weight 1
+        # Word-final vowels: weight 1
         elif stripped_segment in vowels:
             return 1
         
-        #Word-final tonemes: weight 0
+        # Word-final tonemes: weight 0
         else:
             return 0
     
-    #Word-medial segments
+    # Word-medial segments
     else:
         prev_segment, segment_i, next_segment = segments[i-1], segments[i], segments[i+1]
         prev_sonority, sonority_i, next_sonority = map(get_sonority, [prev_segment, 
                                                                       segment_i, 
                                                                       next_segment])
         
-        #Sonority peak: weight 3
+        # Sonority peak: weight 3
         if prev_sonority <= sonority_i >= next_sonority:
             return 3
         
-        #Descending sonority: weight 4
+        # Descending sonority: weight 4
         elif prev_sonority >= sonority_i >= next_sonority:
             return 4
         
-        #Ascending sonority: weight 5
+        # Ascending sonority: weight 5
         else:
             return 5
 
 
-#WORD SEGMENTATION
+# WORD SEGMENTATION
 def segment_word(word, remove_ch=[]):
     """Returns a list of segmented phones from the word"""
 
-    #Assert that all characters in string are recognized IPA characters
+    # Assert that all characters in string are recognized IPA characters
     unk_ch = verify_charset(word)
     try:
         assert len(unk_ch) == 0
@@ -495,76 +495,76 @@ def segment_word(word, remove_ch=[]):
         unk_ch_str = '>, <'.join(unk_ch)
         raise AssertionError(f'Invalid IPA character(s) <{unk_ch_str}> found in form "{word}"!')
     
-    #Remove spaces and other specified characters/diacritics (e.g. stress)
+    # Remove spaces and other specified characters/diacritics (e.g. stress)
     word = ''.join([ch for ch in word if ch not in remove_ch+[' ']])
     
     phone_list = defaultdict(lambda:[])
     
-    #Iterate through all characters of the word
+    # Iterate through all characters of the word
     i = 0
     for ch in word:
         
-        #If character is a preceding diacritic, add it to the next segment
-        #by incrementing the index by 1
+        # If character is a preceding diacritic, add it to the next segment
+        # by incrementing the index by 1
         if ch in pre_diacritics:
             i += 1
         
-        #Or, if there was a previous sound at the current index
+        # Or, if there was a previous sound at the current index
         elif i in phone_list:
             
-            #Previous segment
+            # Previous segment
             prev = phone_list[i]
             
-            #Last character of this previous segment
+            # Last character of this previous segment
             last = prev[-1]
             
-            #Base of this previous segment
+            # Base of this previous segment
             prev_base = strip_diacritics(prev)
             
-            #Increment index by 1 if the current character is a consonant or vowel
-            #AND if the last character of the previous sound was either
-            #a post-diacritic or not a diacritic at all:
+            # Increment index by 1 if the current character is a consonant or vowel
+            # AND if the last character of the previous sound was either
+            # a post-diacritic or not a diacritic at all:
             if ch in consonants+vowels:
                 if last in post_diacritics:
                     
-                    #Don't increment the index unless the previous segment
-                    #consists of more than just a diacritic,
-                    #which would be the case for pre-aspiration/pre-nasalization
+                    # Don't increment the index unless the previous segment
+                    # consists of more than just a diacritic,
+                    # which would be the case for pre-aspiration/pre-nasalization
                     if len(prev_base) > 0:
                         i += 1
                     
                 elif last not in diacritics:
                     i += 1
             
-            #If the current character is a toneme, increment the index only
-            #if the base of the previous sound was not a toneme
-            #(in order to group sequences of tonemes and associated diacritics as a single segment)
+            # If the current character is a toneme, increment the index only
+            # if the base of the previous sound was not a toneme
+            # (in order to group sequences of tonemes and associated diacritics as a single segment)
             elif ch in tonemes:
                 if prev_base[0] not in tonemes:
                     i += 1
             
-            #If the character is a diacritic which could be either a pre- or post-diacritic
-            #Increment the index by 1 if the base of the previous sound is a vowel
-            #In order to prevent pre-aspiration/nasalization to be added to a previous vowel
+            # If the character is a diacritic which could be either a pre- or post-diacritic
+            # Increment the index by 1 if the base of the previous sound is a vowel
+            # In order to prevent pre-aspiration/nasalization to be added to a previous vowel
             elif ch in prepost_diacritics:
                 if prev_base in vowels:
                     i += 1
         
-        #Add the character to the yielded index
+        # Add the character to the yielded index
         phone_list[i].append(ch)
     
-    #Rejoin together all characters for each segment
+    # Rejoin together all characters for each segment
     for i in phone_list:
         phone_list[i] = ''.join(phone_list[i])
     
-    #Return a list of the segments
+    # Return a list of the segments
     return list(phone_list.values())
 
 def remove_stress(word):
     """Removes stress annotation from an IPA string"""
     return ''.join([ch for ch in word if ch not in ['ˈ', 'ˌ']])
 
-#%%
+
 def common_features(segment_list, 
                     start_features=features):
     """Returns the features/values shared by all segments in the list"""
@@ -606,11 +606,11 @@ def lookup_segments(features, values,
             matches.append(segment)
     return set(matches)
 
-#%%
 
-#SIMILARITY / DISTANCE MEASURES
 
-#Cosine similarity: cosine() imported from scipy.spatial.distance
+# SIMILARITY / DISTANCE MEASURES
+
+# Cosine similarity: cosine() imported from scipy.spatial.distance
 
 def hamming_distance(vec1, vec2, normalize=True):
     differences = len([feature for feature in vec1 if vec1[feature] != vec2[feature]])
@@ -624,8 +624,8 @@ def jaccard_sim(vec1, vec2):
     vec1_values = [vec1[feature] for feature in features]
     vec2_values = [vec2[feature] for feature in features]
     
-    #Jaccard index does not allow continuous features
-    #Ensure that they are all binarily encoded (any continuous value >0 --> 1)
+    # Jaccard index does not allow continuous features
+    # Ensure that they are all binarily encoded (any continuous value >0 --> 1)
     for vec in [vec1_values, vec2_values]:
         for i in range(len(vec)):
             if vec[i] > 0:
@@ -638,9 +638,9 @@ def dice_sim(vec1, vec2):
     return (2*jaccard) / (1+jaccard)
 
 
-#Feature Geometry Weights
-#Feature weight calculated as ln(n_distinctions) / (tier**2)
-#where n_distinctions = (n_sisters+1) + (n_descendants)
+# Feature Geometry Weights
+# Feature weight calculated as ln(n_distinctions) / (tier**2)
+# where n_distinctions = (n_sisters+1) + (n_descendants)
 feature_geometry = pd.read_csv(os.path.join(save_dir, 'Phones/feature_geometry.csv'), sep='\t')
 feature_geometry['Tier'] = feature_geometry['Path'].apply(lambda x: len(x.split(' | ')))
 feature_geometry['Parent'] = feature_geometry['Path'].apply(lambda x: x.split(' | ')[-1])
@@ -682,7 +682,7 @@ def weighted_dice(vec1, vec2, weights=feature_weights):
 
 
 
-#PHONE COMPARISON
+# PHONE COMPARISON
 checked_phone_sims = {}
 def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     """Returns the similarity of the features of the two phones according to
@@ -690,15 +690,15 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     Features not to be included in the comparison should be passed as a list to
     the exclude_features parameter (by default no features excluded)"""
     
-    #If the phone similarity has already been calculated for this pair, retrieve it
+    # If the phone similarity has already been calculated for this pair, retrieve it
     reference = (phone1, phone2, similarity, tuple(exclude_features))
     if reference in checked_phone_sims:
         return checked_phone_sims[reference]
     
-    #Get feature dictionaries for each phone
+    # Get feature dictionaries for each phone
     phone_id1, phone_id2 = phone_id(phone1), phone_id(phone2)
     
-    #Remove any specified features
+    # Remove any specified features
     for feature in exclude_features:
         for phoneid in [phone_id1, phone_id2]:
             try:
@@ -706,7 +706,7 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
             except KeyError:
                 pass
 
-    #Calculate similarity of phone features according to specified measure
+    # Calculate similarity of phone features according to specified measure
     measures = {'cosine':cosine,
                 'dice':dice_sim,
                 'hamming':hamming_distance,
@@ -728,16 +728,16 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
         phone2_values = [phone_id2[feature] for feature in compare_features]
         if similarity == 'weighted_cosine':
             weights = [feature_weights[feature] for feature in compare_features]
-            #Subtract from 1: cosine() returns a distance
+            # Subtract from 1: cosine() returns a distance
             score = 1 - measure(phone1_values, phone2_values, w=weights)
         else:
             score = 1 - measure(phone1_values, phone2_values)
     
-    #If method is Hamming, convert distance to similarity
+    # If method is Hamming, convert distance to similarity
     if similarity in ['hamming', 'weighted_hamming']:
         score = 1 - score
         
-    #Save the phonetic similarity score to dictionary, return score
+    # Save the phonetic similarity score to dictionary, return score
     checked_phone_sims[reference] = score
     checked_phone_sims[reference] = score
     return score
