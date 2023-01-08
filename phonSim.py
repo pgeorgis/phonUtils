@@ -56,9 +56,8 @@ consonants = set(phone for phone in phone_features
               if phone not in tonemes)
 vowels = set(phone for phone in phone_features if phone not in consonants.union(tonemes))
 
-# List of all basic sounds
-all_sounds = consonants.union(vowels)
-
+# All basic sounds
+all_sounds = ''.join(consonants.union(vowels).union(tonemes))
 
 # IMPORT DIACRITICS DATA
 diacritics_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'diacritics.csv'), sep='\t')
@@ -82,38 +81,38 @@ suprasegmental_diacritics.remove('ː') # don't include length as a suprasegmenta
 
 
 # Diacritics by position with respect to base segments
-inter_diacritics = ['͡', '͜']
-pre_diacritics = set([diacritics_data['Diacritic'][i] 
-                      for i in range(len(diacritics_data))
-                      if diacritics_data['Position'][i] == 'pre'])
-post_diacritics = set([diacritics_data['Diacritic'][i]
-                       for i in range(len(diacritics_data))
-                       if diacritics_data['Position'][i] == 'post'])
+inter_diacritics = '͜͡'
+pre_diacritics, post_diacritics = [], []
+for i in range(len(diacritics_data)):
+    if diacritics_data['Position'][i] == 'pre':
+        pre_diacritics.append(diacritics_data['Diacritic'][i])
+    elif diacritics_data['Position'][i] == 'post':
+        post_diacritics.append(diacritics_data['Diacritic'][i])
+pre_diacritics = ''.join(pre_diacritics)
+post_diacritics = ''.join(post_diacritics)
 prepost_diacritics = {'ʰ', 'ʱ', 'ⁿ'} # diacritics which can appear before or after
 
-
 # List of all diacritic characters
-diacritics = list(pre_diacritics) + list(post_diacritics) + inter_diacritics
+diacritics = ''.join([pre_diacritics, post_diacritics, inter_diacritics])
+
 
 def strip_diacritics(string, excepted=[]):
     """Removes diacritic characters from an IPA string
     By default removes all diacritics; in order to keep certain diacritics,
     these should be passed as a list to the "excepted" parameter"""
     try:
-        to_remove = [d for d in diacritics if d not in excepted]
-        for ch in to_remove:
-            string = re.sub(ch, '', string)
-        return string
+        to_remove = ''.join([d for d in diacritics if d not in excepted])
+        return re.sub(f'[{to_remove}]', '', string)
 
     except RecursionError:
         with open('error.out', 'w') as f:
             f.write(f'Unable to parse phonetic characters in form: {string}')
         raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
 
-valid_ipa_ch = ''.join(all_sounds.union(diacritics).union(tonemes).union({' '}))
+valid_ipa_ch = ''.join([all_sounds, diacritics, ' '])
 def invalid_ch(string, valid_ch=valid_ipa_ch):
     """Returns set of unrecognized (non-IPA) characters in phonetic string"""
-    return set(re.findall(f'[^{valid_ch}]', string))
+    return set(re.findall(fr'[^{valid_ch}]', string))
 
 def verify_charset(string):
     """Verifies that all characters are valid IPA characters or diacritics, otherwise raises error"""
@@ -166,13 +165,13 @@ def phone_id(segment):
         if len(part.strip()) > 0:
 
             # Base of the segment is the non-diacritic portion
-            base = strip_diacritics(segment)
+            base = strip_diacritics(part)
             bases.append(base)
 
             # If the length of the base > 1, the segment is a diphthong (e.g. /e̯a/) or complex toneme (e.g. /˥˩/)
             # Filter out tonemes
             if (len(base) > 1) and (base[0] not in tonemes):
-                return diphthong_features(segment)
+                return diphthong_features(part)
             
             # If the segment is a toneme, use the first component as its base
             elif base[0] in tonemes:
@@ -500,6 +499,7 @@ def prosodic_environment_weight(segments, i):
 
 
 # WORD SEGMENTATION
+segment_regex = re.compile(f'[{pre_diacritics}]*[{all_sounds}][{post_diacritics}]*')
 def segment_word(word, remove_ch=''):
     """Returns a list of segmented phones from the word"""
 
@@ -509,68 +509,21 @@ def segment_word(word, remove_ch=''):
     # Remove spaces and other specified characters/diacritics (e.g. stress)
     remove_ch += '\s'
     word = re.sub(f"[{remove_ch}]", '', word)
-    
-    phone_list = defaultdict(lambda:[])
-    
-    # Iterate through all characters of the word
-    i = 0
-    for ch in word:
-        
-        # If character is a preceding diacritic, add it to the next segment
-        # by incrementing the index by 1
-        if ch in pre_diacritics:
-            i += 1
-        
-        # Or, if there was a previous sound at the current index
-        elif i in phone_list:
-            
-            # Previous segment
-            prev = phone_list[i]
-            
-            # Last character of this previous segment
-            last = prev[-1]
-            
-            # Base of this previous segment
-            prev_base = strip_diacritics(last)
-            
-            # Increment index by 1 if the current character is a consonant or vowel
-            # AND if the last character of the previous sound was either
-            # a post-diacritic or not a diacritic at all:
-            if ch in consonants.union(vowels):
-                if last in post_diacritics:
-                    
-                    # Don't increment the index unless the previous segment
-                    # consists of more than just a diacritic,
-                    # which would be the case for pre-aspiration/pre-nasalization
-                    if len(prev_base) > 0:
-                        i += 1
-                    
-                elif last not in diacritics:
-                    i += 1
-            
-            # If the current character is a toneme, increment the index only
-            # if the base of the previous sound was not a toneme
-            # (in order to group sequences of tonemes and associated diacritics as a single segment)
-            elif ch in tonemes:
-                if prev_base[0] not in tonemes:
-                    i += 1
-            
-            # If the character is a diacritic which could be either a pre- or post-diacritic
-            # Increment the index by 1 if the base of the previous sound is a vowel
-            # In order to prevent pre-aspiration/nasalization to be added to a previous vowel
-            elif ch in prepost_diacritics:
-                if prev_base in vowels:
-                    i += 1
-        
-        # Add the character to the yielded index
-        phone_list[i].append(ch)
-    
-    # Rejoin together all characters for each segment
-    for i in phone_list:
-        phone_list[i] = ''.join(phone_list[i])
-    
-    # Return a list of the segments
-    return list(phone_list.values())
+
+    # Split by inter-diacritics, which don't seem to match properly in regex
+    parts = re.split('͡|͜', word)
+
+    # Then segment the parts and re-combine with tie character, as necessary
+    segments = []
+    for part in parts:
+        segmented = segment_regex.findall(part)
+        if len(segments) > 0:
+            segments[-1] = ''.join([segments[-1], '͡', segmented[0]])
+            segments.extend(segmented[1:])
+        else:
+            segments.extend(segmented)
+
+    return segments
 
 def remove_stress(word):
     """Removes stress annotation from an IPA string"""
