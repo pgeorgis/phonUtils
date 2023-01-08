@@ -51,17 +51,17 @@ phone_groups = {phone_groups['Group'][i]:phone_groups['Phones'][i].split()
 globals().update(phone_groups)
 
 # Set basic consonants and vowels using syllabic feature
-consonants = [phone for phone in phone_features
+consonants = set(phone for phone in phone_features
               if phone_features[phone]['syllabic'] == 0
-              if phone not in tonemes]
-vowels = [phone for phone in phone_features if phone not in consonants+tonemes]
+              if phone not in tonemes)
+vowels = set(phone for phone in phone_features if phone not in consonants+tonemes)
 
 # List of all basic sounds
-all_sounds = list(set(vowels + consonants))
+all_sounds = consonants.union(vowels)
 
 
 # IMPORT DIACRITICS DATA
-diacritics_data = pd.read_csv(os.path.join(save_dir, 'Phones/diacritics.csv'), sep='\t')
+diacritics_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'diacritics.csv'), sep='\t')
 
 # Create dictionary of diacritic characters with affected features and values
 diacritics_effects = defaultdict(lambda:[])
@@ -143,6 +143,7 @@ def is_glide(ch):
 
 # BASIC PHONE ANALYSIS: Methods for yielding feature dictionaries of phone segments
 phone_ids = {} # Dictionary of phone feature dicts 
+
 def phone_id(segment):
     """Returns a dictionary of phonetic feature values for the segment"""
     
@@ -158,34 +159,58 @@ def phone_id(segment):
     
     # Split segment into component parts, if relevant
     parts = re.split('͡|͜', segment)
+    bases = []
     
     # Generate feature dictionary for each part and add to main feature dict
     for part in parts:
         if len(part.strip()) > 0:
-            part_id = compact_diacritics(part)
-            for feature in part_id:
-                # Value = 1 (+) overrides value = 0 (-,0)
-                seg_dict[feature] = max(seg_dict[feature], part_id[feature])
+
+            # Base of the segment is the non-diacritic portion
+            base = strip_diacritics(segment)
+            bases.append(base)
+
+            # If the length of the base > 1, the segment is a diphthong (e.g. /e̯a/) or complex toneme (e.g. /˥˩/)
+            # Filter out tonemes
+            if (len(base) > 1) and (base[0] not in tonemes):
+                return diphthong_features(segment)
+            
+            # If the segment is a toneme, use the first component as its base
+            elif base[0] in tonemes:
+                return tonal_features(segment)
+
+            # Otherwise, retrieve the base phone's features
+            else:
+                base_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
+                modifiers = set(ch for ch in segment if ch not in base)
+                if len(modifiers) > 0:
+                    part_id = apply_diacritics(base, base_id, modifiers)
+                else:
+                    part_id = base_id
+                
+                # Add to overall segment ID
+                for feature in part_id:
+                    # Value = 1 (+) overrides value = 0 (-,0)
+                    seg_dict[feature] = max(seg_dict[feature], part_id[feature])
     
     # Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
     if len(parts) > 1:
-        if strip_diacritics(parts[0]) in plosive:
-            if strip_diacritics(parts[-1]) in fricative:
+        if bases[0] in plosive:
+            if bases[-1] in fricative:
                 seg_dict['delayedRelease'] = 1 
                 seg_dict['continuant'] = 0 
     
     # Add segment's feature dictionary to phone_ids; return the feature dictionary
     phone_ids[segment] = seg_dict
+
     return seg_dict 
 
 
-def diphthong_dict(diphthong):
+def diphthong_features(diphthong):
     """Returns dictionary of features for diphthongal segment"""
     components = segment_word(diphthong)
-    
+
     # Create weights: 1 for syllabic components and 0.5 for non-syllabic components
-    weights = [1 if phone_id(component)['syllabic'] == 1 else 0.5 
-               for component in components]
+    weights = [0.5 if '̯' in component else 1 for component in components]
     
     # Normalize the weights
     weight_sum = sum(weights)
@@ -193,8 +218,8 @@ def diphthong_dict(diphthong):
     
     # Create combined dictionary using features of component segments
     diphth_dict = defaultdict(lambda:0)
-    for segment, weight in zip(components, weights):
-        feature_id = phone_id(segment)
+    for component, weight in zip(components, weights):
+        feature_id = phone_id(component)
         for feature in feature_id:
             diphth_dict[feature] += (weight * feature_id[feature])
     
@@ -204,54 +229,38 @@ def diphthong_dict(diphthong):
         
     return diphth_dict
 
+def apply_diacritics(base:str, base_features:set, diacritics:set):
+    """Applies feature values of diacritics to base segments
 
-def compact_diacritics(segment):
-    """Applies diacritic effects to relevant segments"""
-    # Base of the segment is the non-diacritic portion
-    base = strip_diacritics(segment)
-    
-    # If the length of the base > 1, the segment is a diphthong or complex toneme
-    # Filter out tonemes
-    if ((len(base) > 1) and (base[0] not in tonemes)):
-        return diphthong_dict(segment)
-    
-    else:
-        # Retrieve basic dictionary of phone features for the base segment
-        # If the segment is a toneme, use the first component as its base
-        if base[0] in tonemes:
-            seg_id = tonal_features(segment)
-        
-        else:
-            # Create copy of original feature dictionary, or else it modifies the source
-            seg_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
+    Args:
+        base (str): base IPA segment
+        base_features (set): feature dictionary of base segment
+        diacritics (set): diacritics to apply
+    """
+
+    # Apply diacritic effects to feature dictionary
+    for modifier in diacritics:
+        for feature, value in diacritics_effects[modifier]:
+            base_features[feature] = value
             
-        # Modifiers are whichever diacritics may have been in the segment string
-        modifiers = [ch for ch in segment if ch not in base]
+        if modifier == '̞': # lowered diacritic: turns fricatives into approximants
+            if base[0] in fricative:
+                base_features['approximant'] = 1
+                base_features['consonantal'] = 0
+                base_features['delayedRelease'] = 0
+                base_features['sonorant'] = 1
         
-        # Apply diacritic effects to feature dictionary
-        for modifier in modifiers:
-            for effect in diacritics_effects[modifier]:
-                feature, value = effect[0], effect[1] 
-                seg_id[feature] = value
+        elif modifier == '̝': # raised diacritic
+            # turn approximants/trills into fricativized approximants
+            if base[0] in approximants+trills:
+                base_features['delayedRelease'] = 1
                 
-            if modifier == '̞': # lowered diacritic, for turning fricatives into approximants
-                if base[0] in fricative:
-                    seg_id['approximant'] = 1
-                    seg_id['consonantal'] = 0
-                    seg_id['delayedRelease'] = 0
-                    seg_id['sonorant'] = 1
-            
-            elif modifier == '̝': # raised diacritic
-                # for turning approximants/trills into fricativized approximants
-                if base[0] in approximants+trills:
-                    seg_id['delayedRelease'] = 1
-                    
-                # for turning fricatives into plosives
-                elif base[0] in fricative:
-                    seg_id['continuant'] = 0
-                    seg_id['delayedRelease'] = 0
-        
-        return seg_id
+            # turn fricatives into plosives
+            elif base[0] in fricative:
+                base_features['continuant'] = 0
+                base_features['delayedRelease'] = 0
+    
+    return base_features
 
 
 tone_levels = {'˩':1, '¹':1, 
@@ -491,14 +500,15 @@ def prosodic_environment_weight(segments, i):
 
 
 # WORD SEGMENTATION
-def segment_word(word, remove_ch=[]):
+def segment_word(word, remove_ch=''):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
     verify_charset(word)
     
     # Remove spaces and other specified characters/diacritics (e.g. stress)
-    word = ''.join([ch for ch in word if ch not in remove_ch+[' ']])
+    remove_ch += '\s'
+    word = re.sub(f"[{remove_ch}]", '', word)
     
     phone_list = defaultdict(lambda:[])
     
