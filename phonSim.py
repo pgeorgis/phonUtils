@@ -536,7 +536,7 @@ def segment_word(word, remove_ch=''):
             # Increment index by 1 if the current character is a consonant or vowel
             # AND if the last character of the previous sound was either
             # a post-diacritic or not a diacritic at all:
-            if ch in consonants+vowels:
+            if ch in consonants.union(vowels):
                 if last in post_diacritics:
                     
                     # Don't increment the index unless the previous segment
