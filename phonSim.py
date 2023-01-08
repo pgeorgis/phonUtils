@@ -54,7 +54,7 @@ globals().update(phone_groups)
 consonants = set(phone for phone in phone_features
               if phone_features[phone]['syllabic'] == 0
               if phone not in tonemes)
-vowels = set(phone for phone in phone_features if phone not in consonants+tonemes)
+vowels = set(phone for phone in phone_features if phone not in consonants.union(tonemes))
 
 # List of all basic sounds
 all_sounds = consonants.union(vowels)
@@ -110,7 +110,7 @@ def strip_diacritics(string, excepted=[]):
             f.write(f'Unable to parse phonetic characters in form: {string}')
         raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
 
-valid_ipa_ch = ''.join(all_sounds+diacritics+tonemes+[' '])
+valid_ipa_ch = ''.join(all_sounds.union(diacritics).union(tonemes).union({' '}))
 def invalid_ch(string, valid_ch=valid_ipa_ch):
     """Returns set of unrecognized (non-IPA) characters in phonetic string"""
     return set(re.findall(f'[^{valid_ch}]', string))
