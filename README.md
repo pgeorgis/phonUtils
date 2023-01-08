@@ -9,7 +9,7 @@ When setting up for the first time, please create and activate the virtual envir
 
 - Create the virtual environment:
 
-`python -m venv venv`
+`python3 -m venv venv`
 
 - Activate virtual environment:
 
@@ -17,4 +17,4 @@ When setting up for the first time, please create and activate the virtual envir
 
 - Install required packages:
 
-`venv/bin/pip install -r requirements.txt`
+`venv/bin/pip3 install -r requirements.txt`
