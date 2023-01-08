@@ -10,7 +10,9 @@ from scipy.spatial.distance import cosine
 
 def strip_ch(string, to_remove):
     """Removes a set of characters from strings"""
-    return ''.join([ch for ch in string if ch not in to_remove])
+    for ch in to_remove:
+        string = re.sub(ch, '', string)
+    return string
 
 #IMPORT PHONE DATA
 save_dir = os.path.dirname(__file__)
@@ -98,8 +100,13 @@ def strip_diacritics(string, excepted=[]):
     By default removes all diacritics; in order to keep certain diacritics,
     these should be passed as a list to the "excepted" parameter"""
     try:
-        to_remove = [ch for ch in string if ch in diacritics if ch not in excepted]
-        return ''.join([ch for ch in string if ch not in to_remove])
+        to_remove = diacritics[:]
+        for ch in excepted:
+            to_remove.remove(ch)
+        for ch in to_remove:
+            string = re.sub(ch, '', string)
+        return string
+        
     except RecursionError:
         with open('error.out', 'w') as f:
             f.write(f'Unable to parse phonetic characters in form: {string}')
