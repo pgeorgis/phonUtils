@@ -27,7 +27,7 @@ def binary_feature(feature):
 phone_features = {phone_data['segment'][i]:{feature:binary_feature(phone_data[feature][i])
                                           for feature in phone_data.columns
                                           if feature not in ['segment', 'sonority']
-                                          if pd.isnull(phone_data[feature][i]) == False}
+                                          if not pd.isnull(phone_data[feature][i])}
                   for i in range(len(phone_data))}
 
 features = set(feature for sound in phone_features for feature in phone_features[sound])
@@ -579,7 +579,7 @@ def different_features(seg1, seg2, return_list=False):
     for feature in seg1_id:
         if seg2_id[feature] != seg1_id[feature]:
             diffs.append(feature)
-    if return_list == True:
+    if return_list:
         return diffs
     else:
         if len(diffs) > 0:
@@ -608,7 +608,7 @@ def lookup_segments(features, values,
 
 def hamming_distance(vec1, vec2, normalize=True):
     differences = len([feature for feature in vec1 if vec1[feature] != vec2[feature]])
-    if normalize == True:
+    if normalize:
         return differences / len(vec1)
     else: 
         return differences
