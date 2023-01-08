@@ -519,7 +519,7 @@ def segment_word(word, remove_ch=[]):
             last = prev[-1]
             
             # Base of this previous segment
-            prev_base = strip_diacritics(prev)
+            prev_base = strip_diacritics(last)
             
             # Increment index by 1 if the current character is a consonant or vowel
             # AND if the last character of the previous sound was either
