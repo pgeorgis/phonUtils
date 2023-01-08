@@ -100,9 +100,7 @@ def strip_diacritics(string, excepted=[]):
     By default removes all diacritics; in order to keep certain diacritics,
     these should be passed as a list to the "excepted" parameter"""
     try:
-        to_remove = diacritics[:]
-        for ch in excepted:
-            to_remove.remove(ch)
+        to_remove = [d for d in diacritics if d not in excepted]
         for ch in to_remove:
             string = re.sub(ch, '', string)
         return string
@@ -112,11 +110,10 @@ def strip_diacritics(string, excepted=[]):
             f.write(f'Unable to parse phonetic characters in form: {string}')
         raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
 
-def invalid_ch(string):
+valid_ipa_ch = ''.join(all_sounds+diacritics+tonemes+[' '])
+def invalid_ch(string, valid_ch=valid_ipa_ch):
     """Returns set of unrecognized (non-IPA) characters in phonetic string"""
-    chs = set(list(string))
-    unk_ch = set(ch for ch in chs if ch not in set(all_sounds+diacritics+tonemes+[' ']))
-    return unk_ch
+    return set(re.findall(f'[^{valid_ch}]', string))
 
 def verify_charset(string):
     """Verifies that all characters are valid IPA characters or diacritics, otherwise raises error"""
@@ -148,14 +145,15 @@ def is_glide(ch):
 phone_ids = {} # Dictionary of phone feature dicts 
 def phone_id(segment):
     """Returns a dictionary of phonetic feature values for the segment"""
-    # If feature dictionary for segment has been created already, retrieve this
+    
+    # Try to retrieve pre-calculated feature dictionary, if available
     if segment in phone_ids:
         return phone_ids[segment]
     
     # Verify that all characters in phone are valid IPA characters
     verify_charset(segment)
 
-    # Otherwise generate a new phone feature dictionary
+    # Generate an empty phone feature dictionary
     seg_dict = defaultdict(lambda:0)
     
     # Split segment into component parts, if relevant
