@@ -206,7 +206,7 @@ def phone_id(segment):
 
 def diphthong_features(diphthong):
     """Returns dictionary of features for diphthongal segment"""
-    components = segment_word(diphthong)
+    components = segment_ipa(diphthong)
 
     # Create weights: 1 for syllabic components and 0.5 for non-syllabic components
     weights = [0.5 if '̯' in component else 1 for component in components]
@@ -435,7 +435,7 @@ def get_sonority(sound):
     else:
         # Diphthong: calculate sonority as maximum sonority of component parts
         if strip_sound[0] in vowels:
-            diphthong_components = segment_word(sound)
+            diphthong_components = segment_ipa(sound)
             sonorities = [get_sonority(v) for v in diphthong_components]
             sonority = max(sonorities)
             
@@ -500,7 +500,7 @@ def prosodic_environment_weight(segments, i):
 
 # WORD SEGMENTATION
 segment_regex = re.compile(f'[{pre_diacritics}]*[{all_sounds}][{post_diacritics}]*')
-def segment_word(word, remove_ch=''):
+def segment_ipa(word, remove_ch=''):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
