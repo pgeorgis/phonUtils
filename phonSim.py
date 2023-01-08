@@ -13,8 +13,8 @@ def strip_ch(string, to_remove):
     return ''.join([ch for ch in string if ch not in to_remove])
 
 #IMPORT PHONE DATA
-save_dir = '/' + os.path.join(*os.path.realpath(__file__).split('/')[:-1])
-phone_data = pd.read_csv(os.path.join(save_dir, 'Phones/segments.csv'), sep=',')
+save_dir = os.path.dirname(__file__)
+phone_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'segments.csv'), sep=',')
 
 def binary_feature(feature):
     """Converts features of type ['0', '-', '+'] to binary [0, 1]"""
