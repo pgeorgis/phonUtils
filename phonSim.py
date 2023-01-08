@@ -101,9 +101,9 @@ def strip_diacritics(string, excepted=[]):
         to_remove = [ch for ch in string if ch in diacritics if ch not in excepted]
         return ''.join([ch for ch in string if ch not in to_remove])
     except RecursionError:
-        with open('error.txt', 'w') as f:
+        with open('error.out', 'w') as f:
             f.write(f'Unable to parse phonetic characters in form: {string}')
-        raise RecursionError
+        raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
 
 
 def verify_charset(text):
@@ -419,8 +419,7 @@ def get_sonority(sound):
             
         
         else:
-            print(f'Error: the sonority of this phone ({sound}) cannot be determined!')
-            raise ValueError
+            raise ValueError(f'Error: the sonority of phone "{sound}" cannot be determined!')
    
     #Save sonority level of this sound in sonority dictionary, return sonority level
     phone_sonority[sound] = sonority
@@ -712,8 +711,7 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     try:
         measure = measures[similarity]
     except KeyError:
-        print(f'Error: similarity measure "{similarity}" not recognized!')
-        raise KeyError
+        raise KeyError(f'Error: similarity measure "{similarity}" not recognized!')
     
     if similarity not in ['cosine', 'weighted_cosine']:
         score = measure(phone_id1, phone_id2)
