@@ -525,9 +525,9 @@ def segment_ipa(word, remove_ch=''):
 
     return segments
 
-def remove_stress(word):
+def remove_stress(ipa):
     """Removes stress annotation from an IPA string"""
-    return ''.join([ch for ch in word if ch not in ['ˈ', 'ˌ']])
+    return re.sub('[ˈˌ]', '', ipa)
 
 
 def common_features(segment_list, 
