@@ -109,7 +109,7 @@ def strip_diacritics(string, excepted=[]):
             f.write(f'Unable to parse phonetic characters in form: {string}')
         raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
 
-valid_ipa_ch = ''.join([all_sounds, diacritics, ' '])
+valid_ipa_ch = ''.join([all_sounds, diacritics, ' ', '‿'])
 def invalid_ch(string, valid_ch=valid_ipa_ch):
     """Returns set of unrecognized (non-IPA) characters in phonetic string"""
     return set(re.findall(fr'[^{valid_ch}]', string))
@@ -496,7 +496,9 @@ def prosodic_environment_weight(segments, i):
         # Ascending sonority: weight 5
         else:
             return 5
-
+        
+        # TODO: what if the sonority is all the same? add tests to ensure that all of these values are correct
+        # TODO: sonority of free-standing vowels (and consonants)?: would assume same as word-initial
 
 # WORD SEGMENTATION
 segment_regex = re.compile(f'[{pre_diacritics}]*[{all_sounds}][{post_diacritics}]*')
@@ -506,8 +508,8 @@ def segment_ipa(word, remove_ch=''):
     # Assert that all characters in string are recognized IPA characters
     verify_charset(word)
     
-    # Remove spaces and other specified characters/diacritics (e.g. stress)
-    remove_ch += '\s'
+    # Remove spaces and other specified characters/diacritics (e.g. stress, linking ties for phonological words)
+    remove_ch += '\s‿'
     word = re.sub(f"[{remove_ch}]", '', word)
 
     # Split by inter-diacritics, which don't seem to match properly in regex
