@@ -166,6 +166,8 @@ def phone_id(segment):
 
             # Base of the segment is the non-diacritic portion
             base = strip_diacritics(part)
+            if len(base) == 0:
+                raise AssertionError(f'Error: invalid segment <{segment}>, no base IPA character found!')
             bases.append(base)
 
             # If the length of the base > 1, the segment is a diphthong (e.g. /e̯a/) or complex toneme (e.g. /˥˩/)
