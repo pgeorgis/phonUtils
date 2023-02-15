@@ -109,6 +109,69 @@ def strip_diacritics(string, excepted=[]):
             f.write(f'Unable to parse phonetic characters in form: {string}')
         raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
 
+def normalize_ipa_ch(string):
+    """Normalizes some commonly mistyped IPA characters"""
+
+    # <g> instead of <ɡ>
+    string = re.sub('g', 'ɡ', string)
+
+    # Affricates for which there is a special ligature character
+    string = re.sub('t͡s', 'ʦ', string)
+    string = re.sub('d͡z', 'ʣ', string)
+    string = re.sub('t͡ʃ', 'ʧ', string)
+    string = re.sub('d͡ʒ', 'ʤ', string)
+
+    # Accented characters instead of vowel + tone diacritic
+    string = re.sub('á', 'á', string)
+    string = re.sub('à', 'à', string)
+    string = re.sub('â', 'â', string)
+    string = re.sub('ā', 'ā', string)
+    string = re.sub('é', 'é', string)
+    string = re.sub('è', 'è', string)
+    string = re.sub('ê', 'ê', string)
+    string = re.sub('ē', 'ē', string)
+    string = re.sub('í', 'í', string)
+    string = re.sub('ì', 'ì', string)
+    string = re.sub('î', 'î', string)
+    string = re.sub('ī', 'ī', string)
+    string = re.sub('ó', 'ó', string)
+    string = re.sub('ò', 'ò', string)
+    string = re.sub('ô', 'ô', string)
+    string = re.sub('ō', 'ō', string)
+    string = re.sub('ú', 'ú', string)
+    string = re.sub('ù', 'ù', string)
+    string = re.sub('û', 'û', string)
+    string = re.sub('ū', 'ū', string)
+    string = re.sub('ý', 'ý', string)
+    string = re.sub('ŕ', 'ŕ', string)
+
+    # Vowels with tilde as single character instead of vowel + tilde (nasal) diacritic
+    string = re.sub('ã', 'ã', string)
+    string = re.sub('ẽ', 'ẽ', string)
+    string = re.sub('ĩ', 'ĩ', string)
+    string = re.sub('õ', 'õ', string)
+    string = re.sub('ũ', 'ũ', string)
+
+    # Cyrillic and Greek characters that look like Latin/IPA characters
+    # Cyrillic
+    string = re.sub('а', 'a', string)
+    string = re.sub('е', 'e', string)
+    string = re.sub('і', 'i', string)
+    string = re.sub('о', 'o', string)
+    string = re.sub('я', 'ʁ', string)
+    string = re.sub('з', 'ɜ', string)
+    # Greek
+    string = re.sub('ο', 'o', string)
+    string = re.sub('ε', 'ɛ', string)
+    string = re.sub('λ', 'ʎ', string)
+    string = re.sub('δ', 'ð', string)
+
+    # Other
+    string = re.sub('∅', 'ø', string)
+    string = re.sub('エ', 'ɪ', string)
+
+    return string
+
 valid_ipa_ch = ''.join([all_sounds, diacritics, ' ', '‿'])
 def invalid_ch(string, valid_ch=valid_ipa_ch):
     """Returns set of unrecognized (non-IPA) characters in phonetic string"""
