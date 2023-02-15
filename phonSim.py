@@ -169,6 +169,7 @@ def normalize_ipa_ch(string):
     # Other
     string = re.sub('∅', 'ø', string)
     string = re.sub('エ', 'ɪ', string)
+    string = re.sub("'", 'ˈ', string)
 
     return string
 
