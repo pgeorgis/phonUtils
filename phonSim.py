@@ -170,6 +170,7 @@ def normalize_ipa_ch(string):
     string = re.sub('∅', 'ø', string)
     string = re.sub('エ', 'ɪ', string)
     string = re.sub("'", 'ˈ', string)
+    string = re.sub(':', 'ː', string)
 
     return string
 
@@ -202,7 +203,6 @@ def is_consonant(ch):
 
 def is_glide(ch):
     return is_ch(ch, glides)
-
 
 # BASIC PHONE ANALYSIS: Methods for yielding feature dictionaries of phone segments
 phone_ids = {} # Dictionary of phone feature dicts 
@@ -268,7 +268,6 @@ def phone_id(segment):
     phone_ids[segment] = seg_dict
 
     return seg_dict 
-
 
 def diphthong_features(diphthong):
     """Returns dictionary of features for diphthongal segment"""
