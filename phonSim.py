@@ -567,7 +567,7 @@ def prosodic_environment_weight(segments, i):
 
 # WORD SEGMENTATION
 segment_regex = re.compile(f'[{pre_diacritics}]*[{all_sounds}][{post_diacritics}]*')
-def segment_ipa(word, remove_ch=''):
+def segment_ipa(word, remove_ch='', combine_diphthongs=False):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
@@ -589,6 +589,42 @@ def segment_ipa(word, remove_ch=''):
             segments.extend(segmented[1:])
         else:
             segments.extend(segmented)
+    
+    # Combine diphthongs
+    if combine_diphthongs:
+        updated_segments = []
+        i = 0
+        while i < len(segments):
+        #for i, seg in enumerate(segments):
+            seg = segments[i]
+            if '̯' in seg:
+                if i > 0:
+                    # First try to combine with preceding vowel (not schwa)
+                    if is_vowel(updated_segments[-1]) and strip_diacritics(updated_segments[-1]) != 'ə':
+                        updated_segments[-1] += seg
+                        i += 1
+
+                    # If there is no suitable preceding vowel, try combining with following vowel instead
+                    elif i < len(segments) and is_vowel(segments[i+1]):
+                        updated_segments.append(seg+segments[i+1])
+                        i += 2
+
+                    # Else do nothing
+                    else:
+                        updated_segments.append(seg)
+                        i += 1
+
+                # Combine an initial non-syllabic vowel onto a following vowel
+                else:
+                    if is_vowel(segments[1]):
+                        updated_segments.append(seg+segments[1])
+                        i += 2
+            else:
+                updated_segments.append(seg)
+                i += 1
+        
+        segments = updated_segments
+
 
     return segments
 
