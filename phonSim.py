@@ -597,15 +597,15 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=False):
         while i < len(segments):
         #for i, seg in enumerate(segments):
             seg = segments[i]
-            if '̯' in seg:
+            if '̯' in seg and is_vowel(seg):
                 if i > 0:
-                    # First try to combine with preceding vowel (not schwa)
-                    if is_vowel(updated_segments[-1]) and strip_diacritics(updated_segments[-1]) != 'ə':
+                    # First try to combine with preceding vowel
+                    if is_vowel(updated_segments[-1]):
                         updated_segments[-1] += seg
                         i += 1
 
                     # If there is no suitable preceding vowel, try combining with following vowel instead
-                    elif i < len(segments) and is_vowel(segments[i+1]):
+                    elif is_vowel(segments[i+1]):
                         updated_segments.append(seg+segments[i+1])
                         i += 2
 
