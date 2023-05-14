@@ -43,12 +43,12 @@ max_sonority = max(phone_sonority.values())
 
 
 # Load basic groupings of phones; e.g. plosive, fricative, velar, palatal
-phone_groups = pd.read_csv(os.path.join(save_dir, 'Phones/phone_classes.csv'))
-phone_groups = {phone_groups['Group'][i]:phone_groups['Phones'][i].split()
-                for i in range(len(phone_groups))}
+phone_classes = pd.read_csv(os.path.join(save_dir, 'Phones/phone_classes.csv'))
+phone_classes = {phone_classes['Group'][i]:phone_classes['Phones'][i].split()
+                for i in range(len(phone_classes))}
 
 # Set these phone groups as global variables so that they are callable by name
-globals().update(phone_groups)
+globals().update(phone_classes)
 
 # Set basic consonants and vowels using syllabic feature
 consonants = set(phone for phone in phone_features
@@ -400,7 +400,7 @@ def get_sonority(sound):
     modified:
     https://www.researchgate.net/publication/336652515/figure/fig1/AS:815405140561923@1571419143959/Adapted-version-of-Parkers-2002-sonority-hierarchy.ppm
     
-    TO DO: DIPHTHONGS, Complex plosives, e.g. /k͡p̚/"""
+    TODO: DIPHTHONGS, Complex plosives, e.g. /k͡p̚/"""
     # If sonority for this sound has already been calculated, retrieve this
     if sound in phone_sonority:
         return phone_sonority[sound]
