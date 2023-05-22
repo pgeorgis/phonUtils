@@ -566,8 +566,15 @@ def prosodic_environment_weight(segments, i):
         # TODO: sonority of free-standing vowels (and consonants)?: would assume same as word-initial
 
 # WORD SEGMENTATION
-segment_regex = re.compile(f'[{pre_diacritics}]*[{all_sounds}][{post_diacritics}]*')
-def segment_ipa(word, remove_ch='', combine_diphthongs=True):
+pre_preaspiration = vowels.union(glides).union(set(post_diacritics)) # characters which can occur before preaspiration characters <ʰʱ>, to distinguish from post-aspiration
+segment_regexes = [
+    fr'(?<=[{pre_preaspiration}])[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
+    fr'(?<=^)[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
+    fr'[{pre_diacritics}]*[{all_sounds}][{post_diacritics}]*',
+]
+segment_regex = '(' + '|'.join(segment_regexes) + ')'
+segment_regex = re.compile(segment_regex)
+def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
@@ -589,7 +596,20 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True):
             segments.extend(segmented[1:])
         else:
             segments.extend(segmented)
-    
+
+    # Move aspiration diacritic <ʰʱ> from preceding vowel or glide to following consonant
+    # Can't easily be distinguished in regex since the same symble is usually a post-diacritic for post-aspiration
+    if preaspiration:
+        for i, seg in enumerate(segments):
+            preasp = re.search(rf'(?<=[{pre_preaspiration}])[ʰʱ]$', seg)
+            if preasp:
+                try:
+                    match = preasp.group()
+                    segments[i] = re.sub('[ʰʱ]$', '', seg)
+                    segments[i+1] = match + segments[i+1]
+                except KeyError:
+                    pass
+
     # Combine diphthongs
     if combine_diphthongs:
         updated_segments = []
