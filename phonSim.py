@@ -576,6 +576,124 @@ def prosodic_environment_weight(segments, i):
         # TODO: what if the sonority is all the same? add tests to ensure that all of these values are correct
         # TODO: sonority of free-standing vowels (and consonants)?: would assume same as word-initial
 
+
+def phonEnvironment(segments, i):
+    """Returns a string representing the phonological environment of a segment within a word
+    Categories:
+    - Initial segment
+    - Final segment
+    - Geminate consonant
+    - Medial sonority peak
+    - Medial sonority plateau
+    - Medial ascending sonority
+    - Medial descending sonority
+    - Toneme
+    # TODO verify these classes once finalized
+    """
+    # Designate first non-diacritic component of segment as base
+    segment_i = segments[i]
+    base = strip_diacritics(segment_i)[0]
+
+    # Tonemes
+    if base in tonemes: 
+        # TODO should remove all tonemes from word and reevaluate without them, so that final segments are considered final despite being "followed" by a toneme
+        return 'T'
+
+    # Word-initial segments (free-standing segments also considered word-initial)
+    elif i == 0:
+        if len(segments) > 1:
+            next_segment = segments[i+1]
+            sonority_i, next_sonority = map(get_sonority, [segment_i, next_segment])
+        else:
+            next_segment = None
+
+        # Word-initial segments: #S
+        if next_segment:
+            if segment_i == next_segment:
+                return '#SS'
+            elif sonority_i == next_sonority:
+                return '#S='
+            elif sonority_i > next_sonority:
+                return '#S>'
+            else: # sonority_i < next_sonority:
+                return '#S<'
+        
+        # Free-standing segments
+        else:
+            return '#S#'
+    
+    # Word-final segments: S#
+    elif i == len(segments)-1:
+        assert len(segments) > 1
+        prev_segment = segments[i-1]
+        if prev_segment == segment_i:
+            return 'SS#'
+        else:
+            prev_sonority, sonority_i = map(get_sonority, [prev_segment, segment_i])
+            
+            if prev_sonority == sonority_i:
+                return '=S#'
+
+            elif prev_sonority < sonority_i:
+                return '<S#'
+
+            else: # prev_sonority > sonority_i
+                return '>S#' 
+    
+    # Word-medial segments
+    else:
+        prev_segment, next_segment = segments[i-1], segments[i+1]
+        prev_sonority, sonority_i, next_sonority = map(get_sonority, [prev_segment, 
+                                                                      segment_i, 
+                                                                      next_segment])
+        
+        # Sonority plateau: =S=
+        if prev_segment == sonority_i == next_sonority:
+            return '=S='
+        
+        # Sonority peak: <S>
+        elif prev_sonority < sonority_i > next_sonority:
+            return '<S>'
+        
+        # Sonority trench: >S< # TODO is this the best term?
+        elif prev_sonority > sonority_i < next_sonority:
+            return '>S<'
+        
+        # Descending sonority: >S>
+        elif prev_sonority > sonority_i > next_sonority:
+            return '>S>'
+        
+        # Ascending sonority: <S<
+        elif prev_sonority < sonority_i < next_sonority:
+            return '<S<'
+        
+        elif prev_sonority < sonority_i == next_sonority:
+            if segment_i == next_segment:
+                return '<SS'
+            else:
+                return '<S='
+        
+        elif prev_sonority > sonority_i == next_sonority:
+            if segment_i == next_segment:
+                return '>SS'
+            else:
+                return '>S='
+        
+        elif prev_sonority == sonority_i < next_sonority:
+            if segment_i == prev_segment:
+                return 'SS<'
+            else:
+                return '=S<'
+        
+        elif prev_sonority == sonority_i > next_sonority:
+            if segment_i == prev_segment:
+                return 'SS>'
+            else:
+                return '=S>'
+        
+        else:
+            raise NotImplementedError(f'Unable to determine environment for segment {i} /{segments[i]}/ within /{"".join(segments)}/')
+
 # WORD SEGMENTATION
 pre_preaspiration = vowels.union(glides).union(set(post_diacritics)) # characters which can occur before preaspiration characters <ʰʱ>, to distinguish from post-aspiration
 segment_regexes = [
