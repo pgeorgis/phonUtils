@@ -10,13 +10,13 @@ from scipy.spatial.distance import cosine
 
 def strip_ch(string, to_remove):
     """Removes a set of characters from strings"""
-    for ch in to_remove:
-        string = re.sub(ch, '', string)
+    to_remove_regex = '|'.join(to_remove)
+    string = re.sub(to_remove_regex, '', string)
     return string
 
 # IMPORT PHONE DATA
 save_dir = os.path.dirname(__file__)
-phone_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'segments.csv'), sep=',')
+phone_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'segments.tsv'), sep=',')
 
 def binary_feature(feature):
     """Converts features of type ['0', '-', '+'] to binary [0, 1]"""
@@ -43,7 +43,7 @@ max_sonority = max(phone_sonority.values())
 
 
 # Load basic groupings of phones; e.g. plosive, fricative, velar, palatal
-phone_classes = pd.read_csv(os.path.join(save_dir, 'Phones/phone_classes.csv'))
+phone_classes = pd.read_csv(os.path.join(save_dir, 'Phones/phone_classes.tsv'))
 phone_classes = {phone_classes['Group'][i]:phone_classes['Phones'][i].split()
                 for i in range(len(phone_classes))}
 
@@ -60,7 +60,7 @@ vowels = set(phone for phone in phone_features if phone not in consonants.union(
 all_sounds = ''.join(consonants.union(vowels).union(tonemes))
 
 # IMPORT DIACRITICS DATA
-diacritics_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'diacritics.csv'), sep='\t')
+diacritics_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'diacritics.tsv'), sep='\t')
 
 # Create dictionary of diacritic characters with affected features and values
 diacritics_effects = defaultdict(lambda:[])
@@ -729,7 +729,7 @@ def dice_sim(vec1, vec2):
 # Feature Geometry Weights
 # Feature weight calculated as ln(n_distinctions) / (tier**2)
 # where n_distinctions = (n_sisters+1) + (n_descendants)
-feature_geometry = pd.read_csv(os.path.join(save_dir, 'Phones/feature_geometry.csv'), sep='\t')
+feature_geometry = pd.read_csv(os.path.join(save_dir, 'Phones/feature_geometry.tsv'), sep='\t')
 feature_geometry['Tier'] = feature_geometry['Path'].apply(lambda x: len(x.split(' | ')))
 feature_geometry['Parent'] = feature_geometry['Path'].apply(lambda x: x.split(' | ')[-1])
 feature_geometry['N_Sisters'] = feature_geometry['Parent'].apply(lambda x: feature_geometry['Parent'].to_list().count(x))
@@ -829,10 +829,3 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     checked_phone_sims[reference] = score
     checked_phone_sims[reference] = score
     return score
-
-def compare_measures(seg1, seg2):
-    measures = {}
-    for dist_func in ['cosine', 'hamming', 'jaccard', 'dice', 
-                   'weighted_cosine', 'weighted_hamming', 'weighted_dice', 'weighted_jaccard']:
-        measures[dist_func] = phone_sim(seg1, seg2, dist_func)
-    return measures
