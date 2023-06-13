@@ -16,7 +16,7 @@ def strip_ch(string, to_remove):
 
 # IMPORT PHONE DATA
 save_dir = os.path.dirname(__file__)
-phone_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'segments.tsv'), sep=',')
+phone_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'segments.csv'), sep=',')
 
 def binary_feature(feature):
     """Converts features of type ['0', '-', '+'] to binary [0, 1]"""
@@ -400,7 +400,7 @@ def get_sonority(sound):
     modified:
     https://www.researchgate.net/publication/336652515/figure/fig1/AS:815405140561923@1571419143959/Adapted-version-of-Parkers-2002-sonority-hierarchy.ppm
     
-    TODO: DIPHTHONGS, Complex plosives, e.g. /k͡p̚/"""
+    TODO: DIPHTHONGS (take sonority of syllabic component), Complex plosives, e.g. /k͡p̚/"""
     # If sonority for this sound has already been calculated, retrieve this
     if sound in phone_sonority:
         return phone_sonority[sound]
@@ -446,12 +446,12 @@ def get_sonority(sound):
         if strip_sound in glides:
             sonority = 11
         
-        # /r/
-        elif strip_sound == 'r':
+        # Non-glide, non-lateral, non-tap/flap/trill approximants: /ʋ, ɹ, ɻ, R/
+        elif phone['approximant'] == 1 and phone['lateral'] == 0 and phone['trill'] == 0 and phone['tap'] == 0:
             sonority = 10
         
-        # Laterals
-        elif phone['lateral'] == 1:
+        # Lateral approximants
+        elif phone['lateral'] == 1 and phone['approximant'] == 1:
             sonority = 9
         
         # Taps/flaps
@@ -829,3 +829,4 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     checked_phone_sims[reference] = score
     checked_phone_sims[reference] = score
     return score
+
