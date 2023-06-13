@@ -204,6 +204,11 @@ def is_consonant(ch):
 def is_glide(ch):
     return is_ch(ch, glides)
 
+def is_diphthong(seg):
+    if re.search(fr'([{vowels}]̯[{vowels}])|([{vowels}][{vowels}]̯)', seg):
+        return True
+    return False
+
 # BASIC PHONE ANALYSIS: Methods for yielding feature dictionaries of phone segments
 phone_ids = {} # Dictionary of phone feature dicts 
 
@@ -390,17 +395,15 @@ def tonal_features(toneme):
                 contours[t] = 'level'
     
     return toneme_id
-    
 
 
 def get_sonority(sound):
     """Returns the sonority level of a sound according to Parker's (2002) 
     universal sonority hierarchy
     
-    modified:
+    adapted from:
     https://www.researchgate.net/publication/336652515/figure/fig1/AS:815405140561923@1571419143959/Adapted-version-of-Parkers-2002-sonority-hierarchy.ppm
-    
-    TODO: DIPHTHONGS (take sonority of syllabic component), Complex plosives, e.g. /k͡p̚/"""
+    """
     # If sonority for this sound has already been calculated, retrieve this
     if sound in phone_sonority:
         return phone_sonority[sound]
@@ -408,7 +411,7 @@ def get_sonority(sound):
     # Strip diacritics
     strip_sound = strip_diacritics(sound)
     
-    # Feature dictionary for sound
+    # Feature dictionary for sound, including diacritics
     phone = phone_id(sound)
     
     # Determine appropriate sonority level by checking membership in sound 
@@ -416,6 +419,14 @@ def get_sonority(sound):
 
     # Vowels
     if strip_sound in vowels:
+
+        # Check if diphthong
+        if is_diphthong(sound):
+            # Use only the syllabic component for sonority calculation
+            syl_comp = re.search(fr'[{vowels}](?![{post_diacritics}]*)', sound).group()
+            strip_sound = strip_diacritics(syl_comp)
+            phone = phone_id(syl_comp)
+
         # Treat as glide if non-syllabic
         if phone['syllabic'] == 0:
             sonority = 11
