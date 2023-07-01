@@ -120,6 +120,8 @@ def normalize_ipa_ch(string):
     string = re.sub('d͡z', 'ʣ', string)
     string = re.sub('t͡ʃ', 'ʧ', string)
     string = re.sub('d͡ʒ', 'ʤ', string)
+    string = re.sub('t͡ɕ', 'ʨ', string)
+    string = re.sub('d͡ʑ', 'ʥ', string)
 
     # Accented characters instead of vowel + tone diacritic
     string = re.sub('á', 'á', string)
