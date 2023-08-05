@@ -212,7 +212,7 @@ def is_diphthong(seg):
     return False
 
 # BASIC PHONE ANALYSIS: Methods for yielding feature dictionaries of phone segments
-phone_ids = {} # Dictionary of phone feature dicts 
+phone_ids = {} # Dictionary of phone feature dicts # TODO Change to be dictionary {str:Segment class} 
 
 def phone_id(segment):
     """Returns a dictionary of phonetic feature values for the segment"""
@@ -399,133 +399,6 @@ def tonal_features(toneme):
     return toneme_id
 
 
-def get_sonority(sound):
-    """Returns the sonority level of a sound according to Parker's (2002) 
-    universal sonority hierarchy
-    
-    adapted from:
-    https://www.researchgate.net/publication/336652515/figure/fig1/AS:815405140561923@1571419143959/Adapted-version-of-Parkers-2002-sonority-hierarchy.ppm
-    """
-    # If sonority for this sound has already been calculated, retrieve this
-    if sound in phone_sonority:
-        return phone_sonority[sound]
-    
-    # Strip diacritics
-    strip_sound = strip_diacritics(sound)
-    
-    # Feature dictionary for sound, including diacritics
-    phone = phone_id(sound)
-    
-    # Determine appropriate sonority level by checking membership in sound 
-    # groups (manner/place of articulation) and/or relevant features     
-
-    # Vowels
-    if strip_sound in vowels:
-
-        # Check if diphthong
-        if is_diphthong(sound):
-            # Use only the syllabic component for sonority calculation
-            syl_comp = re.search(fr'[{vowels}](?![{post_diacritics}]*)', sound).group()
-            strip_sound = strip_diacritics(syl_comp)
-            phone = phone_id(syl_comp)
-
-        # Treat as glide if non-syllabic
-        if phone['syllabic'] == 0:
-            sonority = 11
-        
-        # Schwa /ə/ and /ɨ/ have special sonority
-        elif strip_sound == 'ə':
-            sonority = 13
-        elif strip_sound == 'ɨ':
-            sonority = 12
-        
-        # Open and near-open vowels
-        elif ((phone['high'] == 0) and (phone['low'] == 1)): 
-            sonority = 16
-        
-        # Open-mid, mid, close-mid vowels other than schwa /ə/
-        elif phone['high'] == 0:  
-            sonority = 15
-        
-        # Near-close and close vowels other than /ɨ/
-        elif phone['high'] == 1:
-            sonority = 14
-
-    # Consonants
-    elif strip_sound[0] in consonants: 
-        # index 0, for affricates or complex plosives, such as /p͡f/ and /k͡p/, written with >1 character
-        
-        # Glides
-        if strip_sound in glides:
-            sonority = 11
-        
-        # Non-glide, non-lateral, non-tap/flap/trill approximants: /ʋ, ɹ, ɻ, R/
-        elif phone['approximant'] == 1 and phone['lateral'] == 0 and phone['trill'] == 0 and phone['tap'] == 0:
-            sonority = 10
-        
-        # Lateral approximants
-        elif phone['lateral'] == 1 and phone['approximant'] == 1:
-            sonority = 9
-        
-        # Taps/flaps
-        elif strip_sound in tap_flap:
-            sonority = 8
-           
-        # Trills
-        elif strip_sound in trills:
-            sonority = 7
-        
-        # Nasals
-        elif strip_sound in nasals:
-            sonority = 6
-        
-        # /h/
-        elif strip_sound == 'h':
-            sonority = 5
-        
-        # Fricatives
-        elif strip_sound in fricative:
-            
-            # Voiced fricatives
-            if phone['periodicGlottalSource'] == 1:
-                sonority = 4
-            
-            # Voiceless fricatives
-            else:
-                sonority = 3
-        
-        # Affricates, plosives, implosives, clicks
-        else:
-        
-            # Voiced
-            if phone['periodicGlottalSource'] == 1:
-                sonority = 2
-                
-            # Voiceless 
-            else:
-                sonority = 1
-    
-    # Tonemes
-    elif strip_sound[0] in tonemes:
-        sonority = 0
-    
-    # Other sounds: raise error message
-    else:
-        # Diphthong: calculate sonority as maximum sonority of component parts
-        if strip_sound[0] in vowels:
-            diphthong_components = segment_ipa(sound, combine_diphthongs=False)
-            sonorities = [get_sonority(v) for v in diphthong_components]
-            sonority = max(sonorities)
-            
-        
-        else:
-            raise ValueError(f'Error: the sonority of phone "{sound}" cannot be determined!')
-   
-    # Save sonority level of this sound in sonority dictionary, return sonority level
-    phone_sonority[sound] = sonority
-    return sonority
-
-
 def prosodic_environment_weight(segments, i):
     """Returns the relative prosodic environment weight of a segment within
     a word, based on List (2012)"""
@@ -579,18 +452,241 @@ def prosodic_environment_weight(segments, i):
         # TODO: sonority of free-standing vowels (and consonants)?: would assume same as word-initial
 
 
+class Segment:
+    def __init__(self, segment):
+        self.segment = normalize_ipa_ch(segment)
+
+        # Base segment: no diacritics; first element of diphthongs, affricates, or complex consonants
+        self.base = strip_diacritics(self.segment)[0]
+
+        # Get distinctive phonological feature dictionary
+        self.features = phone_id(self.segment) # TODO change to class method
+        
+        # Get voicing status
+        self.voiced = self.features['periodicGlottalSource'] == 1
+        self.voiceless = self.features['periodicGlottalSource'] == 0
+
+        # Get phone class, manner, and place of articulation
+        self.phone_class = self.get_phone_class()
+        self.manner = self.get_manner()
+        self.poa = self.get_poa()
+
+        # Get sonority
+        self.sonority = self.get_sonority()
+
+
+    def get_phone_class(self):
+        if is_diphthong(self.segment):
+            return 'DIPHTHONG'
+        elif self.base in glides:
+            return 'GLIDE'
+        elif self.base in vowels:
+            return 'VOWEL'
+        elif self.base in consonants:
+            return 'CONSONANT'
+        elif self.base in tonemes:
+            return 'TONEME'
+        else:
+            raise ValueError(f'Could not determine phone class of {self.segment}')
+
+
+    def get_manner(self):
+        if self.phone_class in ('CONSONANT', 'GLIDE'):
+            if self.base in affricate or re.search(fr'{plosive}{diacritics}*͡{fricative}{diacritics}*', self.segment):
+                return 'AFFRICATE'
+            if self.base in plosive:
+                return 'PLOSIVE'
+            elif self.base in nasals:
+                return 'NASAL'
+            elif self.base in fricative and '̞' in self.segment: # lowered diacritic turns fricatives into approximants
+                return 'APPROXIMANT'
+            elif re.search('[ɬɮ]', self.base):
+                return 'LATERAL FRICATIVE'
+            elif self.base in fricative:
+                return 'FRICATIVE'
+            elif self.base in trills and '̝' in self.segment:
+                return 'FRICATIVE TRILL'
+            elif self.base in trills:
+                return 'TRILL'
+            elif self.base in tap_flap:
+                return 'TAP/FLAP'
+            elif self.features['lateral'] == 1 and self.features['approximant'] == 1:
+                return 'LATERAL APPROXIMANT'
+            elif self.base in approximant:
+                return 'APPROXIMANT'
+            elif self.base in implosive:
+                return 'IMPLOSIVE'
+            elif self.base in clicks:
+                return 'CLICK'
+            else:
+                raise ValueError(f'Could not determine manner of articulation for {self.segment}')
+        else:
+            return self.phone_class
+        
+
+    def get_poa(self):
+        if self.phone_class in ('CONSONANT', 'GLIDE'):
+            if self.base in bilabial:
+                return 'BILABIAL'
+            elif self.features['labiodental'] == 1:
+                return 'LABIODENTAL'
+            elif re.search(r'[θðǀ̪]', self.segment):
+                return 'DENTAL'
+            elif self.base in alveolar:
+                return 'ALVEOLAR'
+            elif self.base in postalveolar:
+                return 'POSTALVEOLAR'
+            elif self.base in alveolopalatal:
+                return 'ALVEOLOPALATAL'
+            elif self.base in retroflex:
+                return 'RETROFLEX'
+            elif self.base in palatal:
+                return 'PALATAL'
+            elif self.base in velar:
+                return 'VELAR'
+            elif self.base in uvular:
+                return 'UVULAR'
+            elif self.base in uvular:
+                return 'PHARYNGEAL'
+            elif self.base in epiglottal:
+                return 'EPIGLOTTAL'
+            elif self.base in glottal:
+                return 'GLOTTAL'
+            else:
+                raise ValueError(f'Could not determine place of articulation for {self.segment}')
+        else:
+            raise NotImplementedError # TODO add vowel POA
+
+
+    def get_sonority(self):
+        """Returns the sonority level of a sound according to Parker's (2002) 
+        universal sonority hierarchy
+        
+        adapted from:
+        https://www.researchgate.net/publication/336652515/figure/fig1/AS:815405140561923@1571419143959/Adapted-version-of-Parkers-2002-sonority-hierarchy.ppm
+        """
+        # Determine appropriate sonority level by checking membership in sound 
+        # groups (manner/place of articulation) and/or relevant features     
+
+        # Vowels
+        if self.phone_class in ('VOWEL', 'DIPHTHONG', 'GLIDE'):
+
+            # Check if diphthong
+            if self.phone_class == 'DIPHTHONG':
+
+                # Use only the syllabic component for sonority calculation # TODO maybe there is a better method? see below
+                syl_comp = re.search(fr'[{vowels}](?![{post_diacritics}]*)', self.segment).group()
+                raise NotImplementedError # TODO finish this
+                strip_sound = strip_diacritics(syl_comp)
+                phone = phone_id(syl_comp)
+
+                # TODO: use this method instead
+                # Diphthong: calculate sonority as maximum sonority of component parts
+                if strip_sound[0] in vowels:
+                    diphthong_components = segment_ipa(sound, combine_diphthongs=False)
+                    sonorities = [get_sonority(v) for v in diphthong_components]
+                    return max(sonorities)
+
+            # Treat as glide if non-syllabic
+            if self.features['syllabic'] == 0:
+                return 11
+            
+            # Schwa /ə/ and /ɨ/ have special sonority
+            elif self.base == 'ə':
+                return 13
+            elif self.base == 'ɨ':
+                return 12
+            
+            # Open and near-open vowels
+            elif ((self.features['high'] == 0) and (self.features['low'] == 1)): 
+                return 16
+            
+            # Open-mid, mid, close-mid vowels other than schwa /ə/
+            elif self.features['high'] == 0:  
+                return 15
+            
+            # Near-close and close vowels other than /ɨ/
+            elif self.features['high'] == 1:
+                return 14
+
+        # Glides
+        elif self.phone_class == 'GLIDE':
+            return 11
+        
+        # Consonants
+        elif self.phone_class == 'CONSONANT':
+            
+            # Non-glide, non-lateral, non-tap/flap/trill approximants: /ʋ, ɹ, ɻ, R/
+            if self.features['approximant'] == 1 and self.features['lateral'] == 0 and self.features['trill'] == 0 and self.features['tap'] == 0:
+                return 10
+            
+            # Lateral approximants
+            elif self.manner == 'LATERAL APPROXIMANT':
+                return 9
+            
+            # Taps/flaps
+            elif self.manner == 'TAP/FLAP':
+                return 8
+            
+            # Trills
+            elif self.manner == 'TRILL':
+                return 7
+            
+            # Nasals
+            elif self.manner == 'NASAL':
+                return 6
+            
+            # /h/
+            elif self.base == 'h':
+                return 5
+            
+            # Fricatives
+            elif re.search('FRICATIVE', self.manner):
+                
+                # Voiced fricatives
+                if self.features['periodicGlottalSource'] == 1:
+                    return 4
+                
+                # Voiceless fricatives
+                else:
+                    return 3
+            
+            # Affricates, plosives, implosives, clicks
+            else:
+            
+                # Voiced
+                if self.features['periodicGlottalSource'] == 1:
+                    return 2
+                    
+                # Voiceless 
+                else:
+                    return 1
+        
+        # Tonemes
+        elif self.phone_class == 'TONEME':
+            return 0
+        
+        # Other sounds: raise error message
+        else:
+            raise ValueError(f'Error: the sonority of phone "{sound}" cannot be determined!')
+    
+
+    def __str__(self):
+        """Print the segment and its class, manner, place of articulation, and sonority"""
+        return '\n'.join([
+            f'/{self.segment}/',
+            f'Class: {self.phone_class}',
+            f'Place of Articulation: {self.poa}',
+            f'Manner of Articulation: {self.manner}',
+            f'Voiced: {self.voiced is True}',
+            f'Sonority: {self.sonority}',
+        ])
+        
+
+
 def phonEnvironment(segments, i):
     """Returns a string representing the phonological environment of a segment within a word
-    Categories:
-    - Initial segment
-    - Final segment
-    - Geminate consonant
-    - Medial sonority peak
-    - Medial sonority plateau
-    - Medial ascending sonority
-    - Medial descending sonority
-    - Toneme
-    # TODO verify these classes once finalized
+    # TODO add front/back vowel context
     """
     # Designate first non-diacritic component of segment as base
     segment_i = segments[i]
@@ -784,8 +880,7 @@ def remove_stress(ipa):
     return re.sub('[ˈˌ]', '', ipa)
 
 
-def common_features(segment_list, 
-                    start_features=features):
+def common_features(segment_list, start_features=features):
     """Returns the features/values shared by all segments in the list"""
     features = list(start_features)[:]
     feature_values = defaultdict(lambda:[])
@@ -812,8 +907,7 @@ def different_features(seg1, seg2, return_list=False):
             for feature in diffs:
                 print(f'{feature}\t\t{seg1_id[feature]}\t\t{seg2_id[feature]}')
 
-def lookup_segments(features, values, 
-                    segment_list=all_sounds):
+def lookup_segments(features, values, segment_list=all_sounds):
     """Returns a list of segments whose feature values match the search criteria"""
     matches = []
     for segment in segment_list:
@@ -960,4 +1054,3 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     checked_phone_sims[reference] = score
     checked_phone_sims[reference] = score
     return score
-
