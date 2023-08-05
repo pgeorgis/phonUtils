@@ -525,6 +525,7 @@ class Segment:
         
 
     def get_poa(self):
+        val_err = ValueError(f'Could not determine place of articulation for {self.segment}')
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if self.base in bilabial:
                 return 'BILABIAL'
@@ -553,9 +554,44 @@ class Segment:
             elif self.base in glottal:
                 return 'GLOTTAL'
             else:
-                raise ValueError(f'Could not determine place of articulation for {self.segment}')
+                raise val_err
+            
+        elif self.phone_class == 'VOWEL': # TODO
+            # Height / Openness
+            if re.search(r'[iyɨʉɯu]', self.base):
+                height = 'CLOSE'
+            elif re.search(r'[ɪʏʊeøɘɵɤo]', self.base):
+                height = 'CLOSE-MID'
+            elif re.search(r'[əɚ]', self.base):
+                height = 'MID'
+            elif re.search(r'[ɛœɜɞɝʌɔæɐ]', self.base):
+                height = 'OPEN-MID'
+            elif re.search(r'[aɶɑɒ]', self.base):
+                height = 'OPEN'
+            else:
+                raise val_err
+            
+            # Frontness / Backness
+            if re.search(r'[iyɪʏeøɛœæaɶ]', self.base):
+                frontness = 'FRONT'
+            elif re.search(r'[ɨʉɘɵəɜɞɐ]', self.base):
+                frontness = 'CENTRAL'
+            elif re.search(r'[ɯuʊɤoʌɔɑɒ]', self.base):
+                frontness = 'BACK'
+            else:
+                raise val_err
+
+            return ' '.join([height, frontness])
+
+        elif self.phone_class == 'DIPHTHONG': # TODO
+            raise NotImplementedError
+
+
+        elif self.phone_class == 'TONEME': # TODO
+            raise NotImplementedError
+
         else:
-            raise NotImplementedError # TODO add vowel POA
+            raise val_err
 
 
     def get_sonority(self):
