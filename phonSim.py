@@ -450,7 +450,7 @@ class Segment:
             manner = 'EXTRA SHORT ' + manner
         if re.search(r'[̩̍]', self.segment):
             manner = 'SYLLABIC ' + manner
-        elif re.search('̯', self.segment):
+        elif re.search('̯', self.segment) and self.phone_class == 'VOWEL':
             manner = 'NON-SYLLABIC ' + manner
 
         return manner
@@ -523,8 +523,8 @@ class Segment:
 
             return ' '.join([height, frontness])
 
-        elif self.phone_class == 'DIPHTHONG': # TODO
-            raise NotImplementedError
+        elif self.phone_class == 'DIPHTHONG': # TODO add better description for diphthongs
+            return ''
 
 
         elif self.phone_class == 'TONEME':
@@ -595,19 +595,9 @@ class Segment:
 
             # Check if diphthong
             if self.phone_class == 'DIPHTHONG':
-
-                # Use only the syllabic component for sonority calculation # TODO maybe there is a better method? see below
-                syl_comp = re.search(fr'[{vowels}](?![{post_diacritics}]*)', self.segment).group()
-                raise NotImplementedError # TODO finish this
-                strip_sound = strip_diacritics(syl_comp)
-                phone = phone_id(syl_comp)
-
-                # TODO: use this method instead
                 # Diphthong: calculate sonority as maximum sonority of component parts
-                if strip_sound[0] in vowels:
-                    diphthong_components = segment_ipa(sound, combine_diphthongs=False)
-                    sonorities = [get_sonority(v) for v in diphthong_components]
-                    return max(sonorities)
+                diphthong_components = [_toSegment(seg) for seg in segment_ipa(self.segment, combine_diphthongs=False)]
+                return max([seg.get_sonority() for seg in diphthong_components])
 
             # Treat as glide if non-syllabic
             if self.features['syllabic'] == 0:
