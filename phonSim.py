@@ -1,88 +1,25 @@
-# PHONETIC SEGMENT ANALYSIS AND PHONETIC DISTANCE
-# Code written by Philip Georgis (2021)
+# PHONETIC SEGMENT ANALYSIS AND PHONETIC SIMILARITY/DISTANCE
+# Code developed by Philip Georgis (Last updated: August 2023)
 
-# LOAD REQUIRED PACKAGES AND FUNCTIONS
-import re, math, os
-import pandas as pd
+import os
+import re
 from collections import defaultdict
 from sklearn.metrics import jaccard_score
 from scipy.spatial.distance import cosine
 
-# IMPORT PHONE DATA
-save_dir = os.path.dirname(__file__)
-phone_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'segments.csv'), sep=',')
-
-def binary_feature(feature):
-    """Converts features of type ['0', '-', '+'] to binary [0, 1]"""
-    if str(feature) == '+':
-        return 1
-    else:
-        return 0
-
-# Dictionary of basic phones with their phonetic features
-phone_features = {phone_data['segment'][i]:{feature:binary_feature(phone_data[feature][i])
-                                          for feature in phone_data.columns
-                                          if feature not in ['segment', 'sonority']
-                                          if not pd.isnull(phone_data[feature][i])}
-                  for i in range(len(phone_data))}
-
-features = set(feature for sound in phone_features for feature in phone_features[sound])
+# Load phonological constants initialized in loadPhoneData.py
+from loadPhoneData import (
+    all_phones, vowels, glides, consonants, tonemes, tone_levels, valid_ipa_ch,
+    plosive, implosive, nasals, affricate, fricative, trills, tap_flap, liquids, rhotic, approximants, glides, clicks,
+    bilabial, labiodental, dental, alveolar, laterals, postalveolar, alveolopalatal, retroflex, palatal, velar, uvular, pharyngeal, epiglottal, glottal,
+    diacritics, diacritics_effects, post_diacritics,
+    features, phone_features, feature_weights,
+    segment_regex
+)
+# TODO change names of classes to be all plural 
 
 
-# Load phone classes by manner and place of articulation, e.g. plosive, fricative, velar, palatal
-phone_classes = pd.read_csv(os.path.join(save_dir, 'Phones/phone_classes.tsv'))
-phone_classes = {phone_classes['Group'][i]:phone_classes['Phones'][i].split()
-                for i in range(len(phone_classes))}
-
-# Set these phone groups as global variables so that they are callable by name
-globals().update(phone_classes)
-
-# Set basic consonants and vowels using syllabic feature
-consonants = set(phone for phone in phone_features
-              if phone_features[phone]['syllabic'] == 0
-              if phone not in tonemes)
-vowels = set(phone for phone in phone_features if phone not in consonants.union(tonemes))
-
-# All basic sounds
-all_sounds = ''.join(consonants.union(vowels).union(tonemes))
-
-# IMPORT DIACRITICS DATA
-diacritics_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'diacritics.tsv'), sep='\t')
-
-# Create dictionary of diacritic characters with affected features and values
-diacritics_effects = defaultdict(lambda:[])
-for i in range(len(diacritics_data)):
-    effect = (diacritics_data['Feature'][i], binary_feature(diacritics_data['Value'][i]))
-    
-    # Skip diacritics which have no effect on features
-    if type(effect[0]) != float:
-        
-        # Add to dictionary, with diacritic as key
-        diacritics_effects[diacritics_data['Diacritic'][i]].append(effect)
-
-# Isolate suprasegmental diacritics
-suprasegmental_diacritics = set(diacritics_data.Diacritic[i] 
-                                for i in range(len(diacritics_data)) 
-                                if diacritics_data.Type[i] == 'suprasegmental')
-suprasegmental_diacritics.remove('ː') # don't include length as a suprasegmental
-
-
-# Diacritics by position with respect to base segments
-inter_diacritics = '͜͡'
-pre_diacritics, post_diacritics = [], []
-for i in range(len(diacritics_data)):
-    if diacritics_data['Position'][i] == 'pre':
-        pre_diacritics.append(diacritics_data['Diacritic'][i])
-    elif diacritics_data['Position'][i] == 'post':
-        post_diacritics.append(diacritics_data['Diacritic'][i])
-pre_diacritics = ''.join(pre_diacritics)
-post_diacritics = ''.join(post_diacritics)
-prepost_diacritics = {'ʰ', 'ʱ', 'ⁿ'} # diacritics which can appear before or after
-
-# List of all diacritic characters
-diacritics = ''.join([pre_diacritics, post_diacritics, inter_diacritics])
-
-
+# FUNCTIONS FOR IPA STRING MANIPULATION AND NORMALIZATION
 def strip_diacritics(string, excepted=[]):
     """Removes diacritic characters from an IPA string
     By default removes all diacritics; in order to keep certain diacritics,
@@ -97,9 +34,7 @@ def strip_diacritics(string, excepted=[]):
         raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
 
 
-# IPA STRING NORMALIZATION AND VALIDATION
-
-def normalize_ipa_ch(string):
+def normalize_ipa_ch(string): # TODO load this in from a mapping/adjudication file instead in order not to clutter this script
     """Normalizes some commonly mistyped IPA characters"""
 
     # <g> instead of <ɡ>
@@ -166,12 +101,6 @@ def normalize_ipa_ch(string):
 
     return string
 
-valid_ipa_ch = ''.join([all_sounds, diacritics, ' ', '‿'])
-
-def invalid_ch(string, valid_ch=valid_ipa_ch):
-    """Returns set of unrecognized (non-IPA) characters in phonetic string"""
-    return set(re.findall(fr'[^{valid_ch}]', string))
-
 
 def verify_charset(string):
     """Verifies that all characters are valid IPA characters or diacritics, otherwise raises error"""
@@ -181,8 +110,87 @@ def verify_charset(string):
         raise ValueError(f'Invalid IPA character(s) <{unk_ch_str}> found in "{string}"!')
 
 
-# PHONE CLASS MEMBERSHIP # TODO are these functions really needed anymore with the addition of Segment class?
+def invalid_ch(string, valid_ch=valid_ipa_ch):
+    """Returns set of unrecognized (non-IPA) characters in phonetic string"""
+    return set(re.findall(fr'[^{valid_ch}]', string))
 
+
+# IPA STRING SEGMENTATION
+def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True):
+    """Returns a list of segmented phones from the word"""
+
+    # Assert that all characters in string are recognized IPA characters
+    verify_charset(word)
+    
+    # Remove spaces and other specified characters/diacritics (e.g. stress, linking ties for phonological words)
+    remove_ch += '\s‿'
+    word = re.sub(f"[{remove_ch}]", '', word)
+
+    # Split by inter-diacritics, which don't seem to match properly in regex
+    parts = re.split('͡|͜', word)
+
+    # Then segment the parts and re-combine with tie character, as necessary
+    segments = []
+    for part in parts:
+        segmented = segment_regex.findall(part)
+        if len(segments) > 0:
+            segments[-1] = ''.join([segments[-1], '͡', segmented[0]])
+            segments.extend(segmented[1:])
+        else:
+            segments.extend(segmented)
+
+    # Move aspiration diacritic <ʰʱ> from preceding vowel or glide to following consonant
+    # Can't easily be distinguished in regex since the same symble is usually a post-diacritic for post-aspiration
+    if preaspiration:
+        for i, seg in enumerate(segments):
+            preasp = re.search(rf'(?<=[{pre_preaspiration}])[ʰʱ]$', seg)
+            if preasp:
+                try:
+                    match = preasp.group()
+                    segments[i] = re.sub('[ʰʱ]$', '', seg)
+                    segments[i+1] = match + segments[i+1]
+                except KeyError:
+                    pass
+
+    # Combine diphthongs
+    if combine_diphthongs:
+        updated_segments = []
+        i = 0
+        while i < len(segments):
+        #for i, seg in enumerate(segments):
+            seg = segments[i]
+            if '̯' in seg and is_vowel(seg):
+                if i > 0:
+                    # First try to combine with preceding vowel
+                    if is_vowel(updated_segments[-1]):
+                        updated_segments[-1] += seg
+                        i += 1
+
+                    # If there is no suitable preceding vowel, try combining with following vowel instead
+                    elif is_vowel(segments[i+1]):
+                        updated_segments.append(seg+segments[i+1])
+                        i += 2
+
+                    # Else do nothing
+                    else:
+                        updated_segments.append(seg)
+                        i += 1
+
+                # Combine an initial non-syllabic vowel onto a following vowel
+                else:
+                    if is_vowel(segments[1]):
+                        updated_segments.append(seg+segments[1])
+                        i += 2
+            else:
+                updated_segments.append(seg)
+                i += 1
+        
+        segments = updated_segments
+
+    return segments
+
+
+# PHONE CLASS MEMBERSHIP # TODO are these functions really needed anymore with the addition of Segment class?
 def is_ch(ch, l):
     try:
         if strip_diacritics(ch)[0] in l:
@@ -331,13 +339,6 @@ def apply_diacritics(base:str, base_features:set, diacritics:set):
     
     return base_features
 
-
-tone_levels = {'˩':1, '¹':1, 
-               '˨':2, '²':2,
-               '˧':3, '³':3,
-               '˦':4, '⁴':4, 
-               '˥':5, '⁵':5,
-               '↓':0, '⁰':0}
 
 def tonal_features(toneme):
     """Computes complex tonal features"""
@@ -526,6 +527,7 @@ class Segment:
                 return 'CLICK'
             else:
                 raise ValueError(f'Could not determine manner of articulation for {self.segment}')
+            # TODO add string names for features added by diacritics such as (pre)nasalization, ejectives, etc
         else:
             return self.phone_class
         
@@ -553,7 +555,7 @@ class Segment:
                 return 'VELAR'
             elif self.base in uvular:
                 return 'UVULAR'
-            elif self.base in uvular:
+            elif self.base in pharyngeal:
                 return 'PHARYNGEAL'
             elif self.base in epiglottal:
                 return 'EPIGLOTTAL'
@@ -785,7 +787,6 @@ class Segment:
         return '\n'.join(info)
         
 
-
 def phonEnvironment(segments, i):
     """Returns a string representing the phonological environment of a segment within a word
     # TODO add front/back vowel context
@@ -894,95 +895,8 @@ def phonEnvironment(segments, i):
         else:
             raise NotImplementedError(f'Unable to determine environment for segment {i} /{segments[i]}/ within /{"".join(segments)}/')
 
-# WORD SEGMENTATION
-pre_preaspiration = vowels.union(glides).union(set(post_diacritics)) # characters which can occur before preaspiration characters <ʰʱ>, to distinguish from post-aspiration
-segment_regexes = [
-    fr'(?<=[{pre_preaspiration}])[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
-    fr'(?<=^)[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
-    fr'[{pre_diacritics}]*[{all_sounds}][{post_diacritics}]*',
-]
-segment_regex = '(' + '|'.join(segment_regexes) + ')'
-segment_regex = re.compile(segment_regex)
-def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True):
-    """Returns a list of segmented phones from the word"""
 
-    # Assert that all characters in string are recognized IPA characters
-    verify_charset(word)
-    
-    # Remove spaces and other specified characters/diacritics (e.g. stress, linking ties for phonological words)
-    remove_ch += '\s‿'
-    word = re.sub(f"[{remove_ch}]", '', word)
-
-    # Split by inter-diacritics, which don't seem to match properly in regex
-    parts = re.split('͡|͜', word)
-
-    # Then segment the parts and re-combine with tie character, as necessary
-    segments = []
-    for part in parts:
-        segmented = segment_regex.findall(part)
-        if len(segments) > 0:
-            segments[-1] = ''.join([segments[-1], '͡', segmented[0]])
-            segments.extend(segmented[1:])
-        else:
-            segments.extend(segmented)
-
-    # Move aspiration diacritic <ʰʱ> from preceding vowel or glide to following consonant
-    # Can't easily be distinguished in regex since the same symble is usually a post-diacritic for post-aspiration
-    if preaspiration:
-        for i, seg in enumerate(segments):
-            preasp = re.search(rf'(?<=[{pre_preaspiration}])[ʰʱ]$', seg)
-            if preasp:
-                try:
-                    match = preasp.group()
-                    segments[i] = re.sub('[ʰʱ]$', '', seg)
-                    segments[i+1] = match + segments[i+1]
-                except KeyError:
-                    pass
-
-    # Combine diphthongs
-    if combine_diphthongs:
-        updated_segments = []
-        i = 0
-        while i < len(segments):
-        #for i, seg in enumerate(segments):
-            seg = segments[i]
-            if '̯' in seg and is_vowel(seg):
-                if i > 0:
-                    # First try to combine with preceding vowel
-                    if is_vowel(updated_segments[-1]):
-                        updated_segments[-1] += seg
-                        i += 1
-
-                    # If there is no suitable preceding vowel, try combining with following vowel instead
-                    elif is_vowel(segments[i+1]):
-                        updated_segments.append(seg+segments[i+1])
-                        i += 2
-
-                    # Else do nothing
-                    else:
-                        updated_segments.append(seg)
-                        i += 1
-
-                # Combine an initial non-syllabic vowel onto a following vowel
-                else:
-                    if is_vowel(segments[1]):
-                        updated_segments.append(seg+segments[1])
-                        i += 2
-            else:
-                updated_segments.append(seg)
-                i += 1
-        
-        segments = updated_segments
-
-
-    return segments
-
-def remove_stress(ipa):
-    """Removes stress annotation from an IPA string"""
-    return re.sub('[ˈˌ]', '', ipa)
-
-
-def common_features(segment_list, start_features=features):
+def common_features(segment_list, start_features=features): # TODO update
     """Returns the features/values shared by all segments in the list"""
     features = list(start_features)[:]
     feature_values = defaultdict(lambda:[])
@@ -993,6 +907,7 @@ def common_features(segment_list, start_features=features):
                 feature_values[feature].append(value)
     common = [(feature, feature_values[feature][0]) for feature in feature_values if len(feature_values[feature]) == 1]
     return common
+
 
 def different_features(seg1, seg2, return_list=False):
     diffs = []
@@ -1009,7 +924,8 @@ def different_features(seg1, seg2, return_list=False):
             for feature in diffs:
                 print(f'{feature}\t\t{seg1_id[feature]}\t\t{seg2_id[feature]}')
 
-def lookup_segments(features, values, segment_list=all_sounds):
+
+def lookup_segments(features, values, segment_list=all_phones):
     """Returns a list of segments whose feature values match the search criteria"""
     matches = []
     for segment in segment_list:
@@ -1022,11 +938,7 @@ def lookup_segments(features, values, segment_list=all_sounds):
     return set(matches)
 
 
-
 # SIMILARITY / DISTANCE MEASURES
-
-# Cosine similarity: cosine() imported from scipy.spatial.distance
-
 def hamming_distance(vec1, vec2, normalize=True):
     differences = len([feature for feature in vec1 if vec1[feature] != vec2[feature]])
     if normalize:
@@ -1053,24 +965,6 @@ def dice_sim(vec1, vec2):
     return (2*jaccard) / (1+jaccard)
 
 
-# Feature Geometry Weights
-# Feature weight calculated as ln(n_distinctions) / (tier**2)
-# where n_distinctions = (n_sisters+1) + (n_descendants)
-feature_geometry = pd.read_csv(os.path.join(save_dir, 'Phones/feature_geometry.tsv'), sep='\t')
-feature_geometry['Tier'] = feature_geometry['Path'].apply(lambda x: len(x.split(' | ')))
-feature_geometry['Parent'] = feature_geometry['Path'].apply(lambda x: x.split(' | ')[-1])
-feature_geometry['N_Sisters'] = feature_geometry['Parent'].apply(lambda x: feature_geometry['Parent'].to_list().count(x))
-feature_geometry['N_Descendants'] = feature_geometry['Feature'].apply(lambda x: len([i for i in range(len(feature_geometry)) 
-                                                                                     if x in feature_geometry['Path'].to_list()[i].split(' | ')]))
-feature_geometry['N_Distinctions'] = (feature_geometry['N_Sisters'] + 1) + (feature_geometry['N_Descendants'])
-weights = [math.log(row['N_Distinctions']) / (row['Tier']**2) for index, row in feature_geometry.iterrows()]
-total_weights = sum(weights)
-normalized_weights = [w/total_weights for w in weights]
-feature_geometry['Weight'] = normalized_weights
-feature_weights = {feature_geometry.Feature.to_list()[i]:feature_geometry.Weight.to_list()[i]
-                   for i in range(len(feature_geometry))}
-
-
 def weighted_hamming(vec1, vec2, weights=feature_weights):
     diffs = 0
     for feature in vec1:
@@ -1092,9 +986,6 @@ def weighted_jaccard(vec1, vec2, weights=feature_weights):
 def weighted_dice(vec1, vec2, weights=feature_weights):
     w_jaccard = weighted_jaccard(vec1, vec2, weights)
     return (2*w_jaccard) / (1+w_jaccard)
-
-
-
 
 
 # PHONE COMPARISON
