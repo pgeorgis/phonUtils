@@ -221,71 +221,6 @@ def is_diphthong(seg):
 
 
 # PHONOLOGICAL FEATURES
-phone_ids = {} # Dictionary of phone feature dicts # TODO Change to be dictionary {str:Segment class} 
-
-def phone_id(segment):
-    """Returns a dictionary of phonetic feature values for the segment"""
-    
-    # Try to retrieve pre-calculated feature dictionary, if available
-    if segment in phone_ids:
-        return phone_ids[segment]
-    
-    # Verify that all characters in phone are valid IPA characters
-    verify_charset(segment)
-
-    # Generate an empty phone feature dictionary
-    seg_dict = defaultdict(lambda:0)
-    
-    # Split segment into component parts, if relevant
-    parts = re.split('͡|͜', segment)
-    bases = []
-    
-    # Generate feature dictionary for each part and add to main feature dict
-    for part in parts:
-        if len(part.strip()) > 0:
-
-            # Base of the segment is the non-diacritic portion
-            base = strip_diacritics(part)
-            if len(base) == 0:
-                raise AssertionError(f'Error: invalid segment <{segment}>, no base IPA character found!')
-            bases.append(base)
-
-            # If the length of the base > 1, the segment is a diphthong (e.g. /e̯a/) or complex toneme (e.g. /˥˩/)
-            # Filter out tonemes
-            if (len(base) > 1) and (base[0] not in tonemes):
-                return diphthong_features(part)
-            
-            # If the segment is a toneme, use the first component as its base
-            elif base[0] in tonemes:
-                return tonal_features(segment)
-
-            # Otherwise, retrieve the base phone's features
-            else:
-                base_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
-                modifiers = set(ch for ch in segment if ch not in base)
-                if len(modifiers) > 0:
-                    part_id = apply_diacritics(base, base_id, modifiers)
-                else:
-                    part_id = base_id
-                
-                # Add to overall segment ID
-                for feature in part_id:
-                    # Value = 1 (+) overrides value = 0 (-,0)
-                    seg_dict[feature] = max(seg_dict[feature], part_id[feature])
-    
-    # Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
-    if len(parts) > 1:
-        if bases[0] in plosives:
-            if bases[-1] in fricatives:
-                seg_dict['delayedRelease'] = 1 
-                seg_dict['continuant'] = 0 
-    
-    # Add segment's feature dictionary to phone_ids; return the feature dictionary
-    phone_ids[segment] = seg_dict
-
-    return seg_dict 
-
-
 def diphthong_features(diphthong):
     """Returns dictionary of features for diphthongal segment"""
     components = segment_ipa(diphthong, combine_diphthongs=False)
@@ -463,13 +398,15 @@ class Segment:
     segments = {}
 
     def __init__(self, segment):
+        # Normalize IPA string input and check for non-IPA characters
         self.segment = normalize_ipa_ch(segment)
+        verify_charset(self.segment)
 
         # Base segment: no diacritics; first element of diphthongs, affricates, or complex consonants
-        self.base = strip_diacritics(self.segment)[0]
+        self.base = self.get_base_ch()
 
         # Get distinctive phonological feature dictionary
-        self.features = phone_id(self.segment) # TODO change to class method
+        self.features = self.get_phone_features()
         
         # Get voicing status
         self.voiced = self.features['periodicGlottalSource'] == 1
@@ -487,6 +424,14 @@ class Segment:
         Segment.segments[self.segment] = self
 
 
+    def get_base_ch(self):
+        no_diacritics = strip_diacritics(self.segment)
+        if len(no_diacritics) < 1:
+            raise ValueError(f'Error: invalid segment <{self.segment}>, no base IPA character found!')
+        else:
+            return no_diacritics[0]
+
+
     def get_phone_class(self):
         if is_diphthong(self.segment):
             return 'DIPHTHONG'
@@ -500,6 +445,58 @@ class Segment:
             return 'TONEME'
         else:
             raise ValueError(f'Could not determine phone class of {self.segment}')
+
+
+    def get_phone_features(self):
+        """Returns a dictionary of distinctive phonological feature values for the segment"""
+
+        # Generate an empty phone feature dictionary
+        feature_dict = defaultdict(lambda:0)
+        
+        # Split segment into component parts, if relevant
+        parts = re.split('͡|͜', self.segment)
+        bases = []
+        
+        # Generate feature dictionary for each part and add to main feature dict
+        for part in parts:
+            if len(part.strip()) > 0:
+
+                # Base of the segment is the non-diacritic portion
+                base = strip_diacritics(part)
+                if len(base) == 0:
+                    raise AssertionError(f'Error: invalid segment <{self.segment}>, no base IPA character found!')
+                bases.append(base)
+
+                # If the length of the base > 1, the segment is a diphthong (e.g. /e̯a/) or complex toneme (e.g. /˥˩/)
+                # Filter out tonemes
+                if (len(base) > 1) and (base[0] not in tonemes):
+                    return diphthong_features(part) # TODO part? why not self.segment?
+                
+                # If the segment is a toneme, use the first component as its base
+                elif base[0] in tonemes:
+                    return tonal_features(self.segment)
+
+                # Otherwise, retrieve the base phone's features
+                else:
+                    base_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
+                    modifiers = set(ch for ch in part if ch not in base)
+                    if len(modifiers) > 0:
+                        part_id = apply_diacritics(base, base_id, modifiers)
+                    else:
+                        part_id = base_id
+                    
+                    # Add to overall segment ID
+                    for feature in part_id:
+                        # Value = 1 (+) overrides value = 0 (-,0)
+                        feature_dict[feature] = max(feature_dict[feature], part_id[feature])
+        
+        # Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
+        if len(parts) > 1:
+            if bases[0] in plosives and bases[-1] in fricatives:
+                feature_dict['delayedRelease'] = 1 
+                feature_dict['continuant'] = 0 
+        
+        return feature_dict 
 
 
     def get_manner(self):
@@ -792,9 +789,10 @@ class Segment:
         return '\n'.join(info)
         
 
-def phonEnvironment(segments, i):
+def phon_env(segments, i):
     """Returns a string representing the phonological environment of a segment within a word
     # TODO add front/back vowel context
+    # TODO should convert to list of Segment objects if not already
     """
     # Designate first non-diacritic component of segment as base
     segment_i = segments[i]
@@ -809,7 +807,8 @@ def phonEnvironment(segments, i):
     elif i == 0:
         if len(segments) > 1:
             next_segment = segments[i+1]
-            sonority_i, next_sonority = map(get_sonority, [segment_i, next_segment])
+            raise NotImplementedError
+            sonority_i, next_sonority = map(get_sonority, [segment_i, next_segment]) # TODO will need to be adjusted
         else:
             next_segment = None
 
@@ -835,7 +834,8 @@ def phonEnvironment(segments, i):
         if prev_segment == segment_i:
             return 'SS#'
         else:
-            prev_sonority, sonority_i = map(get_sonority, [prev_segment, segment_i])
+            raise NotImplementedError
+            prev_sonority, sonority_i = map(get_sonority, [prev_segment, segment_i]) # TODO will need to be adjusted
             
             if prev_sonority == sonority_i:
                 return '=S#'
@@ -849,7 +849,8 @@ def phonEnvironment(segments, i):
     # Word-medial segments
     else:
         prev_segment, next_segment = segments[i-1], segments[i+1]
-        prev_sonority, sonority_i, next_sonority = map(get_sonority, [prev_segment, 
+        raise NotImplementedError
+        prev_sonority, sonority_i, next_sonority = map(get_sonority, [prev_segment,  # TODO will need to be adjusted
                                                                       segment_i, 
                                                                       next_segment])
         
@@ -909,6 +910,7 @@ def hamming_distance(vec1, vec2, normalize=True):
     else: 
         return differences
 
+
 def jaccard_sim(vec1, vec2):
     features = sorted(list(vec1.keys()))
     vec1_values = [vec1[feature] for feature in features]
@@ -922,6 +924,7 @@ def jaccard_sim(vec1, vec2):
                 vec[i] = 1
                 
     return jaccard_score(vec1_values, vec2_values)
+
 
 def dice_sim(vec1, vec2):
     jaccard = jaccard_sim(vec1, vec2)
