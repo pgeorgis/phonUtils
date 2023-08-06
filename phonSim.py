@@ -10,7 +10,7 @@ from scipy.spatial.distance import cosine
 # Load phonological constants initialized in initPhoneData.py
 from initPhoneData import (
     # Top-level phone sets
-    vowels, glides, consonants, tonemes, valid_ipa_ch,
+    vowels, glides, consonants, tonemes,
     # Phone classes by manner of articulation
     plosives, implosives, nasals, affricates, fricatives, trills, taps_flaps, liquids, rhotics, approximants, glides, clicks,
     # Phone classes by place of articulation
@@ -20,7 +20,9 @@ from initPhoneData import (
     # Phonological features and feature geometry weights 
     phone_features, feature_weights, tone_levels,
     # Constants for IPA string segmentation
-    segment_regex, pre_preaspiration
+    segment_regex, pre_preaspiration,
+    # IPA character normalization/validation
+    valid_ipa_ch, ipa_norm_map
 )
 
 
@@ -34,75 +36,17 @@ def strip_diacritics(string, excepted=[]):
         return re.sub(f'[{to_remove}]', '', string)
 
     except RecursionError:
-        with open('error.out', 'w') as f:
+        error_out = os.path.join(os.getcwd(), "diacritics_recursion_error.out")
+        with open(error_out, 'w') as f:
             f.write(f'Unable to parse phonetic characters in form: {string}')
-        raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
+        raise RecursionError(f'Error parsing phonetic characters: see {error_out}')
 
 
-def normalize_ipa_ch(string): # TODO load this in from a mapping/adjudication file instead in order not to clutter this script
-    """Normalizes some commonly mistyped IPA characters"""
+def normalize_ipa_ch(string, ipa_norm_map=ipa_norm_map):
+    """Normalizes some commonly mistyped IPA characters according to a pre-loaded normalization mapping dictionary"""
 
-    # <g> instead of <ɡ>
-    string = re.sub('g', 'ɡ', string)
-
-    # Affricates for which there is a special ligature character
-    string = re.sub('t͡s', 'ʦ', string)
-    string = re.sub('d͡z', 'ʣ', string)
-    string = re.sub('t͡ʃ', 'ʧ', string)
-    string = re.sub('d͡ʒ', 'ʤ', string)
-    string = re.sub('t͡ɕ', 'ʨ', string)
-    string = re.sub('d͡ʑ', 'ʥ', string)
-
-    # Accented characters instead of vowel + tone diacritic
-    string = re.sub('á', 'á', string)
-    string = re.sub('à', 'à', string)
-    string = re.sub('â', 'â', string)
-    string = re.sub('ā', 'ā', string)
-    string = re.sub('é', 'é', string)
-    string = re.sub('è', 'è', string)
-    string = re.sub('ê', 'ê', string)
-    string = re.sub('ē', 'ē', string)
-    string = re.sub('í', 'í', string)
-    string = re.sub('ì', 'ì', string)
-    string = re.sub('î', 'î', string)
-    string = re.sub('ī', 'ī', string)
-    string = re.sub('ó', 'ó', string)
-    string = re.sub('ò', 'ò', string)
-    string = re.sub('ô', 'ô', string)
-    string = re.sub('ō', 'ō', string)
-    string = re.sub('ú', 'ú', string)
-    string = re.sub('ù', 'ù', string)
-    string = re.sub('û', 'û', string)
-    string = re.sub('ū', 'ū', string)
-    string = re.sub('ý', 'ý', string)
-    string = re.sub('ŕ', 'ŕ', string)
-
-    # Vowels with tilde as single character instead of vowel + tilde (nasal) diacritic
-    string = re.sub('ã', 'ã', string)
-    string = re.sub('ẽ', 'ẽ', string)
-    string = re.sub('ĩ', 'ĩ', string)
-    string = re.sub('õ', 'õ', string)
-    string = re.sub('ũ', 'ũ', string)
-
-    # Cyrillic and Greek characters that look like Latin/IPA characters
-    # Cyrillic
-    string = re.sub('а', 'a', string)
-    string = re.sub('е', 'e', string)
-    string = re.sub('і', 'i', string)
-    string = re.sub('о', 'o', string)
-    string = re.sub('я', 'ʁ', string)
-    string = re.sub('з', 'ɜ', string)
-    # Greek
-    string = re.sub('ο', 'o', string)
-    string = re.sub('ε', 'ɛ', string)
-    string = re.sub('λ', 'ʎ', string)
-    string = re.sub('δ', 'ð', string)
-
-    # Other
-    string = re.sub('∅', 'ø', string)
-    string = re.sub('エ', 'ɪ', string)
-    string = re.sub("'", 'ˈ', string)
-    string = re.sub(':', 'ː', string)
+    for ch, repl in ipa_norm_map.items():
+        string = re.sub(ch, repl, string)
 
     return string
 

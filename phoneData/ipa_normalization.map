@@ -1,0 +1,64 @@
+# Standard Latin <g> instead of IPA <ɡ>
+g	ɡ
+
+# Affricates for which there is a special ligature character
+t͡s	ʦ
+d͡z	ʣ
+t͡ʃ	ʧ
+d͡ʒ	ʤ
+t͡ɕ	ʨ
+d͡ʑ	ʥ
+
+# Accented characters instead of vowel + tone diacritic
+á	á
+à	à
+â	â
+ā	ā
+é	é
+è	è
+ê	ê
+ē	ē
+í	í
+ì	ì
+î	î
+ī	ī
+ó	ó
+ò	ò
+ô	ô
+ō	ō
+ú	ú
+ù	ù
+û	û
+ū	ū
+ý	ý
+ŕ	ŕ
+
+# Vowels with tilde as single character instead of vowel + nasal diacritic
+ã	ã
+ẽ	ẽ
+ĩ	ĩ
+õ	õ
+ũ	ũ
+ỹ	ỹ
+
+# Cyrillic and Greek characters that are visually similar to Latin/IPA characters
+# Cyrillic
+а	a
+е	e
+і	i
+о	o
+я	ʁ
+з	ɜ
+
+# Greek
+ο	o
+ε	ɛ
+λ	ʎ
+δ	ð
+
+# Other characters that are visually similar to IPA characters 
+∅	ø
+エ	ɪ
+'	ˈ
+:	ː
+|	ǀ

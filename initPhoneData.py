@@ -103,6 +103,18 @@ def load_feature_geometry(dir):
     return feature_weights
 
 
+def load_ipa_norm_map(dir):
+    map_file = os.path.join(dir, 'phoneData', 'ipa_normalization.map')
+    ipa_norm_map = {}
+    with open(map_file, 'r') as map_f:
+        for line in map_f.readlines():
+            if not re.match(r'\s*#', line) and line.strip() != '':
+                ch, repl = line.strip().split('\t')
+                ipa_norm_map[ch] = repl
+
+    return ipa_norm_map
+
+
 def get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacritics, pre_preaspiration):
     segment_regexes = [
         fr'(?<=[{pre_preaspiration}])[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
@@ -119,6 +131,7 @@ def get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacriti
 dir = os.path.dirname(__file__)
 features, phone_features, phone_classes = load_phone_data(dir)
 diacritics_data = load_diacritics_data(dir)
+ipa_norm_map = load_ipa_norm_map(dir)
 feature_weights = load_feature_geometry(dir)
 
 # Set contents of phone class and diacritics data dictionaries as global variables
