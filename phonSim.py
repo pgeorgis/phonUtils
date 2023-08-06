@@ -367,36 +367,93 @@ class Segment:
     def get_manner(self):
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if self.base in affricates or re.search(fr'{plosives}{diacritics}*͡{fricatives}{diacritics}*', self.segment):
-                return 'AFFRICATE'
+                manner = 'AFFRICATE'
             if self.base in plosives:
-                return 'PLOSIVE'
+                manner = 'PLOSIVE'
             elif self.base in nasals:
-                return 'NASAL'
+                manner = 'NASAL'
             elif self.base in fricatives and '̞' in self.segment: # lowered diacritic turns fricatives into approximants
-                return 'APPROXIMANT'
+                manner = 'APPROXIMANT'
             elif re.search('[ɬɮ]', self.base):
-                return 'LATERAL FRICATIVE'
+                manner = 'LATERAL FRICATIVE'
             elif self.base in fricatives:
-                return 'FRICATIVE'
+                manner = 'FRICATIVE'
             elif self.base in trills and '̝' in self.segment:
-                return 'FRICATIVE TRILL'
+                manner = 'FRICATIVE TRILL'
             elif self.base in trills:
-                return 'TRILL'
+                manner = 'TRILL'
             elif self.base in taps_flaps:
-                return 'TAP/FLAP'
+                manner = 'TAP/FLAP'
             elif self.features['lateral'] == 1 and self.features['approximant'] == 1:
-                return 'LATERAL APPROXIMANT'
+                manner = 'LATERAL APPROXIMANT'
             elif self.base in approximants:
-                return 'APPROXIMANT'
+                manner = 'APPROXIMANT'
             elif self.base in implosives:
-                return 'IMPLOSIVE'
+                manner = 'IMPLOSIVE'
             elif self.base in clicks:
-                return 'CLICK'
+                manner = 'CLICK'
             else:
                 raise ValueError(f'Could not determine manner of articulation for {self.segment}')
-            # TODO add string names for features added by diacritics such as (pre)nasalization, ejectives, etc
         else:
-            return self.phone_class
+            manner = self.phone_class
+
+        # Add features marked only by diacritics
+        if re.search('̚', self.segment):
+            manner = 'UNRELEASED ' + manner
+        elif re.search('ˡ', self.segment):
+            manner = 'LATERAL RELEASED ' + manner
+        if re.search('̃', self.segment):
+            manner = 'NASALIZED ' + manner
+        elif re.match(r'[ᵐᶬⁿᵑ]', self.segment):
+            manner = 'PRENASALIZED ' + manner
+        elif re.search(r'.+[ᵐᶬⁿᵑ]', self.segment):
+            manner = 'NASAL RELEASED ' + manner
+        if re.match(r'[ʰʱ]', self.segment):
+            manner = 'PREASPIRATED ' + manner
+        elif re.search(r'[ʰʱ]', self.segment):
+            manner = 'ASPIRATED ' + manner
+        if re.search('ᶣ|(ʲʷ)|(ʷʲ)', self.segment):
+            manner = 'LABIO-PALATALIZED ' + manner
+        elif re.search('ʲ', self.segment):
+            manner = 'PALATALIZED ' + manner
+        elif re.search('ʷ', self.segment):
+            manner = 'LABIALIZED ' + manner
+        if re.search('˞', self.segment):
+            manner = 'RHOTACIZED ' + manner
+        if re.search('ˤ', self.segment):
+            manner = 'PHARYNGEALIZED ' + manner
+        elif re.search('ˠ', self.segment):
+            manner = 'VELARIZED ' + manner
+        elif re.search('ˀ', self.segment):
+            manner = 'GLOTTALIZED ' + manner
+        elif re.search('̤', self.segment):
+            manner = 'BREATHY ' + manner
+        elif re.search('̰', self.segment):
+            manner = 'CREAKY ' + manner
+        if re.search('͈', self.segment):
+            manner = 'FORTIS ' + manner
+        elif re.search('͉', self.segment):
+            manner = 'LENIS ' + manner
+        if re.search('˭', self.segment):
+            manner = 'TENSE ' + manner
+        if re.search('ʼ', self.segment):
+            manner = 'EJECTIVE ' + manner
+        if re.search('ˈ', self.segment):
+            manner = 'STRESSED ' + manner
+        elif re.search('ˌ', self.segment):
+            manner = 'SECONDARY STRESSED ' + manner
+        if re.search('ː', self.segment):
+            manner = 'LONG ' + manner
+        elif re.search('ˑ', self.segment):
+            manner = 'HALF-LONG ' + manner
+        elif re.search('̆', self.segment):
+            manner = 'EXTRA SHORT ' + manner
+        if re.search(r'[̩̍]', self.segment):
+            manner = 'SYLLABIC ' + manner
+        elif re.search('̯', self.segment):
+            manner = 'NON-SYLLABIC ' + manner
+
+        return manner
         
 
     def get_poa(self):
@@ -404,12 +461,18 @@ class Segment:
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if re.search(r'([wʍ])|([kɡ].*͡[pb])', self.segment):
                 return 'LABIAL-VELAR'
+            elif re.search('̼', self.segment):
+                return 'LINGUO-LABIAL'
             elif self.base in bilabial:
                 return 'BILABIAL'
             elif self.features['labiodental'] == 1:
                 return 'LABIODENTAL'
             elif re.search(r'[θðǀ̪]', self.segment):
                 return 'DENTAL'
+            elif re.search('̺', self.segment) and self.base in alveolar:
+                return 'APICO-ALVEOLAR'
+            elif re.search('̻', self.segment) and self.base in alveolar:
+                return 'LAMINAL ALVEOLAR'
             elif self.base in alveolar:
                 return 'ALVEOLAR'
             elif self.base in postalveolar:
