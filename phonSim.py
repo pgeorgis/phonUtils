@@ -9,12 +9,18 @@ from scipy.spatial.distance import cosine
 
 # Load phonological constants initialized in initPhoneData.py
 from initPhoneData import (
-    all_phones, vowels, glides, consonants, tonemes, tone_levels, valid_ipa_ch,
+    # Top-level phone sets
+    vowels, glides, consonants, tonemes, valid_ipa_ch,
+    # Phone classes by manner of articulation
     plosives, implosives, nasals, affricates, fricatives, trills, taps_flaps, liquids, rhotics, approximants, glides, clicks,
+    # Phone classes by place of articulation
     bilabial, labiodental, dental, alveolar, lateral, postalveolar, alveolopalatal, retroflex, palatal, velar, uvular, pharyngeal, epiglottal, glottal,
+    # Diacritics and associated features
     diacritics, diacritics_effects, post_diacritics,
-    features, phone_features, feature_weights,
-    segment_regex
+    # Phonological features and feature geometry weights 
+    phone_features, feature_weights, tone_levels,
+    # Constants for IPA string segmentation
+    segment_regex, pre_preaspiration
 )
 
 
@@ -757,7 +763,7 @@ class Segment:
         
         # Other sounds: raise error message
         else:
-            raise ValueError(f'Error: the sonority of phone "{sound}" cannot be determined!')
+            raise ValueError(f'Error: the sonority of phone "{self.segment}" cannot be determined!')
 
 
     def __str__(self):
