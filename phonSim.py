@@ -763,15 +763,29 @@ class Segment:
 
 
     def __str__(self):
-        """Print the segment and its class, manner, place of articulation, and sonority"""
-        return '\n'.join([
+        """Print the segment and its class, manner, place of articulation, sonority, and/or other relevant features."""
+        info = [
             f'/{self.segment}/',
-            f'Class: {self.phone_class}',
-            f'Place of Articulation: {self.poa}',
-            f'Manner of Articulation: {self.manner}',
-            f'Voiced: {self.voiced is True}',
-            f'Sonority: {self.sonority}',
-        ])
+            f'Class: {self.phone_class}'
+        ]
+
+        if self.phone_class in ('CONSONANT', 'VOWEL', 'DIPHTHONG'):
+            info.extend([
+                f'Place of Articulation: {self.poa}',
+                f'Manner of Articulation: {self.manner}',
+                f'Voiced: {self.voiced is True}',
+                f'Sonority: {self.sonority}',
+            ])
+        
+        else: # TONEME
+            shape = re.search(r'((RISING|FALLING|LEVEL)-?(RISING|FALLING)?)', self.poa).group()
+            info.append(f'Shape: {shape}')
+            level = re.search(r'((EXTRA )?(HIGH|MID|LOW)-?(MID)?)', self.poa)
+            if level:
+                level = level.group()
+                info.append(f'Level: {level}')
+        
+        return '\n'.join(info)
         
 
 
@@ -1145,3 +1159,5 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     checked_phone_sims[reference] = score
     checked_phone_sims[reference] = score
     return score
+
+breakpoint()

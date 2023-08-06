@@ -12,3 +12,8 @@ def test_segmentation():
         ('fuːkʰalˈɔ̃jɕib̥ø̰', ['f', 'uː', 'kʰ', 'a', 'l', 'ˈɔ̃', 'j', 'ɕ', 'i', 'b̥', 'ø̰']),
     ]:
         assert segment_ipa(ipa) == segments
+
+"""
+PYTESTS TO ADD:
+- Segment place of articulation, manner, voicing, tonal features
+"""
