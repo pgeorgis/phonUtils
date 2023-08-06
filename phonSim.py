@@ -736,11 +736,11 @@ def _toSegment(ch):
 def phon_env(segments, i):
     """Returns a string representing the phonological environment of a segment within a word
     # TODO add front/back vowel context
-    # TODO should convert to list of Segment objects if not already
     """
-    # Designate first non-diacritic component of segment as base
+    # Convert IPA strings to Segment objects and get base segment
+    segments = [_toSegment(seg) for seg in segments]
     segment_i = segments[i]
-    base = strip_diacritics(segment_i)[0]
+    base = segment_i.base
 
     # Tonemes
     if base in tonemes: 
@@ -751,8 +751,7 @@ def phon_env(segments, i):
     elif i == 0:
         if len(segments) > 1:
             next_segment = segments[i+1]
-            raise NotImplementedError
-            sonority_i, next_sonority = map(get_sonority, [segment_i, next_segment]) # TODO will need to be adjusted
+            sonority_i, next_sonority = segment_i.sonority, next_segment.sonority
         else:
             next_segment = None
 
@@ -778,8 +777,7 @@ def phon_env(segments, i):
         if prev_segment == segment_i:
             return 'SS#'
         else:
-            raise NotImplementedError
-            prev_sonority, sonority_i = map(get_sonority, [prev_segment, segment_i]) # TODO will need to be adjusted
+            prev_sonority, sonority_i = prev_segment.sonority, segment_i.sonority
             
             if prev_sonority == sonority_i:
                 return '=S#'
@@ -793,10 +791,7 @@ def phon_env(segments, i):
     # Word-medial segments
     else:
         prev_segment, next_segment = segments[i-1], segments[i+1]
-        raise NotImplementedError
-        prev_sonority, sonority_i, next_sonority = map(get_sonority, [prev_segment,  # TODO will need to be adjusted
-                                                                      segment_i, 
-                                                                      next_segment])
+        prev_sonority, sonority_i, next_sonority = prev_segment.sonority, segment_i.sonority, next_segment.sonority
         
         # Sonority plateau: =S=
         if prev_segment == sonority_i == next_sonority:
@@ -843,7 +838,7 @@ def phon_env(segments, i):
                 return '=S>'
         
         else:
-            raise NotImplementedError(f'Unable to determine environment for segment {i} /{segments[i]}/ within /{"".join(segments)}/')
+            raise NotImplementedError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
 
 
 # SIMILARITY / DISTANCE MEASURES
