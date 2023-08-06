@@ -25,7 +25,6 @@ from initPhoneData import (
     valid_ipa_ch, ipa_norm_map
 )
 
-
 # FUNCTIONS FOR IPA STRING MANIPULATION AND NORMALIZATION
 def strip_diacritics(string, excepted=[]):
     """Removes diacritic characters from an IPA string
@@ -46,9 +45,14 @@ def normalize_ipa_ch(string, ipa_norm_map=ipa_norm_map):
     """Normalizes some commonly mistyped IPA characters according to a pre-loaded normalization mapping dictionary"""
 
     for ch, repl in ipa_norm_map.items():
-        string = re.sub(ch, repl, string)
+        string = re.sub(re.escape(ch), repl, string)
 
     return string
+
+
+def invalid_ch(string, valid_ch=valid_ipa_ch):
+    """Returns set of unrecognized (non-IPA) characters in phonetic string"""
+    return set(re.findall(fr'[^{valid_ch}]', string))
 
 
 def verify_charset(string):
@@ -57,11 +61,6 @@ def verify_charset(string):
     if len(unk_ch) > 0:
         unk_ch_str = '>, <'.join(unk_ch)
         raise ValueError(f'Invalid IPA character(s) <{unk_ch_str}> found in "{string}"!')
-
-
-def invalid_ch(string, valid_ch=valid_ipa_ch):
-    """Returns set of unrecognized (non-IPA) characters in phonetic string"""
-    return set(re.findall(fr'[^{valid_ch}]', string))
 
 
 # IPA STRING SEGMENTATION
@@ -108,15 +107,15 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
         while i < len(segments):
         #for i, seg in enumerate(segments):
             seg = segments[i]
-            if '̯' in seg and is_vowel(seg):
+            if '̯' in seg and _is_vowel(seg):
                 if i > 0:
                     # First try to combine with preceding vowel
-                    if is_vowel(updated_segments[-1]):
+                    if _is_vowel(updated_segments[-1]):
                         updated_segments[-1] += seg
                         i += 1
 
                     # If there is no suitable preceding vowel, try combining with following vowel instead
-                    elif is_vowel(segments[i+1]):
+                    elif _is_vowel(segments[i+1]):
                         updated_segments.append(seg+segments[i+1])
                         i += 2
 
@@ -127,7 +126,7 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
 
                 # Combine an initial non-syllabic vowel onto a following vowel
                 else:
-                    if is_vowel(segments[1]):
+                    if _is_vowel(segments[1]):
                         updated_segments.append(seg+segments[1])
                         i += 2
             else:
@@ -139,8 +138,8 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
     return segments
 
 
-# PHONE CLASS MEMBERSHIP # TODO are these functions really needed anymore with the addition of Segment class?
-def is_ch(ch, l):
+# PHONE CLASS MEMBERSHIP AUXILIARY FUNCTIONS
+def _is_ch(ch, l):
     try:
         if strip_diacritics(ch)[0] in l:
             return True
@@ -149,144 +148,16 @@ def is_ch(ch, l):
     except IndexError:
         return False
 
-def is_vowel(ch):
-    return is_ch(ch, vowels)
+def _is_vowel(ch):
+    return _is_ch(ch, vowels)
 
-def is_consonant(ch):
-    return is_ch(ch, consonants)
-
-def is_glide(ch):
-    return is_ch(ch, glides)
-
-def is_diphthong(seg):
+def _is_diphthong(seg):
     if re.search(fr'([{vowels}]̯[{vowels}])|([{vowels}][{vowels}]̯)', seg):
         return True
     return False
 
 
-# PHONOLOGICAL FEATURES
-def diphthong_features(diphthong):
-    """Returns dictionary of features for diphthongal segment"""
-    components = segment_ipa(diphthong, combine_diphthongs=False)
-
-    # Create weights: 1 for syllabic components and 0.5 for non-syllabic components
-    weights = [0.5 if '̯' in component else 1 for component in components]
-    
-    # Normalize the weights
-    weight_sum = sum(weights)
-    weights = [i/weight_sum for i in weights]
-    
-    # Create combined dictionary using features of component segments
-    diphth_dict = defaultdict(lambda:0)
-    for component, weight in zip(components, weights):
-        feature_id = phone_id(component)
-        for feature in feature_id:
-            diphth_dict[feature] += (weight * feature_id[feature])
-    
-    # Length feature should be either 0 or 1
-    if diphth_dict['long'] > 0:
-        diphth_dict['long'] = 1
-        
-    return diphth_dict
-
-
-def apply_diacritics(base:str, base_features:set, diacritics:set):
-    """Applies feature values of diacritics to base segments
-
-    Args:
-        base (str): base IPA segment
-        base_features (set): feature dictionary of base segment
-        diacritics (set): diacritics to apply
-    """
-
-    # Apply diacritic effects to feature dictionary
-    for modifier in diacritics:
-        for feature, value in diacritics_effects[modifier]:
-            base_features[feature] = value
-            
-        if modifier == '̞': # lowered diacritic: turns fricatives into approximants
-            if base[0] in fricatives:
-                base_features['approximant'] = 1
-                base_features['consonantal'] = 0
-                base_features['delayedRelease'] = 0
-                base_features['sonorant'] = 1
-        
-        elif modifier == '̝': # raised diacritic
-            # turn approximants/trills into fricativized approximants
-            if base[0] in approximants+trills:
-                base_features['delayedRelease'] = 1
-                
-            # turn fricatives into plosives
-            elif base[0] in fricatives:
-                base_features['continuant'] = 0
-                base_features['delayedRelease'] = 0
-    
-    return base_features
-
-
-def tonal_features(toneme):
-    """Computes complex tonal features"""
-    
-    # Set the base as the first component of the toneme
-    base = toneme[0]
-    
-    # Create copy of original feature dictionary, or else it modifies the source
-    toneme_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
-    
-    # Get the tone level of each tonal component of the toneme
-    toneme_levels = [tone_levels[t] for t in toneme if t in tonemes]
-    
-    # Compute the complex tone features if not just a level tone
-    if len(set(toneme_levels)) > 1:
-        
-        # Add feature tone_contour to all non-level tones
-        toneme_id['tone_contour'] = 1
-        
-        # Ensure that contour tones do not have features tone_mid, which is unique to mid level tone
-        # Note: Wang (1967) proposes that all contour tones also have tone_central=0, but if this is true
-        # we cannot distinguish between, e.g. rising (˩˥), high rising (˦˥), and low rising (˩˨)
-        toneme_id['tone_mid'] = 0
-    
-        # Get the maximum tonal level
-        max_level = max(toneme_levels)
-        
-        # Add feature tone_high if the maximum tone level is at least 4
-        if max_level >= 4:
-            toneme_id['tone_high'] = 1
-        
-        # Add feature tone_central if any component tone is level 2-4
-        if any(tone in {2,3,4} for tone in toneme_levels):
-            toneme_id['tone_central'] = 1
-        
-        # Check whether any subsequence of the tonal components is rising or falling
-        contours = {}
-        for t in range(len(toneme_levels)-1):
-            t_seq = toneme_levels[t:t+2]
-            
-            # Check for a tonal rise
-            if t_seq[0] < t_seq[1]:
-                toneme_id['tone_rising'] = 1
-                contours[t] = 'rise'
-            
-            # Check for a tonal fall
-            elif t_seq[0] > t_seq[1]:
-                toneme_id['tone_falling'] = 1
-                contours[t] = 'fall'
-                
-                # If a subsequence is falling, check whether the previous subsequence was rising
-                # in order to determine whether the tone is convex (rising-falling)
-                if t > 0:
-                    if contours[t-1] == 'rise':
-                        toneme_id['tone_convex'] = 1
-                                            
-            # Otherwise two equal tone levels in a row, e.g. '⁴⁴²'
-            else:
-                contours[t] = 'level'
-    
-    return toneme_id
-
-
-def prosodic_environment_weight(segments, i):
+def prosodic_environment_weight(segments, i): # TODO move into phyloLing repo
     """Returns the relative prosodic environment weight of a segment within a word, based on List (2012)"""
     
     # Word-initial segments
@@ -350,7 +221,7 @@ class Segment:
         self.base = self.get_base_ch()
 
         # Get distinctive phonological feature dictionary
-        self.features = self.get_phone_features()
+        self.features = self.get_phone_features(self.segment)
         
         # Get voicing status
         self.voiced = self.features['periodicGlottalSource'] == 1
@@ -377,7 +248,7 @@ class Segment:
 
 
     def get_phone_class(self):
-        if is_diphthong(self.segment):
+        if _is_diphthong(self.segment):
             return 'DIPHTHONG'
         elif self.base in glides:
             return 'GLIDE'
@@ -391,14 +262,14 @@ class Segment:
             raise ValueError(f'Could not determine phone class of {self.segment}')
 
 
-    def get_phone_features(self):
+    def get_phone_features(self, segment):
         """Returns a dictionary of distinctive phonological feature values for the segment"""
 
         # Generate an empty phone feature dictionary
         feature_dict = defaultdict(lambda:0)
         
         # Split segment into component parts, if relevant
-        parts = re.split('͡|͜', self.segment)
+        parts = re.split('͡|͜', segment)
         bases = []
         
         # Generate feature dictionary for each part and add to main feature dict
@@ -408,24 +279,24 @@ class Segment:
                 # Base of the segment is the non-diacritic portion
                 base = strip_diacritics(part)
                 if len(base) == 0:
-                    raise AssertionError(f'Error: invalid segment <{self.segment}>, no base IPA character found!')
+                    raise AssertionError(f'Error: invalid segment <{segment}>, no base IPA character found!')
                 bases.append(base)
 
                 # If the length of the base > 1, the segment is a diphthong (e.g. /e̯a/) or complex toneme (e.g. /˥˩/)
-                # Filter out tonemes
+                # Filter out tonemes to handle diphthongs first
                 if (len(base) > 1) and (base[0] not in tonemes):
-                    return diphthong_features(part) # TODO part? why not self.segment?
+                    return self.get_diphthong_features(segment)
                 
-                # If the segment is a toneme, use the first component as its base
+                # Handle tonemes
                 elif base[0] in tonemes:
-                    return tonal_features(self.segment)
+                    return self.get_tonal_features(segment)
 
                 # Otherwise, retrieve the base phone's features
                 else:
                     base_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
                     modifiers = set(ch for ch in part if ch not in base)
                     if len(modifiers) > 0:
-                        part_id = apply_diacritics(base, base_id, modifiers)
+                        part_id = self.apply_diacritics(base, base_id, modifiers)
                     else:
                         part_id = base_id
                     
@@ -441,6 +312,127 @@ class Segment:
                 feature_dict['continuant'] = 0 
         
         return feature_dict 
+
+
+    def apply_diacritics(self, base:str, base_features:dict, diacritics:set):
+        """Applies feature values of diacritics to base segments
+
+        Args:
+            base (str): base IPA segment
+            base_features (dict): feature dictionary of base segment
+            diacritics (set): diacritics to apply
+        """
+
+        # Apply diacritic effects to feature dictionary
+        for modifier in diacritics:
+            for feature, value in diacritics_effects[modifier]:
+                base_features[feature] = value
+                
+            if modifier == '̞': # lowered diacritic: turns fricatives into approximants
+                if base[0] in fricatives:
+                    base_features['approximant'] = 1
+                    base_features['consonantal'] = 0
+                    base_features['delayedRelease'] = 0
+                    base_features['sonorant'] = 1
+            
+            elif modifier == '̝': # raised diacritic
+                # turn approximants/trills into fricativized approximants
+                if base[0] in approximants+trills:
+                    base_features['delayedRelease'] = 1
+                    
+                # turn fricatives into plosives
+                elif base[0] in fricatives:
+                    base_features['continuant'] = 0
+                    base_features['delayedRelease'] = 0
+        
+        return base_features
+
+
+    def get_diphthong_features(self, diphthong):
+        """Returns dictionary of features for diphthongal segment"""
+        components = segment_ipa(diphthong, combine_diphthongs=False)
+
+        # Create weights: 1 for syllabic components and 0.5 for non-syllabic components
+        weights = [0.5 if '̯' in component else 1 for component in components]
+        
+        # Normalize the weights
+        weight_sum = sum(weights)
+        weights = [i/weight_sum for i in weights]
+        
+        # Create combined dictionary using features of component segments
+        diphth_dict = defaultdict(lambda:0)
+        for component, weight in zip(components, weights):
+            feature_id = self.get_phone_features(component)
+            for feature in feature_id:
+                diphth_dict[feature] += (weight * feature_id[feature])
+        
+        # Length feature should be either 0 or 1
+        if diphth_dict['long'] > 0:
+            diphth_dict['long'] = 1
+            
+        return diphth_dict
+
+
+    def get_tonal_features(self, toneme):
+        """Computes complex tonal features"""
+        
+        # Set the base as the first component of the toneme
+        base = toneme[0]
+        
+        # Create copy of original feature dictionary, or else it modifies the source
+        toneme_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
+        
+        # Get the tone level of each tonal component of the toneme
+        toneme_levels = [tone_levels[t] for t in toneme if t in tonemes]
+        
+        # Compute the complex tone features if not just a level tone
+        if len(set(toneme_levels)) > 1:
+            
+            # Add feature tone_contour to all non-level tones
+            toneme_id['tone_contour'] = 1
+            
+            # Ensure that contour tones do not have features tone_mid, which is unique to mid level tone
+            # Note: Wang (1967) proposes that all contour tones also have tone_central=0, but if this is true
+            # we cannot distinguish between, e.g. rising (˩˥), high rising (˦˥), and low rising (˩˨)
+            toneme_id['tone_mid'] = 0
+        
+            # Get the maximum tonal level
+            max_level = max(toneme_levels)
+            
+            # Add feature tone_high if the maximum tone level is at least 4
+            if max_level >= 4:
+                toneme_id['tone_high'] = 1
+            
+            # Add feature tone_central if any component tone is level 2-4
+            if any(tone in {2,3,4} for tone in toneme_levels):
+                toneme_id['tone_central'] = 1
+            
+            # Check whether any subsequence of the tonal components is rising or falling
+            contours = {}
+            for t in range(len(toneme_levels)-1):
+                t_seq = toneme_levels[t:t+2]
+                
+                # Check for a tonal rise
+                if t_seq[0] < t_seq[1]:
+                    toneme_id['tone_rising'] = 1
+                    contours[t] = 'rise'
+                
+                # Check for a tonal fall
+                elif t_seq[0] > t_seq[1]:
+                    toneme_id['tone_falling'] = 1
+                    contours[t] = 'fall'
+                    
+                    # If a subsequence is falling, check whether the previous subsequence was rising
+                    # in order to determine whether the tone is convex (rising-falling)
+                    if t > 0:
+                        if contours[t-1] == 'rise':
+                            toneme_id['tone_convex'] = 1
+                                                
+                # Otherwise two equal tone levels in a row, e.g. '⁴⁴²'
+                else:
+                    contours[t] = 'level'
+        
+        return toneme_id
 
 
     def get_manner(self):
@@ -465,7 +457,7 @@ class Segment:
                 return 'TAP/FLAP'
             elif self.features['lateral'] == 1 and self.features['approximant'] == 1:
                 return 'LATERAL APPROXIMANT'
-            elif self.base in approximant:
+            elif self.base in approximants:
                 return 'APPROXIMANT'
             elif self.base in implosives:
                 return 'IMPLOSIVE'
