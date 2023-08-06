@@ -138,25 +138,6 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
     return segments
 
 
-# PHONE CLASS MEMBERSHIP AUXILIARY FUNCTIONS
-def _is_ch(ch, l):
-    try:
-        if strip_diacritics(ch)[0] in l:
-            return True
-        else:
-            return False
-    except IndexError:
-        return False
-
-def _is_vowel(ch):
-    return _is_ch(ch, vowels)
-
-def _is_diphthong(seg):
-    if re.search(fr'([{vowels}]̯[{vowels}])|([{vowels}][{vowels}]̯)', seg):
-        return True
-    return False
-
-
 class Segment:
     segments = {}
 
@@ -673,7 +654,31 @@ class Segment:
                 info.append(f'Level: {level}')
         
         return '\n'.join(info)
-        
+
+# AUXILIARY FUNCTIONS
+def _is_ch(ch, l):
+    try:
+        if strip_diacritics(ch)[0] in l:
+            return True
+        else:
+            return False
+    except IndexError:
+        return False
+
+
+def _is_vowel(ch):
+    return _is_ch(ch, vowels)
+
+
+def _is_diphthong(seg):
+    if re.search(fr'([{vowels}]̯[{vowels}])|([{vowels}][{vowels}]̯)', seg):
+        return True
+    return False
+
+
+def _toSegment(ch):
+    return Segment.segments.get(ch, Segment(ch))      
+
 
 def phon_env(segments, i):
     """Returns a string representing the phonological environment of a segment within a word
@@ -847,6 +852,9 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     the specified distance/similarity function;
     Features not to be included in the comparison should be passed as a list to
     the exclude_features parameter (by default no features excluded)"""
+
+    # Convert IPA strings to Segment objects
+    phone1, phone2 = map(_toSegment, [phone1, phone2])
     
     # If the phone similarity has already been calculated for this pair, retrieve it
     reference = (phone1, phone2, similarity, tuple(exclude_features))
@@ -854,7 +862,7 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
         return checked_phone_sims[reference]
     
     # Get feature dictionaries for each phone
-    phone_id1, phone_id2 = phone_id(phone1), phone_id(phone2)
+    phone_id1, phone_id2 = phone1.features, phone2.features
     
     # Remove any specified features
     for feature in exclude_features:
@@ -897,5 +905,5 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
         
     # Save the phonetic similarity score to dictionary, return score
     checked_phone_sims[reference] = score
-    checked_phone_sims[reference] = score
+
     return score
