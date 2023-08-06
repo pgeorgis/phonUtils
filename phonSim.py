@@ -10,13 +10,12 @@ from scipy.spatial.distance import cosine
 # Load phonological constants initialized in initPhoneData.py
 from initPhoneData import (
     all_phones, vowels, glides, consonants, tonemes, tone_levels, valid_ipa_ch,
-    plosive, implosive, nasals, affricate, fricative, trills, tap_flap, liquids, rhotic, approximants, glides, clicks,
-    bilabial, labiodental, dental, alveolar, laterals, postalveolar, alveolopalatal, retroflex, palatal, velar, uvular, pharyngeal, epiglottal, glottal,
+    plosives, implosives, nasals, affricates, fricatives, trills, taps_flaps, liquids, rhotics, approximants, glides, clicks,
+    bilabial, labiodental, dental, alveolar, lateral, postalveolar, alveolopalatal, retroflex, palatal, velar, uvular, pharyngeal, epiglottal, glottal,
     diacritics, diacritics_effects, post_diacritics,
     features, phone_features, feature_weights,
     segment_regex
 )
-# TODO change names of classes to be all plural 
 
 
 # FUNCTIONS FOR IPA STRING MANIPULATION AND NORMALIZATION
@@ -270,8 +269,8 @@ def phone_id(segment):
     
     # Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
     if len(parts) > 1:
-        if bases[0] in plosive:
-            if bases[-1] in fricative:
+        if bases[0] in plosives:
+            if bases[-1] in fricatives:
                 seg_dict['delayedRelease'] = 1 
                 seg_dict['continuant'] = 0 
     
@@ -321,7 +320,7 @@ def apply_diacritics(base:str, base_features:set, diacritics:set):
             base_features[feature] = value
             
         if modifier == '̞': # lowered diacritic: turns fricatives into approximants
-            if base[0] in fricative:
+            if base[0] in fricatives:
                 base_features['approximant'] = 1
                 base_features['consonantal'] = 0
                 base_features['delayedRelease'] = 0
@@ -333,7 +332,7 @@ def apply_diacritics(base:str, base_features:set, diacritics:set):
                 base_features['delayedRelease'] = 1
                 
             # turn fricatives into plosives
-            elif base[0] in fricative:
+            elif base[0] in fricatives:
                 base_features['continuant'] = 0
                 base_features['delayedRelease'] = 0
     
@@ -499,29 +498,29 @@ class Segment:
 
     def get_manner(self):
         if self.phone_class in ('CONSONANT', 'GLIDE'):
-            if self.base in affricate or re.search(fr'{plosive}{diacritics}*͡{fricative}{diacritics}*', self.segment):
+            if self.base in affricates or re.search(fr'{plosives}{diacritics}*͡{fricatives}{diacritics}*', self.segment):
                 return 'AFFRICATE'
-            if self.base in plosive:
+            if self.base in plosives:
                 return 'PLOSIVE'
             elif self.base in nasals:
                 return 'NASAL'
-            elif self.base in fricative and '̞' in self.segment: # lowered diacritic turns fricatives into approximants
+            elif self.base in fricatives and '̞' in self.segment: # lowered diacritic turns fricatives into approximants
                 return 'APPROXIMANT'
             elif re.search('[ɬɮ]', self.base):
                 return 'LATERAL FRICATIVE'
-            elif self.base in fricative:
+            elif self.base in fricatives:
                 return 'FRICATIVE'
             elif self.base in trills and '̝' in self.segment:
                 return 'FRICATIVE TRILL'
             elif self.base in trills:
                 return 'TRILL'
-            elif self.base in tap_flap:
+            elif self.base in taps_flaps:
                 return 'TAP/FLAP'
             elif self.features['lateral'] == 1 and self.features['approximant'] == 1:
                 return 'LATERAL APPROXIMANT'
             elif self.base in approximant:
                 return 'APPROXIMANT'
-            elif self.base in implosive:
+            elif self.base in implosives:
                 return 'IMPLOSIVE'
             elif self.base in clicks:
                 return 'CLICK'
