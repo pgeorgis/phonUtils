@@ -895,48 +895,6 @@ def phonEnvironment(segments, i):
             raise NotImplementedError(f'Unable to determine environment for segment {i} /{segments[i]}/ within /{"".join(segments)}/')
 
 
-def common_features(segment_list, start_features=features): # TODO update
-    """Returns the features/values shared by all segments in the list"""
-    features = list(start_features)[:]
-    feature_values = defaultdict(lambda:[])
-    for seg in segment_list:
-        for feature in features:
-            value = phone_id(seg)[feature]
-            if value not in feature_values[feature]:
-                feature_values[feature].append(value)
-    common = [(feature, feature_values[feature][0]) for feature in feature_values if len(feature_values[feature]) == 1]
-    return common
-
-
-def different_features(seg1, seg2, return_list=False):
-    diffs = []
-    seg1_id = phone_id(seg1)
-    seg2_id = phone_id(seg2)
-    for feature in seg1_id:
-        if seg2_id[feature] != seg1_id[feature]:
-            diffs.append(feature)
-    if return_list:
-        return diffs
-    else:
-        if len(diffs) > 0:
-            print(f'\t\t\t{seg1}\t\t{seg2}')
-            for feature in diffs:
-                print(f'{feature}\t\t{seg1_id[feature]}\t\t{seg2_id[feature]}')
-
-
-def lookup_segments(features, values, segment_list=all_phones):
-    """Returns a list of segments whose feature values match the search criteria"""
-    matches = []
-    for segment in segment_list:
-        match_tallies = 0
-        for feature, value in zip(features, values):
-            if phone_id(segment)[feature] == value:
-                match_tallies += 1
-        if match_tallies == len(features):
-            matches.append(segment)
-    return set(matches)
-
-
 # SIMILARITY / DISTANCE MEASURES
 def hamming_distance(vec1, vec2, normalize=True):
     differences = len([feature for feature in vec1 if vec1[feature] != vec2[feature]])
