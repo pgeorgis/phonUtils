@@ -8,12 +8,6 @@ from collections import defaultdict
 from sklearn.metrics import jaccard_score
 from scipy.spatial.distance import cosine
 
-def strip_ch(string, to_remove):
-    """Removes a set of characters from strings"""
-    to_remove_regex = '|'.join(to_remove)
-    string = re.sub(to_remove_regex, '', string)
-    return string
-
 # IMPORT PHONE DATA
 save_dir = os.path.dirname(__file__)
 phone_data = pd.read_csv(os.path.join(save_dir, 'Phones', 'segments.csv'), sep=',')
@@ -35,14 +29,7 @@ phone_features = {phone_data['segment'][i]:{feature:binary_feature(phone_data[fe
 features = set(feature for sound in phone_features for feature in phone_features[sound])
 
 
-# Dictionary of basic phones with their sonority levels
-phone_sonority = {phone_data['segment'][i]:int(phone_data['sonority'][i])
-                  for i in range(len(phone_data))}
-
-max_sonority = max(phone_sonority.values())
-
-
-# Load basic groupings of phones; e.g. plosive, fricative, velar, palatal
+# Load phone classes by manner and place of articulation, e.g. plosive, fricative, velar, palatal
 phone_classes = pd.read_csv(os.path.join(save_dir, 'Phones/phone_classes.tsv'))
 phone_classes = {phone_classes['Group'][i]:phone_classes['Phones'][i].split()
                 for i in range(len(phone_classes))}
@@ -108,6 +95,9 @@ def strip_diacritics(string, excepted=[]):
         with open('error.out', 'w') as f:
             f.write(f'Unable to parse phonetic characters in form: {string}')
         raise RecursionError(f'Error parsing phonetic characters: see {os.path.join(os.getcwd(), "error.out")}')
+
+
+# IPA STRING NORMALIZATION AND VALIDATION
 
 def normalize_ipa_ch(string):
     """Normalizes some commonly mistyped IPA characters"""
@@ -177,9 +167,11 @@ def normalize_ipa_ch(string):
     return string
 
 valid_ipa_ch = ''.join([all_sounds, diacritics, ' ', '‿'])
+
 def invalid_ch(string, valid_ch=valid_ipa_ch):
     """Returns set of unrecognized (non-IPA) characters in phonetic string"""
     return set(re.findall(fr'[^{valid_ch}]', string))
+
 
 def verify_charset(string):
     """Verifies that all characters are valid IPA characters or diacritics, otherwise raises error"""
@@ -187,6 +179,9 @@ def verify_charset(string):
     if len(unk_ch) > 0:
         unk_ch_str = '>, <'.join(unk_ch)
         raise ValueError(f'Invalid IPA character(s) <{unk_ch_str}> found in "{string}"!')
+
+
+# PHONE CLASS MEMBERSHIP # TODO are these functions really needed anymore with the addition of Segment class?
 
 def is_ch(ch, l):
     try:
@@ -211,7 +206,8 @@ def is_diphthong(seg):
         return True
     return False
 
-# BASIC PHONE ANALYSIS: Methods for yielding feature dictionaries of phone segments
+
+# PHONOLOGICAL FEATURES
 phone_ids = {} # Dictionary of phone feature dicts # TODO Change to be dictionary {str:Segment class} 
 
 def phone_id(segment):
@@ -276,6 +272,7 @@ def phone_id(segment):
 
     return seg_dict 
 
+
 def diphthong_features(diphthong):
     """Returns dictionary of features for diphthongal segment"""
     components = segment_ipa(diphthong, combine_diphthongs=False)
@@ -299,6 +296,7 @@ def diphthong_features(diphthong):
         diphth_dict['long'] = 1
         
     return diphth_dict
+
 
 def apply_diacritics(base:str, base_features:set, diacritics:set):
     """Applies feature values of diacritics to base segments
@@ -404,8 +402,7 @@ def tonal_features(toneme):
 
 
 def prosodic_environment_weight(segments, i):
-    """Returns the relative prosodic environment weight of a segment within
-    a word, based on List (2012)"""
+    """Returns the relative prosodic environment weight of a segment within a word, based on List (2012)"""
     
     # Word-initial segments
     if i == 0:
@@ -436,7 +433,7 @@ def prosodic_environment_weight(segments, i):
     # Word-medial segments
     else:
         prev_segment, segment_i, next_segment = segments[i-1], segments[i], segments[i+1]
-        prev_sonority, sonority_i, next_sonority = map(get_sonority, [prev_segment, 
+        prev_sonority, sonority_i, next_sonority = map(get_sonority, [prev_segment,  # TODO update
                                                                       segment_i, 
                                                                       next_segment])
         
@@ -1159,5 +1156,3 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
     checked_phone_sims[reference] = score
     checked_phone_sims[reference] = score
     return score
-
-breakpoint()
