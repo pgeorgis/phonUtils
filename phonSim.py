@@ -157,58 +157,6 @@ def _is_diphthong(seg):
     return False
 
 
-def prosodic_environment_weight(segments, i): # TODO move into phyloLing repo
-    """Returns the relative prosodic environment weight of a segment within a word, based on List (2012)"""
-    
-    # Word-initial segments
-    if i == 0:
-        # Word-initial consonants: weight 7
-        if strip_diacritics(segments[i])[0] in consonants:
-            return 7
-        
-        # Word-initial vowels: weight 6
-        else:
-            return 6
-    
-    # Word-final segments
-    elif i == len(segments)-1:
-        stripped_segment = strip_diacritics(segments[i])[0]
-        
-        # Word-final consonants: weight 2
-        if stripped_segment in consonants:
-            return 2
-        
-        # Word-final vowels: weight 1
-        elif stripped_segment in vowels:
-            return 1
-        
-        # Word-final tonemes: weight 0
-        else:
-            return 0
-    
-    # Word-medial segments
-    else:
-        prev_segment, segment_i, next_segment = segments[i-1], segments[i], segments[i+1]
-        prev_sonority, sonority_i, next_sonority = map(get_sonority, [prev_segment,  # TODO update
-                                                                      segment_i, 
-                                                                      next_segment])
-        
-        # Sonority peak: weight 3
-        if prev_sonority <= sonority_i >= next_sonority:
-            return 3
-        
-        # Descending sonority: weight 4
-        elif prev_sonority >= sonority_i >= next_sonority:
-            return 4
-        
-        # Ascending sonority: weight 5
-        else:
-            return 5
-        
-        # TODO: what if the sonority is all the same? add tests to ensure that all of these values are correct
-        # TODO: sonority of free-standing vowels (and consonants)?: would assume same as word-initial
-
-
 class Segment:
     segments = {}
 
