@@ -457,6 +457,8 @@ def prosodic_environment_weight(segments, i):
 
 
 class Segment:
+    segments = {}
+
     def __init__(self, segment):
         self.segment = normalize_ipa_ch(segment)
 
@@ -477,6 +479,9 @@ class Segment:
 
         # Get sonority
         self.sonority = self.get_sonority()
+
+        # Add Segment instance to Segment class attribute dictionary
+        Segment.segments[self.segment] = self
 
 
     def get_phone_class(self):
