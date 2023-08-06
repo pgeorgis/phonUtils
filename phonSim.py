@@ -359,9 +359,9 @@ def tonal_features(toneme):
         # Add feature tone_contour to all non-level tones
         toneme_id['tone_contour'] = 1
         
-        # Ensure that contour tones do not have features tone_mid and tone_central
-        # (which are unique to level tones)
-        toneme_id['tone_central'] = 0
+        # Ensure that contour tones do not have features tone_mid, which is unique to mid level tone
+        # Note: Wang (1967) proposes that all contour tones also have tone_central=0, but if this is true
+        # we cannot distinguish between, e.g. rising (˩˥), high rising (˦˥), and low rising (˩˨)
         toneme_id['tone_mid'] = 0
     
         # Get the maximum tonal level
@@ -370,6 +370,10 @@ def tonal_features(toneme):
         # Add feature tone_high if the maximum tone level is at least 4
         if max_level >= 4:
             toneme_id['tone_high'] = 1
+        
+        # Add feature tone_central if any component tone is level 2-4
+        if any(tone in {2,3,4} for tone in toneme_levels):
+            toneme_id['tone_central'] = 1
         
         # Check whether any subsequence of the tonal components is rising or falling
         contours = {}
@@ -556,7 +560,7 @@ class Segment:
             else:
                 raise val_err
             
-        elif self.phone_class == 'VOWEL': # TODO
+        elif self.phone_class == 'VOWEL':
             # Height / Openness
             if re.search(r'[iyɨʉɯu]', self.base):
                 height = 'CLOSE'
@@ -587,15 +591,61 @@ class Segment:
             raise NotImplementedError
 
 
-        elif self.phone_class == 'TONEME': # TODO
-            raise NotImplementedError
+        elif self.phone_class == 'TONEME':
+            # Level tones
+            if self.features['tone_contour'] == 0:
+                # Extra high level tone
+                if self.features['tone_high'] == 1 and self.features['tone_central'] == 0:
+                    return 'EXTRA HIGH LEVEL TONE'
+                
+                # High level tone
+                elif self.features['tone_high'] == 1:
+                    return 'HIGH LEVEL TONE'
+                
+                # Mid level tone
+                elif self.features['tone_mid'] == 1:
+                    return 'MID LEVEL TONE'
+
+                # Low level tone
+                elif self.features['tone_high'] == 0 and self.features['tone_central'] == 1:
+                    return 'LOW LEVEL TONE'
+                
+                # Extra low level tone
+                elif self.features['tone_high'] == 0 and self.features['tone_central'] == 0:
+                    return 'EXTRA LOW LEVEL TONE'
+                
+                else:
+                    raise val_err
+
+
+            # Contour tones
+            else:
+                if self.features['tone_rising'] == 1 and self.features['tone_falling'] == 1:
+                    if self.features['tone_convex'] == 1:
+                        contour = 'RISING-FALLING'
+                    else:
+                        contour = 'FALLING-RISING'
+                elif self.features['tone_rising'] == 1:
+                    contour = 'RISING'
+                elif self.features['tone_falling'] == 1:
+                    contour = 'FALLING'
+                else:
+                    raise val_err
+                
+                # Distinguish high/low falling/rising
+                if self.features['tone_high'] == 1 and self.features['tone_central'] == 1:
+                    contour = 'HIGH ' + contour
+                elif self.features['tone_high'] == 0 and self.features['tone_central'] == 1:
+                    contour = 'LOW ' + contour
+
+                return contour
 
         else:
             raise val_err
 
 
     def get_sonority(self):
-        """Returns the sonority level of a sound according to Parker's (2002) 
+        """Returns the sonority level of a phone according to Parker's (2002) 
         universal sonority hierarchy
         
         adapted from:
@@ -705,7 +755,7 @@ class Segment:
         # Other sounds: raise error message
         else:
             raise ValueError(f'Error: the sonority of phone "{sound}" cannot be determined!')
-    
+
 
     def __str__(self):
         """Print the segment and its class, manner, place of articulation, and sonority"""
