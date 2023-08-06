@@ -7,8 +7,8 @@ from collections import defaultdict
 from sklearn.metrics import jaccard_score
 from scipy.spatial.distance import cosine
 
-# Load phonological constants initialized in loadPhoneData.py
-from loadPhoneData import (
+# Load phonological constants initialized in initPhoneData.py
+from initPhoneData import (
     all_phones, vowels, glides, consonants, tonemes, tone_levels, valid_ipa_ch,
     plosive, implosive, nasals, affricate, fricative, trills, tap_flap, liquids, rhotic, approximants, glides, clicks,
     bilabial, labiodental, dental, alveolar, laterals, postalveolar, alveolopalatal, retroflex, palatal, velar, uvular, pharyngeal, epiglottal, glottal,
