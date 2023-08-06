@@ -421,7 +421,9 @@ class Segment:
     def get_poa(self):
         val_err = ValueError(f'Could not determine place of articulation for {self.segment}')
         if self.phone_class in ('CONSONANT', 'GLIDE'):
-            if self.base in bilabial:
+            if re.search(r'([wʍ])|([kɡ].*͡[pb])', self.segment):
+                return 'LABIAL-VELAR'
+            elif self.base in bilabial:
                 return 'BILABIAL'
             elif self.features['labiodental'] == 1:
                 return 'LABIODENTAL'
@@ -654,7 +656,7 @@ class Segment:
             f'Class: {self.phone_class}'
         ]
 
-        if self.phone_class in ('CONSONANT', 'VOWEL', 'DIPHTHONG'):
+        if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE', 'DIPHTHONG'):
             info.extend([
                 f'Place of Articulation: {self.poa}',
                 f'Manner of Articulation: {self.manner}',
