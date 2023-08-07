@@ -372,7 +372,7 @@ class Segment:
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if self.base in affricates or re.search(fr'{plosives}{diacritics}*͡{fricatives}{diacritics}*', self.segment):
                 manner = 'AFFRICATE'
-            if self.base in plosives:
+            elif self.base in plosives:
                 manner = 'PLOSIVE'
             elif self.base in nasals:
                 manner = 'NASAL'
