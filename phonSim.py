@@ -852,6 +852,14 @@ def get_phon_env(segments, i):
             else:
                 return '=S>'
         
+        elif prev_sonority == sonority_i == next_sonority:
+            if segment_i == prev_segment:
+                return 'SS='
+            elif segment_i == next_segment:
+                return '=SS'
+            else:
+                return '=S='
+        
         else:
             raise ValueError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
 
