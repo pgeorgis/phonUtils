@@ -5,6 +5,7 @@ import os
 import re
 import sys
 from collections import defaultdict
+from functools import lru_cache
 from sklearn.metrics import jaccard_score
 from scipy.spatial.distance import cosine
 
@@ -852,7 +853,7 @@ def get_phon_env(segments, i):
                 return '=S>'
         
         else:
-            raise NotImplementedError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
+            raise ValueError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
 
 
 # SIMILARITY / DISTANCE MEASURES
@@ -908,64 +909,53 @@ def weighted_dice(vec1, vec2, weights=feature_weights):
 
 
 # PHONE COMPARISON
-checked_phone_sims = {}
-def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
+@lru_cache(maxsize=None)
+def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None):
     """Returns the similarity of the features of the two phones according to
     the specified distance/similarity function;
     Features not to be included in the comparison should be passed as a list to
     the exclude_features parameter (by default no features excluded)"""
 
+    if exclude_features is None:
+        exclude_features = set()
+
     # Convert IPA strings to Segment objects
     phone1, phone2 = map(_toSegment, [phone1, phone2])
-    
-    # If the phone similarity has already been calculated for this pair, retrieve it
-    reference = (phone1, phone2, similarity, tuple(exclude_features))
-    if reference in checked_phone_sims:
-        return checked_phone_sims[reference]
-    
+
     # Get feature dictionaries for each phone
-    phone_id1, phone_id2 = phone1.features, phone2.features
-    
-    # Remove any specified features
+    phone_id1, phone_id2 = phone1.features.copy(), phone2.features.copy()
+
+    # Exclude specified features
     for feature in exclude_features:
-        for phoneid in [phone_id1, phone_id2]:
-            try:
-                del phoneid[feature]
-            except KeyError:
-                pass
+        phone_id1.pop(feature, None)
+        phone_id2.pop(feature, None)
 
     # Calculate similarity of phone features according to specified measure
-    measures = {'cosine':cosine,
-                'dice':dice_sim,
-                'hamming':hamming_distance,
-                'jaccard':jaccard_sim,
-                'weighted_cosine':cosine,
-                'weighted_dice':weighted_dice,
-                'weighted_hamming':weighted_hamming,
-                'weighted_jaccard':weighted_jaccard}
-    try:
-        measure = measures[similarity]
-    except KeyError:
-        raise KeyError(f'Error: similarity measure "{similarity}" not recognized!')
-    
-    if similarity not in ['cosine', 'weighted_cosine']:
-        score = measure(phone_id1, phone_id2)
-    else:
+    if similarity in ['cosine', 'weighted_cosine']:
         compare_features = list(phone_id1.keys())
         phone1_values = [phone_id1[feature] for feature in compare_features]
         phone2_values = [phone_id2[feature] for feature in compare_features]
         if similarity == 'weighted_cosine':
             weights = [feature_weights[feature] for feature in compare_features]
             # Subtract from 1: cosine() returns a distance
-            score = 1 - measure(phone1_values, phone2_values, w=weights)
+            score = 1 - cosine(phone1_values, phone2_values, w=weights)
         else:
-            score = 1 - measure(phone1_values, phone2_values)
-    
+            score = 1 - cosine(phone1_values, phone2_values)
+    else:
+        measure = {
+            'dice': dice_sim,
+            'hamming': hamming_distance,
+            'jaccard': jaccard_sim,
+            'weighted_dice': weighted_dice,
+            'weighted_hamming': weighted_hamming,
+            'weighted_jaccard': weighted_jaccard
+        }.get(similarity)
+        if measure is None:
+            raise KeyError(f'Error: similarity measure "{similarity}" not recognized!')
+        score = measure(phone_id1, phone_id2)
+
     # If method is Hamming, convert distance to similarity
     if similarity in ['hamming', 'weighted_hamming']:
         score = 1 - score
-        
-    # Save the phonetic similarity score to dictionary, return score
-    checked_phone_sims[reference] = score
 
     return score
