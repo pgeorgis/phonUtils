@@ -157,6 +157,7 @@ tone_levels = {'˩':1, '¹':1,
 # IPA regex constants
 # Pre-preaspiration: characters which can occur before preaspiration characters <ʰʱ>, to distinguish from post-aspiration during segmentation
 pre_preaspiration = vowels.union(glides).union(set(post_diacritics))
+preaspiration_regex = re.compile(rf'(?<=[{pre_preaspiration}])[ʰʱ]$')
 segment_regex = get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacritics, pre_preaspiration)
 vowel_str = ''.join(vowels)
 plosive_str = ''.join(plosives)

@@ -24,7 +24,7 @@ from PhoneticSimilarity.initPhoneData import (
     # Phonological features and feature geometry weights 
     phone_features, feature_weights, tone_levels,
     # IPA regexes, constants, and and helper functions 
-    segment_regex, pre_preaspiration, diphthong_regex, diacritic_str, _is_affricate,
+    segment_regex, preaspiration_regex, diphthong_regex, diacritic_str, _is_affricate,
     # IPA character normalization/validation
     valid_ipa_ch, ipa_norm_map
 )
@@ -101,7 +101,7 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
     # Can't easily be distinguished in regex since the same symble is usually a post-diacritic for post-aspiration
     if preaspiration:
         for i, seg in enumerate(segments):
-            preasp = re.search(rf'(?<=[{pre_preaspiration}])[ʰʱ]$', seg)
+            preasp = preaspiration_regex.search(seg)
             if preasp:
                 try:
                     match = preasp.group()
