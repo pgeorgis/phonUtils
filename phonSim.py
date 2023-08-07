@@ -3,12 +3,16 @@
 
 import os
 import re
+import sys
 from collections import defaultdict
 from sklearn.metrics import jaccard_score
 from scipy.spatial.distance import cosine
 
+# Add the project's root directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Load phonological constants initialized in initPhoneData.py
-from phonSim.initPhoneData import (
+from PhoneticSimilarity.initPhoneData import (
     # Top-level phone sets
     vowels, glides, consonants, tonemes,
     # Phone classes by manner of articulation
