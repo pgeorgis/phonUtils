@@ -145,10 +145,11 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
 class Segment:
     segments = {}
 
-    def __init__(self, segment):
+    def __init__(self, segment, normalize=False):
         # Normalize IPA string input and check for non-IPA characters
-        self.segment = normalize_ipa_ch(segment)
-        verify_charset(self.segment)
+        self.segment = segment
+        if normalize:
+            self.normalize()
 
         # Base segment: no diacritics; first element of diphthongs, affricates, or complex consonants
         self.stripped, self.base = self.get_base_ch()
@@ -170,6 +171,11 @@ class Segment:
 
         # Add Segment instance to Segment class attribute dictionary
         Segment.segments[self.segment] = self
+
+
+    def normalize(self):
+        self.segment = normalize_ipa_ch(self.segment)
+        verify_charset(self.segment)
 
 
     def get_base_ch(self):
