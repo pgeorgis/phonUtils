@@ -8,7 +8,7 @@ from sklearn.metrics import jaccard_score
 from scipy.spatial.distance import cosine
 
 # Load phonological constants initialized in initPhoneData.py
-from initPhoneData import (
+from phonSim.initPhoneData import (
     # Top-level phone sets
     vowels, glides, consonants, tonemes,
     # Phone classes by manner of articulation
@@ -16,7 +16,7 @@ from initPhoneData import (
     # Phone classes by place of articulation
     bilabial, labiodental, dental, alveolar, lateral, postalveolar, alveolopalatal, retroflex, palatal, velar, uvular, pharyngeal, epiglottal, glottal,
     # Diacritics and associated features
-    diacritics, diacritics_effects, post_diacritics,
+    diacritics, diacritics_effects, post_diacritics, suprasegmental_diacritics,
     # Phonological features and feature geometry weights 
     phone_features, feature_weights, tone_levels,
     # Constants for IPA string segmentation
@@ -733,7 +733,7 @@ def _toSegment(ch):
     return Segment.segments.get(ch, Segment(ch))      
 
 
-def phon_env(segments, i):
+def get_phon_env(segments, i):
     """Returns a string representing the phonological environment of a segment within a word
     # TODO add front/back vowel context
     """
