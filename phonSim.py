@@ -23,8 +23,8 @@ from PhoneticSimilarity.initPhoneData import (
     diacritics, diacritics_effects, post_diacritics, suprasegmental_diacritics,
     # Phonological features and feature geometry weights 
     phone_features, feature_weights, tone_levels,
-    # Constants for IPA string segmentation
-    segment_regex, pre_preaspiration,
+    # IPA regexes, constants, and and helper functions 
+    segment_regex, pre_preaspiration, diphthong_regex, diacritic_str, _is_affricate,
     # IPA character normalization/validation
     valid_ipa_ch, ipa_norm_map
 )
@@ -37,7 +37,7 @@ def strip_diacritics(string, excepted=[]):
     if len(excepted) > 0:
         to_remove = ''.join([d for d in diacritics if d not in excepted])
     else:
-        to_remove = ''.join(diacritics)
+        to_remove = diacritic_str
     try:
         return re.sub(f'[{to_remove}]', '', string)
 
@@ -193,7 +193,7 @@ class Segment:
 
 
     def get_phone_class(self):
-        if _is_diphthong(self.segment):
+        if diphthong_regex.search(self.segment):
             return 'DIPHTHONG'
         elif self.base in glides:
             return 'GLIDE'
@@ -210,20 +210,20 @@ class Segment:
     def get_phone_features(self, segment):
         """Returns a dictionary of distinctive phonological feature values for the segment"""
 
-        # Generate an empty phone feature dictionary
-        feature_dict = defaultdict(lambda:0)
-        
+        # Generate an empty phone feature dictionary with default values of 0
+        feature_dict = dict.fromkeys(phone_features[next(iter(phone_features))], 0)
+
         # Split segment into component parts, if relevant
-        parts = re.split('͡|͜', segment)
+        parts = segment.split('͡') if '͡' in segment else segment.split('͜')
         bases = []
-        
+
         # Generate feature dictionary for each part and add to main feature dict
         for part in parts:
-            if len(part.strip()) > 0:
-
+            part = part.strip()
+            if part:
                 # Base of the segment is the non-diacritic portion
                 base = strip_diacritics(part)
-                if len(base) == 0:
+                if not base:
                     raise AssertionError(f'Error: invalid segment <{segment}>, no base IPA character found!')
                 bases.append(base)
 
@@ -231,32 +231,33 @@ class Segment:
                 # Filter out tonemes to handle diphthongs first
                 if (len(base) > 1) and (base[0] not in tonemes):
                     return self.get_diphthong_features(segment)
-                
+
                 # Handle tonemes
                 elif base[0] in tonemes:
                     return self.get_tonal_features(segment)
 
                 # Otherwise, retrieve the base phone's features
                 else:
-                    base_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
-                    modifiers = set(ch for ch in part if ch not in base)
-                    if len(modifiers) > 0:
+                    base_id = phone_features[base]
+                    modifiers = set(part) - set(base)
+                    if modifiers:
                         part_id = self.apply_diacritics(base, base_id, modifiers)
                     else:
                         part_id = base_id
-                    
+
                     # Add to overall segment ID
                     for feature in part_id:
                         # Value = 1 (+) overrides value = 0 (-,0)
                         feature_dict[feature] = max(feature_dict[feature], part_id[feature])
-        
+
         # Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
         if len(parts) > 1:
             if bases[0] in plosives and bases[-1] in fricatives:
-                feature_dict['delayedRelease'] = 1 
-                feature_dict['continuant'] = 0 
-        
-        return feature_dict 
+                feature_dict['delayedRelease'] = 1
+                feature_dict['continuant'] = 0
+
+        return feature_dict
+
 
 
     def apply_diacritics(self, base:str, base_features:dict, diacritics:set):
@@ -382,7 +383,7 @@ class Segment:
 
     def get_manner(self):
         if self.phone_class in ('CONSONANT', 'GLIDE'):
-            if self.base in affricates or re.search(fr'{plosives}{diacritics}*͡{fricatives}{diacritics}*', self.segment):
+            if self.base in affricates or _is_affricate(self.segment):
                 manner = 'AFFRICATE'
             elif self.base in plosives:
                 manner = 'PLOSIVE'
@@ -708,9 +709,10 @@ class Segment:
             f'Class: {self.phone_class}'
         ]
 
+        if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE'):
+            info.append([f'Place of Articulation: {self.poa}'])
         if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE', 'DIPHTHONG'):
             info.extend([
-                f'Place of Articulation: {self.poa}',
                 f'Manner of Articulation: {self.manner}',
                 f'Voiced: {self.voiced is True}',
                 f'Sonority: {self.sonority}',
@@ -739,12 +741,6 @@ def _is_ch(ch, l):
 
 def _is_vowel(ch):
     return _is_ch(ch, vowels)
-
-
-def _is_diphthong(seg):
-    if re.search(fr'([{vowels}]̯[{vowels}])|([{vowels}][{vowels}]̯)', seg):
-        return True
-    return False
 
 
 def _toSegment(ch):
