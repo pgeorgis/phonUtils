@@ -151,7 +151,7 @@ class Segment:
         verify_charset(self.segment)
 
         # Base segment: no diacritics; first element of diphthongs, affricates, or complex consonants
-        self.base = self.get_base_ch()
+        self.stripped, self.base = self.get_base_ch()
 
         # Get distinctive phonological feature dictionary
         self.features = self.get_phone_features(self.segment)
@@ -177,7 +177,7 @@ class Segment:
         if len(no_diacritics) < 1:
             raise ValueError(f'Error: invalid segment <{self.segment}>, no base IPA character found!')
         else:
-            return no_diacritics[0]
+            return no_diacritics, no_diacritics[0]
 
 
     def get_phone_class(self):
