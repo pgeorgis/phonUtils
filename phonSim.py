@@ -479,6 +479,8 @@ class Segment:
                 return 'LAMINAL ALVEOLAR'
             elif self.base in alveolar:
                 return 'ALVEOLAR'
+            elif self.base in lateral:
+                return 'LATERAL'
             elif self.base in postalveolar:
                 return 'POSTALVEOLAR'
             elif self.base in alveolopalatal:
@@ -518,7 +520,7 @@ class Segment:
             # Frontness / Backness
             if re.search(r'[iyɪʏeøɛœæaɶ]', self.base):
                 frontness = 'FRONT'
-            elif re.search(r'[ɨʉɘɵəɜɞɐ]', self.base):
+            elif re.search(r'[ɨʉɘɵəɚɜɝɞɐ]', self.base):
                 frontness = 'CENTRAL'
             elif re.search(r'[ɯuʊɤoʌɔɑɒ]', self.base):
                 frontness = 'BACK'
