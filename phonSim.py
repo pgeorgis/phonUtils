@@ -5,6 +5,7 @@ import os
 import re
 import sys
 from collections import defaultdict
+from functools import lru_cache
 from sklearn.metrics import jaccard_score
 from scipy.spatial.distance import cosine
 
@@ -23,8 +24,8 @@ from PhoneticSimilarity.initPhoneData import (
     diacritics, diacritics_effects, post_diacritics, suprasegmental_diacritics,
     # Phonological features and feature geometry weights 
     phone_features, feature_weights, tone_levels,
-    # Constants for IPA string segmentation
-    segment_regex, pre_preaspiration,
+    # IPA regexes, constants, and and helper functions 
+    segment_regex, preaspiration_regex, diphthong_regex, diacritic_str, _is_affricate,
     # IPA character normalization/validation
     valid_ipa_ch, ipa_norm_map
 )
@@ -34,8 +35,11 @@ def strip_diacritics(string, excepted=[]):
     """Removes diacritic characters from an IPA string
     By default removes all diacritics; in order to keep certain diacritics,
     these should be passed as a list to the "excepted" parameter"""
-    try:
+    if len(excepted) > 0:
         to_remove = ''.join([d for d in diacritics if d not in excepted])
+    else:
+        to_remove = diacritic_str
+    try:
         return re.sub(f'[{to_remove}]', '', string)
 
     except RecursionError:
@@ -48,8 +52,11 @@ def strip_diacritics(string, excepted=[]):
 def normalize_ipa_ch(string, ipa_norm_map=ipa_norm_map):
     """Normalizes some commonly mistyped IPA characters according to a pre-loaded normalization mapping dictionary"""
 
-    for ch, repl in ipa_norm_map.items():
-        string = re.sub(re.escape(ch), repl, string)
+    def replace_callback(match):
+        return ipa_norm_map[match.group(0)]
+
+    pattern = re.compile('|'.join(map(re.escape, ipa_norm_map.keys())))
+    string = pattern.sub(replace_callback, string)
 
     return string
 
@@ -95,7 +102,7 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
     # Can't easily be distinguished in regex since the same symble is usually a post-diacritic for post-aspiration
     if preaspiration:
         for i, seg in enumerate(segments):
-            preasp = re.search(rf'(?<=[{pre_preaspiration}])[ʰʱ]$', seg)
+            preasp = preaspiration_regex.search(seg)
             if preasp:
                 try:
                     match = preasp.group()
@@ -187,7 +194,7 @@ class Segment:
 
 
     def get_phone_class(self):
-        if _is_diphthong(self.segment):
+        if diphthong_regex.search(self.segment):
             return 'DIPHTHONG'
         elif self.base in glides:
             return 'GLIDE'
@@ -204,20 +211,20 @@ class Segment:
     def get_phone_features(self, segment):
         """Returns a dictionary of distinctive phonological feature values for the segment"""
 
-        # Generate an empty phone feature dictionary
-        feature_dict = defaultdict(lambda:0)
-        
+        # Generate an empty phone feature dictionary with default values of 0
+        feature_dict = dict.fromkeys(phone_features[next(iter(phone_features))], 0)
+
         # Split segment into component parts, if relevant
-        parts = re.split('͡|͜', segment)
+        parts = segment.split('͡') if '͡' in segment else segment.split('͜')
         bases = []
-        
+
         # Generate feature dictionary for each part and add to main feature dict
         for part in parts:
-            if len(part.strip()) > 0:
-
+            part = part.strip()
+            if part:
                 # Base of the segment is the non-diacritic portion
                 base = strip_diacritics(part)
-                if len(base) == 0:
+                if not base:
                     raise AssertionError(f'Error: invalid segment <{segment}>, no base IPA character found!')
                 bases.append(base)
 
@@ -225,32 +232,33 @@ class Segment:
                 # Filter out tonemes to handle diphthongs first
                 if (len(base) > 1) and (base[0] not in tonemes):
                     return self.get_diphthong_features(segment)
-                
+
                 # Handle tonemes
                 elif base[0] in tonemes:
                     return self.get_tonal_features(segment)
 
                 # Otherwise, retrieve the base phone's features
                 else:
-                    base_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
-                    modifiers = set(ch for ch in part if ch not in base)
-                    if len(modifiers) > 0:
+                    base_id = phone_features[base]
+                    modifiers = set(part) - set(base)
+                    if modifiers:
                         part_id = self.apply_diacritics(base, base_id, modifiers)
                     else:
                         part_id = base_id
-                    
+
                     # Add to overall segment ID
                     for feature in part_id:
                         # Value = 1 (+) overrides value = 0 (-,0)
                         feature_dict[feature] = max(feature_dict[feature], part_id[feature])
-        
+
         # Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
         if len(parts) > 1:
             if bases[0] in plosives and bases[-1] in fricatives:
-                feature_dict['delayedRelease'] = 1 
-                feature_dict['continuant'] = 0 
-        
-        return feature_dict 
+                feature_dict['delayedRelease'] = 1
+                feature_dict['continuant'] = 0
+
+        return feature_dict
+
 
 
     def apply_diacritics(self, base:str, base_features:dict, diacritics:set):
@@ -376,7 +384,7 @@ class Segment:
 
     def get_manner(self):
         if self.phone_class in ('CONSONANT', 'GLIDE'):
-            if self.base in affricates or re.search(fr'{plosives}{diacritics}*͡{fricatives}{diacritics}*', self.segment):
+            if self.base in affricates or _is_affricate(self.segment):
                 manner = 'AFFRICATE'
             elif self.base in plosives:
                 manner = 'PLOSIVE'
@@ -702,9 +710,10 @@ class Segment:
             f'Class: {self.phone_class}'
         ]
 
+        if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE'):
+            info.append([f'Place of Articulation: {self.poa}'])
         if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE', 'DIPHTHONG'):
             info.extend([
-                f'Place of Articulation: {self.poa}',
                 f'Manner of Articulation: {self.manner}',
                 f'Voiced: {self.voiced is True}',
                 f'Sonority: {self.sonority}',
@@ -733,12 +742,6 @@ def _is_ch(ch, l):
 
 def _is_vowel(ch):
     return _is_ch(ch, vowels)
-
-
-def _is_diphthong(seg):
-    if re.search(fr'([{vowels}]̯[{vowels}])|([{vowels}][{vowels}]̯)', seg):
-        return True
-    return False
 
 
 def _toSegment(ch):
@@ -849,8 +852,16 @@ def get_phon_env(segments, i):
             else:
                 return '=S>'
         
+        elif prev_sonority == sonority_i == next_sonority:
+            if segment_i == prev_segment:
+                return 'SS='
+            elif segment_i == next_segment:
+                return '=SS'
+            else:
+                return '=S='
+        
         else:
-            raise NotImplementedError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
+            raise ValueError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
 
 
 # SIMILARITY / DISTANCE MEASURES
@@ -906,64 +917,53 @@ def weighted_dice(vec1, vec2, weights=feature_weights):
 
 
 # PHONE COMPARISON
-checked_phone_sims = {}
-def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=[]):
+@lru_cache(maxsize=None)
+def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None):
     """Returns the similarity of the features of the two phones according to
     the specified distance/similarity function;
     Features not to be included in the comparison should be passed as a list to
     the exclude_features parameter (by default no features excluded)"""
 
+    if exclude_features is None:
+        exclude_features = set()
+
     # Convert IPA strings to Segment objects
     phone1, phone2 = map(_toSegment, [phone1, phone2])
-    
-    # If the phone similarity has already been calculated for this pair, retrieve it
-    reference = (phone1, phone2, similarity, tuple(exclude_features))
-    if reference in checked_phone_sims:
-        return checked_phone_sims[reference]
-    
+
     # Get feature dictionaries for each phone
-    phone_id1, phone_id2 = phone1.features, phone2.features
-    
-    # Remove any specified features
+    phone_id1, phone_id2 = phone1.features.copy(), phone2.features.copy()
+
+    # Exclude specified features
     for feature in exclude_features:
-        for phoneid in [phone_id1, phone_id2]:
-            try:
-                del phoneid[feature]
-            except KeyError:
-                pass
+        phone_id1.pop(feature, None)
+        phone_id2.pop(feature, None)
 
     # Calculate similarity of phone features according to specified measure
-    measures = {'cosine':cosine,
-                'dice':dice_sim,
-                'hamming':hamming_distance,
-                'jaccard':jaccard_sim,
-                'weighted_cosine':cosine,
-                'weighted_dice':weighted_dice,
-                'weighted_hamming':weighted_hamming,
-                'weighted_jaccard':weighted_jaccard}
-    try:
-        measure = measures[similarity]
-    except KeyError:
-        raise KeyError(f'Error: similarity measure "{similarity}" not recognized!')
-    
-    if similarity not in ['cosine', 'weighted_cosine']:
-        score = measure(phone_id1, phone_id2)
-    else:
+    if similarity in ['cosine', 'weighted_cosine']:
         compare_features = list(phone_id1.keys())
         phone1_values = [phone_id1[feature] for feature in compare_features]
         phone2_values = [phone_id2[feature] for feature in compare_features]
         if similarity == 'weighted_cosine':
             weights = [feature_weights[feature] for feature in compare_features]
             # Subtract from 1: cosine() returns a distance
-            score = 1 - measure(phone1_values, phone2_values, w=weights)
+            score = 1 - cosine(phone1_values, phone2_values, w=weights)
         else:
-            score = 1 - measure(phone1_values, phone2_values)
-    
+            score = 1 - cosine(phone1_values, phone2_values)
+    else:
+        measure = {
+            'dice': dice_sim,
+            'hamming': hamming_distance,
+            'jaccard': jaccard_sim,
+            'weighted_dice': weighted_dice,
+            'weighted_hamming': weighted_hamming,
+            'weighted_jaccard': weighted_jaccard
+        }.get(similarity)
+        if measure is None:
+            raise KeyError(f'Error: similarity measure "{similarity}" not recognized!')
+        score = measure(phone_id1, phone_id2)
+
     # If method is Hamming, convert distance to similarity
     if similarity in ['hamming', 'weighted_hamming']:
         score = 1 - score
-        
-    # Save the phonetic similarity score to dictionary, return score
-    checked_phone_sims[reference] = score
 
     return score
