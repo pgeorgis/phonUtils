@@ -270,7 +270,7 @@ class Segment:
             
             elif modifier == '̝': # raised diacritic
                 # turn approximants/trills into fricativized approximants
-                if base[0] in approximants+trills:
+                if base[0] in approximants.union(trills):
                     base_features['delayedRelease'] = 1
                     
                 # turn fricatives into plosives
