@@ -1,5 +1,41 @@
-# Standard Latin <g> instead of IPA <ɡ>
+# Latin, Cyrillic, and Greek alphabet characters instead of visually similar IPA equivalents
+# Latin alphabet
+B	ʙ
+G	ɢ
 g	ɡ
+H	ʜ
+I	ɪ
+L	ʟ
+ł	ɫ
+N	ɴ
+R	ʀ
+Y	ʏ
+
+# Cyrillic alphabet
+а	a
+В	ʙ
+е	e
+є	ɛ
+з	ɜ
+і	i
+о	o
+У	ʏ
+у	y
+ф	ɸ
+х	x
+э	ɜ
+я	ʁ
+
+# Greek alphabet
+Β	ʙ
+γ	ɣ
+δ	ð
+ε	ɛ
+Η	ʜ
+λ	ʎ
+ο	o
+Υ	ʏ
+φ	ɸ
 
 # Affricates for which there is a special ligature character
 t͡s	ʦ
@@ -41,24 +77,11 @@ d͡ʑ	ʥ
 ũ	ũ
 ỹ	ỹ
 
-# Cyrillic and Greek characters that are visually similar to Latin/IPA characters
-# Cyrillic
-а	a
-е	e
-і	i
-о	o
-я	ʁ
-з	ɜ
-
-# Greek
-ο	o
-ε	ɛ
-λ	ʎ
-δ	ð
-
-# Other characters that are visually similar to IPA characters 
+# Other characters that are visually similar to IPA characters
+3	ɜ
 ∅	ø
 エ	ɪ
 '	ˈ
 :	ː
 |	ǀ
+?	ʔ
