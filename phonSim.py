@@ -711,7 +711,7 @@ class Segment:
         ]
 
         if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE'):
-            info.append([f'Place of Articulation: {self.poa}'])
+            info.append(f'Place of Articulation: {self.poa}')
         if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE', 'DIPHTHONG'):
             info.extend([
                 f'Manner of Articulation: {self.manner}',
@@ -726,8 +726,9 @@ class Segment:
             if level:
                 level = level.group()
                 info.append(f'Level: {level}')
-        
+
         return '\n'.join(info)
+        
 
 # AUXILIARY FUNCTIONS
 def _is_ch(ch, l):
@@ -773,13 +774,15 @@ def get_phon_env(segments, i):
         # Word-initial segments: #S
         if next_segment:
             if segment_i == next_segment:
-                return '#SS'
+                env = '#SS'
             elif sonority_i == next_sonority:
-                return '#S='
+                env = '#S='
             elif sonority_i > next_sonority:
-                return '#S>'
+                env = '#S>'
             else: # sonority_i < next_sonority:
-                return '#S<'
+                env = '#S<'
+                
+            return env
         
         # Free-standing segments
         else:
@@ -790,18 +793,20 @@ def get_phon_env(segments, i):
         assert len(segments) > 1
         prev_segment = segments[i-1]
         if prev_segment == segment_i:
-            return 'SS#'
+            env = 'SS#'
         else:
             prev_sonority, sonority_i = prev_segment.sonority, segment_i.sonority
             
             if prev_sonority == sonority_i:
-                return '=S#'
+                env = '=S#'
 
             elif prev_sonority < sonority_i:
-                return '<S#'
+                env = '<S#'
 
             else: # prev_sonority > sonority_i
-                return '>S#' 
+                env = '>S#' 
+        
+        return env
     
     # Word-medial segments
     else:
@@ -810,59 +815,60 @@ def get_phon_env(segments, i):
         
         # Sonority plateau: =S=
         if prev_segment == sonority_i == next_sonority:
-            return '=S='
+            env = '=S='
         
         # Sonority peak: <S>
         elif prev_sonority < sonority_i > next_sonority:
-            return '<S>'
+            env = '<S>'
         
         # Sonority trench: >S< # TODO is this the best term?
         elif prev_sonority > sonority_i < next_sonority:
-            return '>S<'
+            env = '>S<'
         
         # Descending sonority: >S>
         elif prev_sonority > sonority_i > next_sonority:
-            return '>S>'
+            env = '>S>'
         
         # Ascending sonority: <S<
         elif prev_sonority < sonority_i < next_sonority:
-            return '<S<'
+            env = '<S<'
         
         elif prev_sonority < sonority_i == next_sonority:
             if segment_i == next_segment:
-                return '<SS'
+                env = '<SS'
             else:
-                return '<S='
+                env = '<S='
         
         elif prev_sonority > sonority_i == next_sonority:
             if segment_i == next_segment:
-                return '>SS'
+                env = '>SS'
             else:
-                return '>S='
+                env = '>S='
         
         elif prev_sonority == sonority_i < next_sonority:
             if segment_i == prev_segment:
-                return 'SS<'
+                env = 'SS<'
             else:
-                return '=S<'
+                env = '=S<'
         
         elif prev_sonority == sonority_i > next_sonority:
             if segment_i == prev_segment:
-                return 'SS>'
+                env = 'SS>'
             else:
-                return '=S>'
+                env = '=S>'
         
         elif prev_sonority == sonority_i == next_sonority:
             if segment_i == prev_segment:
-                return 'SS='
+                env = 'SS='
             elif segment_i == next_segment:
-                return '=SS'
+                env = '=SS'
             else:
-                return '=S='
+                env = '=S='
         
         else:
             raise ValueError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
-
+        
+        return env
 
 # SIMILARITY / DISTANCE MEASURES
 def hamming_distance(vec1, vec2, normalize=True):
@@ -967,3 +973,32 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
         score = 1 - score
 
     return score
+
+
+# Helper functions for identifying phones with particular features
+def lookup_segments(features, values, segment_list=consonants.union(vowels).union(tonemes)):
+    """Returns a list of segments whose feature values match the search criteria"""
+    matches = []
+    for segment in segment_list:
+        segment = _toSegment(segment)
+        match_tallies = 0
+        for feature, value in zip(features, values):
+            if segment.features[feature] == value:
+                match_tallies += 1
+        if match_tallies == len(features):
+            matches.append(segment)
+    return set(matches)
+
+
+def common_features(segment_list, start_features=feature_weights.keys()):
+    """Returns the features/values shared by all segments in the list"""
+    features = set(start_features)
+    feature_values = defaultdict(lambda:[])
+    for segment in segment_list:
+        segment = _toSegment(segment)
+        for feature in features:
+            value = segment.features[feature]
+            if value not in feature_values[feature]:
+                feature_values[feature].append(value)
+    common = [(feature, feature_values[feature][0]) for feature in feature_values if len(feature_values[feature]) == 1]
+    return common
