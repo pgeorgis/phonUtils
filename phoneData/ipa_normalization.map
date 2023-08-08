@@ -33,6 +33,7 @@ Y	ʏ
 ε	ɛ
 Η	ʜ
 λ	ʎ
+Ν	ɴ
 ο	o
 Υ	ʏ
 φ	ɸ
@@ -44,6 +45,15 @@ t͡ʃ	ʧ
 d͡ʒ	ʤ
 t͡ɕ	ʨ
 d͡ʑ	ʥ
+
+# Obsolete or withdrawn IPA characters
+ʆ	ɕ
+ʓ	ʑ
+ƥ	ɓ̥
+ƭ	ɗ̥
+ƈ	ʄ̊
+ƙ	ɠ̊
+ʠ	ʛ̥
 
 # Accented characters instead of vowel + tone diacritic
 á	á
