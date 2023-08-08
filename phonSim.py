@@ -24,10 +24,14 @@ from PhoneticSimilarity.initPhoneData import (
     diacritics, diacritics_effects, post_diacritics, suprasegmental_diacritics,
     # Phonological features and feature geometry weights 
     phone_features, feature_weights, tone_levels,
-    # IPA regexes, constants, and and helper functions 
-    segment_regex, preaspiration_regex, diphthong_regex, diacritic_str, _is_affricate,
+    # IPA regexes and constants
+    segment_regex, preaspiration_regex, diphthong_regex, diacritic_regex,
+    front_vowel_regex, central_vowel_regex, back_vowel_regex, 
+    close_vowel_regex, close_mid_vowel_regex, open_vowel_regex, open_mid_vowel_regex,  
     # IPA character normalization/validation
-    valid_ipa_ch, ipa_norm_map
+    valid_ipa_ch, ipa_norm_map,
+    # Helper functions
+    _is_affricate
 )
 
 # FUNCTIONS FOR IPA STRING MANIPULATION AND NORMALIZATION
@@ -37,16 +41,9 @@ def strip_diacritics(string, excepted=[]):
     these should be passed as a list to the "excepted" parameter"""
     if len(excepted) > 0:
         to_remove = ''.join([d for d in diacritics if d not in excepted])
-    else:
-        to_remove = diacritic_str
-    try:
         return re.sub(f'[{to_remove}]', '', string)
-
-    except RecursionError:
-        error_out = os.path.join(os.getcwd(), "diacritics_recursion_error.out")
-        with open(error_out, 'w') as f:
-            f.write(f'Unable to parse phonetic characters in form: {string}')
-        raise RecursionError(f'Error parsing phonetic characters: see {error_out}')
+    else:
+        return diacritic_regex.sub('', string)
 
 
 def normalize_ipa_ch(string, ipa_norm_map=ipa_norm_map):
@@ -518,28 +515,30 @@ class Segment:
             
         elif self.phone_class == 'VOWEL':
             # Height / Openness
-            if re.search(r'[iyɨʉɯu]', self.base):
+            if close_vowel_regex.search(self.base):
                 height = 'CLOSE'
-            elif re.search(r'[ɪʏʊeøɘɵɤo]', self.base):
+            elif close_mid_vowel_regex.search(self.base):
                 height = 'CLOSE-MID'
-            elif re.search(r'[əɚ]', self.base):
+            elif self.base in {'ə', 'ɚ'}:
                 height = 'MID'
-            elif re.search(r'[ɛœɜɞɝʌɔæɐ]', self.base):
+            elif open_mid_vowel_regex.search(self.base):
                 height = 'OPEN-MID'
-            elif re.search(r'[aɶɑɒ]', self.base):
+            elif open_vowel_regex.search(self.base):
                 height = 'OPEN'
             else:
                 raise val_err
             
             # Frontness / Backness
-            if re.search(r'[iyɪʏeøɛœæaɶ]', self.base):
+            if front_vowel_regex.search(self.base):
                 frontness = 'FRONT'
-            elif re.search(r'[ɨʉɘɵəɚɜɝɞɐ]', self.base):
+            elif central_vowel_regex.search(self.base):
                 frontness = 'CENTRAL'
-            elif re.search(r'[ɯuʊɤoʌɔɑɒ]', self.base):
+            elif back_vowel_regex.search(self.base):
                 frontness = 'BACK'
             else:
                 raise val_err
+            
+            # TODO add rounded to manner
 
             return ' '.join([height, frontness])
 
@@ -731,6 +730,10 @@ class Segment:
         
 
 # AUXILIARY FUNCTIONS
+def _toSegment(ch):
+    return Segment.segments.get(ch, Segment(ch))      
+
+
 def _is_ch(ch, l):
     try:
         if strip_diacritics(ch)[0] in l:
@@ -745,14 +748,15 @@ def _is_vowel(ch):
     return _is_ch(ch, vowels)
 
 
-def _toSegment(ch):
-    return Segment.segments.get(ch, Segment(ch))      
+def _is_front_env(ch):
+    if front_vowel_regex.search(ch) or ch in {'j', 'ɥ'}:
+        return True
+    return False
 
 
+# PHONOLOGICAL ENVIRONMENT
 def get_phon_env(segments, i):
-    """Returns a string representing the phonological environment of a segment within a word
-    # TODO add front/back vowel context
-    """
+    """Returns a string representing the phonological environment of a segment within a word"""
     # Convert IPA strings to Segment objects and get base segment
     segments = [_toSegment(seg) for seg in segments]
     segment_i = segments[i]
@@ -781,7 +785,11 @@ def get_phon_env(segments, i):
                 env = '#S>'
             else: # sonority_i < next_sonority:
                 env = '#S<'
-                
+        
+            # Add front vowel environment
+            if _is_front_env(next_segment.base):
+                env += 'F'
+                    
             return env
         
         # Free-standing segments
@@ -805,6 +813,10 @@ def get_phon_env(segments, i):
 
             else: # prev_sonority > sonority_i
                 env = '>S#' 
+
+        # Add front vowel environment
+        if _is_front_env(prev_segment.base):
+            env = 'F' + env
         
         return env
     
@@ -867,6 +879,12 @@ def get_phon_env(segments, i):
         
         else:
             raise ValueError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
+        
+        # Add front vowel environment
+        if _is_front_env(prev_segment.base):
+            env = 'F' + env
+        if _is_front_env(next_segment.base):
+            env += 'F'
         
         return env
 
@@ -986,7 +1004,7 @@ def lookup_segments(features, values, segment_list=consonants.union(vowels).unio
             if segment.features[feature] == value:
                 match_tallies += 1
         if match_tallies == len(features):
-            matches.append(segment)
+            matches.append(segment.segment)
     return set(matches)
 
 

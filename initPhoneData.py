@@ -154,7 +154,7 @@ tone_levels = {'˩':1, '¹':1,
                '˥':5, '⁵':5,
                '↓':0, '⁰':0}
 
-# IPA regex constants
+# IPA regex/constants
 # Pre-preaspiration: characters which can occur before preaspiration characters <ʰʱ>, to distinguish from post-aspiration during segmentation
 pre_preaspiration = vowels.union(glides).union(set(post_diacritics))
 preaspiration_regex = re.compile(rf'(?<=[{pre_preaspiration}])[ʰʱ]$')
@@ -163,8 +163,16 @@ vowel_str = ''.join(vowels)
 plosive_str = ''.join(plosives)
 fricative_str = ''.join(fricatives)
 diacritic_str = ''.join(diacritics)
+diacritic_regex = re.compile(rf'{diacritic_str}')
 diphthong_regex = re.compile(fr'([{vowel_str}]̯[{vowel_str}])|([{vowel_str}][{vowel_str}]̯)')
 affricate_regex = re.compile(rf'[{plosive_str}].*͡.*[{fricative_str}]')
+front_vowel_regex = re.compile(r'[iyɪʏeøɛœæaɶ]')
+central_vowel_regex = re.compile(r'[ɨʉɘɵəɚɜɝɞɐ]')
+back_vowel_regex = re.compile(r'[ɯuʊɤoʌɔɑɒ]')
+close_vowel_regex = re.compile(r'[iyɨʉɯu]')
+close_mid_vowel_regex = re.compile(r'[ɪʏʊeøɘɵɤo]')
+open_mid_vowel_regex = re.compile(r'[ɛœɜɞɝʌɔæɐ]')
+open_vowel_regex = re.compile(r'[aɶɑɒ]')
 
 # Auxiliary functions for certain phone classes
 def _is_affricate(phone):
