@@ -207,6 +207,10 @@ class Segment:
 
     def get_phone_features(self, segment):
         """Returns a dictionary of distinctive phonological feature values for the segment"""
+        
+        # Retrieve saved feature dictionary if already generated for this segment
+        if segment in Segment.segments:
+            return Segment.segments[segment].features
 
         # Generate an empty phone feature dictionary with default values of 0
         feature_dict = dict.fromkeys(phone_features[next(iter(phone_features))], 0)
@@ -267,29 +271,32 @@ class Segment:
             diacritics (set): diacritics to apply
         """
 
+        # Create a new dictionary to store the modified values
+        modified_features = base_features.copy()
+
         # Apply diacritic effects to feature dictionary
         for modifier in diacritics:
             for feature, value in diacritics_effects[modifier]:
-                base_features[feature] = value
+                modified_features[feature] = value
                 
             if modifier == '̞': # lowered diacritic: turns fricatives into approximants
                 if base[0] in fricatives:
-                    base_features['approximant'] = 1
-                    base_features['consonantal'] = 0
-                    base_features['delayedRelease'] = 0
-                    base_features['sonorant'] = 1
+                    modified_features['approximant'] = 1
+                    modified_features['consonantal'] = 0
+                    modified_features['delayedRelease'] = 0
+                    modified_features['sonorant'] = 1
             
             elif modifier == '̝': # raised diacritic
                 # turn approximants/trills into fricativized approximants
                 if base[0] in approximants.union(trills):
-                    base_features['delayedRelease'] = 1
+                    modified_features['delayedRelease'] = 1
                     
                 # turn fricatives into plosives
                 elif base[0] in fricatives:
-                    base_features['continuant'] = 0
-                    base_features['delayedRelease'] = 0
+                    modified_features['continuant'] = 0
+                    modified_features['delayedRelease'] = 0
         
-        return base_features
+        return modified_features
 
 
     def get_diphthong_features(self, diphthong):
