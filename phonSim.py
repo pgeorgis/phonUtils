@@ -762,6 +762,40 @@ def _is_front_env(ch):
 
 
 # PHONOLOGICAL ENVIRONMENT
+# TODO move this elsewhere
+poa_map = {
+    'BILABIAL':['LABIAL'],
+    'LABIODENTAL':['LABIAL'],
+    'LINGUO-LABIAL':['LABIAL', 'CORONAL'],
+    'DENTAL':['CORONAL'],
+    'APICO-ALVEOLAR':['CORONAL'],
+    'LAMINAL ALVEOLAR':['CORONAL'],
+    'ALVEOLAR':['CORONAL'],
+    'LATERAL':['LATERAL', 'CORONAL'],
+    'POSTALVEOLAR':['CORONAL'],
+    'ALVEOLOPALATAL':['CORONAL'],
+    'RETROFLEX':['CORONAL'],
+    'PALATAL':['CORONAL', 'DORSAL'],
+    'PALATAL':['CORONAL', 'DORSAL'],
+    'VELAR':['DORSAL'],
+    'LABIAL-VELAR':['LABIAL', 'DORSAL'],
+    'UVULAR':['DORSAL'],
+    'PHARYNGEAL':['LARYNGEAL'],
+    'EPIGLOTTAL':['LARYNGEAL'],
+    'GLOTTAL':['LARYNGEAL'],
+}
+def get_broad_poa(poa):
+    """Returns the broader places of articulation for consonants
+
+    Args:
+        poa (str): place of articulation, e.g. "retroflex"
+    """
+    try:
+        return poa_map[poa]
+    except KeyError:
+        raise ValueError(f'Error: unrecognized place of articulation <{poa}>')
+
+
 def get_phon_env(segments, i):
     """Returns a string representing the phonological environment of a segment within a word"""
     # Convert IPA strings to Segment objects and get base segment
@@ -772,7 +806,7 @@ def get_phon_env(segments, i):
     # Tonemes
     if base in tonemes: 
         # TODO should remove all tonemes from word and reevaluate without them, so that final segments are considered final despite being "followed" by a toneme
-        return 'T'
+        return '|T|'
 
     # Word-initial segments (free-standing segments also considered word-initial)
     elif i == 0:
@@ -785,45 +819,61 @@ def get_phon_env(segments, i):
         # Word-initial segments: #S
         if next_segment:
             if segment_i == next_segment:
-                env = '#SS'
+                env = '#|S|S'
             elif sonority_i == next_sonority:
-                env = '#S='
+                env = '#|S|='
             elif sonority_i > next_sonority:
-                env = '#S>'
+                env = '#|S|>'
             else: # sonority_i < next_sonority:
-                env = '#S<'
+                env = '#|S|<'
         
             # Add front vowel environment
             if _is_front_env(next_segment.base):
-                env += 'F'
+                env += '_F'
+            
+            # If the next segment is a consonant or glide, at its place of articulation
+            if next_segment.phone_class in ('CONSONANT', 'GLIDE'):
+                for poa in get_broad_poa(next_segment.poa):
+                    env += f'_{poa}'
+                
+            # # Add the next segment itself
+            # env += '_' + next_segment.segment
                     
             return env
         
         # Free-standing segments
         else:
-            return '#S#'
+            return '#|S|#'
     
     # Word-final segments: S#
     elif i == len(segments)-1:
         assert len(segments) > 1
         prev_segment = segments[i-1]
         if prev_segment == segment_i:
-            env = 'SS#'
+            env = 'S|S|#'
         else:
             prev_sonority, sonority_i = prev_segment.sonority, segment_i.sonority
             
             if prev_sonority == sonority_i:
-                env = '=S#'
+                env = '=|S|#'
 
             elif prev_sonority < sonority_i:
-                env = '<S#'
+                env = '<|S|#'
 
             else: # prev_sonority > sonority_i
-                env = '>S#' 
+                env = '>|S|#' 
 
         # Add front vowel environment
         if _is_front_env(prev_segment.base):
-            env = 'F' + env
+            env = 'F_' + env
+
+        # If the previous segment is a consonant or glide, at its place of articulation
+        if prev_segment.phone_class in ('CONSONANT', 'GLIDE'):
+            for poa in get_broad_poa(prev_segment.poa):
+                env = f'{poa}_' + env
+                        
+        # # Add the previous segment itself
+        # env = prev_segment.segment + '_' + env
         
         return env
     
@@ -834,64 +884,80 @@ def get_phon_env(segments, i):
         
         # Sonority plateau: =S=
         if prev_segment == sonority_i == next_sonority:
-            env = '=S='
+            env = '=|S|='
         
         # Sonority peak: <S>
         elif prev_sonority < sonority_i > next_sonority:
-            env = '<S>'
+            env = '<|S|>'
         
         # Sonority trench: >S< # TODO is this the best term?
         elif prev_sonority > sonority_i < next_sonority:
-            env = '>S<'
+            env = '>|S|<'
         
         # Descending sonority: >S>
         elif prev_sonority > sonority_i > next_sonority:
-            env = '>S>'
+            env = '>|S|>'
         
         # Ascending sonority: <S<
         elif prev_sonority < sonority_i < next_sonority:
-            env = '<S<'
+            env = '<|S|<'
         
         elif prev_sonority < sonority_i == next_sonority:
             if segment_i == next_segment:
-                env = '<SS'
+                env = '<|S|S'
             else:
-                env = '<S='
+                env = '<|S|='
         
         elif prev_sonority > sonority_i == next_sonority:
             if segment_i == next_segment:
-                env = '>SS'
+                env = '>|S|S'
             else:
-                env = '>S='
+                env = '>|S|='
         
         elif prev_sonority == sonority_i < next_sonority:
             if segment_i == prev_segment:
-                env = 'SS<'
+                env = 'S|S|<'
             else:
-                env = '=S<'
+                env = '=|S|<'
         
         elif prev_sonority == sonority_i > next_sonority:
             if segment_i == prev_segment:
-                env = 'SS>'
+                env = 'S|S|>'
             else:
-                env = '=S>'
+                env = '=|S|>'
         
         elif prev_sonority == sonority_i == next_sonority:
             if segment_i == prev_segment:
-                env = 'SS='
+                env = 'S|S|='
             elif segment_i == next_segment:
-                env = '=SS'
+                env = '=|S|S'
             else:
-                env = '=S='
+                env = '=|S|='
         
         else:
             raise ValueError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
         
         # Add front vowel environment
         if _is_front_env(prev_segment.base):
-            env = 'F' + env
+            env = 'F_' + env
         if _is_front_env(next_segment.base):
-            env += 'F'
+            env += '_F'
+
+        # If the next segment is a consonant or glide, at its place of articulation
+        if next_segment.phone_class in ('CONSONANT', 'GLIDE'):
+            for poa in get_broad_poa(next_segment.poa):
+                env += f'_{poa}'
+            
+        # # Add the next segment itself
+        # env += '_' + next_segment.segment
+
+        # If the previous segment is a consonant or glide, at its place of articulation
+        if prev_segment.phone_class in ('CONSONANT', 'GLIDE'):
+            for poa in get_broad_poa(prev_segment.poa):
+                env = f'{poa}_' + env
+                
+        # # Add the previous segment itself
+        # env = prev_segment.segment + '_' + env
         
         return env
 
