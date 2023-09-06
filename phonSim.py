@@ -25,7 +25,7 @@ from PhoneticSimilarity.initPhoneData import (
     # Phonological features and feature geometry weights 
     phone_features, feature_weights, tone_levels,
     # IPA regexes and constants
-    segment_regex, preaspiration_regex, diphthong_regex, diacritic_regex,
+    segment_regex, preaspiration_regex, diphthong_regex, diacritic_regex, nasal_regex,
     front_vowel_regex, central_vowel_regex, back_vowel_regex, 
     close_vowel_regex, close_mid_vowel_regex, open_vowel_regex, open_mid_vowel_regex,  
     # IPA character normalization/validation
@@ -760,42 +760,13 @@ def _is_front_env(ch):
         return True
     return False
 
+def _is_nasal_env(ch):
+    if nasal_regex.search(ch):
+        return True
+    return False
+
 
 # PHONOLOGICAL ENVIRONMENT
-# TODO move this elsewhere
-poa_map = {
-    'BILABIAL':['LABIAL'],
-    'LABIODENTAL':['LABIAL'],
-    'LINGUO-LABIAL':['LABIAL', 'CORONAL'],
-    'DENTAL':['CORONAL'],
-    'APICO-ALVEOLAR':['CORONAL'],
-    'LAMINAL ALVEOLAR':['CORONAL'],
-    'ALVEOLAR':['CORONAL'],
-    'LATERAL':['LATERAL', 'CORONAL'],
-    'POSTALVEOLAR':['CORONAL'],
-    'ALVEOLOPALATAL':['CORONAL'],
-    'RETROFLEX':['CORONAL'],
-    'PALATAL':['CORONAL', 'DORSAL'],
-    'PALATAL':['CORONAL', 'DORSAL'],
-    'VELAR':['DORSAL'],
-    'LABIAL-VELAR':['LABIAL', 'DORSAL'],
-    'UVULAR':['DORSAL'],
-    'PHARYNGEAL':['LARYNGEAL'],
-    'EPIGLOTTAL':['LARYNGEAL'],
-    'GLOTTAL':['LARYNGEAL'],
-}
-def get_broad_poa(poa):
-    """Returns the broader places of articulation for consonants
-
-    Args:
-        poa (str): place of articulation, e.g. "retroflex"
-    """
-    try:
-        return poa_map[poa]
-    except KeyError:
-        raise ValueError(f'Error: unrecognized place of articulation <{poa}>')
-
-
 def get_phon_env(segments, i):
     """Returns a string representing the phonological environment of a segment within a word"""
     # Convert IPA strings to Segment objects and get base segment
@@ -830,11 +801,9 @@ def get_phon_env(segments, i):
             # Add front vowel environment
             if _is_front_env(next_segment.base):
                 env += '_F'
-            
-            # If the next segment is a consonant or glide, at its place of articulation
-            if next_segment.phone_class in ('CONSONANT', 'GLIDE'):
-                for poa in get_broad_poa(next_segment.poa):
-                    env += f'_{poa}'
+            # Add nasal environment
+            if _is_nasal_env(next_segment.base):
+                env += '_N'
                 
             # # Add the next segment itself
             # env += '_' + next_segment.segment
@@ -866,11 +835,9 @@ def get_phon_env(segments, i):
         # Add front vowel environment
         if _is_front_env(prev_segment.base):
             env = 'F_' + env
-
-        # If the previous segment is a consonant or glide, at its place of articulation
-        if prev_segment.phone_class in ('CONSONANT', 'GLIDE'):
-            for poa in get_broad_poa(prev_segment.poa):
-                env = f'{poa}_' + env
+        # Add nasal environment
+        if _is_nasal_env(prev_segment.base):
+            env = 'N_' + env
                         
         # # Add the previous segment itself
         # env = prev_segment.segment + '_' + env
@@ -942,19 +909,14 @@ def get_phon_env(segments, i):
             env = 'F_' + env
         if _is_front_env(next_segment.base):
             env += '_F'
-
-        # If the next segment is a consonant or glide, at its place of articulation
-        if next_segment.phone_class in ('CONSONANT', 'GLIDE'):
-            for poa in get_broad_poa(next_segment.poa):
-                env += f'_{poa}'
+        # Add nasal environment
+        if _is_nasal_env(prev_segment.base):
+            env = 'N_' + env
+        if _is_nasal_env(next_segment.base):
+            env += '_N'
             
         # # Add the next segment itself
         # env += '_' + next_segment.segment
-
-        # If the previous segment is a consonant or glide, at its place of articulation
-        if prev_segment.phone_class in ('CONSONANT', 'GLIDE'):
-            for poa in get_broad_poa(prev_segment.poa):
-                env = f'{poa}_' + env
                 
         # # Add the previous segment itself
         # env = prev_segment.segment + '_' + env
