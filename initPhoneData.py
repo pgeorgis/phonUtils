@@ -143,6 +143,8 @@ consonants = set(phone for phone in phone_features
               if phone_features[phone]['syllabic'] == 0
               if phone not in tonemes)
 vowels = set(phone for phone in phone_features if phone not in consonants.union(tonemes))
+obstruents = set(plosives.union(affricates).union(fricatives))
+sonorants = set(nasals.union(liquids).union(glides).union(approximants).union(set(vowels)))
 all_phones = ''.join(consonants.union(vowels).union(tonemes))
 valid_ipa_ch = ''.join([all_phones, diacritics, ' ', '‿'])
 
