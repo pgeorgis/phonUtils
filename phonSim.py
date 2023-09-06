@@ -801,7 +801,7 @@ def get_phon_env(segments, i):
             # Add front vowel environment
             if _is_front_env(next_segment.base):
                 env += '_F'
-            # Add nasal environment
+            # Add following nasal environment
             if _is_nasal_env(next_segment.base):
                 env += '_N'
                 
@@ -835,9 +835,6 @@ def get_phon_env(segments, i):
         # Add front vowel environment
         if _is_front_env(prev_segment.base):
             env = 'F_' + env
-        # Add nasal environment
-        if _is_nasal_env(prev_segment.base):
-            env = 'N_' + env
                         
         # # Add the previous segment itself
         # env = prev_segment.segment + '_' + env
@@ -909,9 +906,7 @@ def get_phon_env(segments, i):
             env = 'F_' + env
         if _is_front_env(next_segment.base):
             env += '_F'
-        # Add nasal environment
-        if _is_nasal_env(prev_segment.base):
-            env = 'N_' + env
+        # Add following nasal environment
         if _is_nasal_env(next_segment.base):
             env += '_N'
             
