@@ -3,7 +3,7 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from PhoneticSimilarity.phonSim import plosives, fricatives
+from PhoneticSimilarity.initPhoneData import plosives, fricatives
 from PhoneticSimilarity.segment import segment_ipa
 from PhoneticSimilarity.syllables import syllabify, findSyllabic
 
