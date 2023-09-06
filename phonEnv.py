@@ -6,8 +6,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load phonological constants initialized in initPhoneData.py
-from PhoneticSimilarity.initPhoneData import tonemes, nasal_regex, front_vowel_regex
-from PhoneticSimilarity.segment import _toSegment
+from phonUtils.initPhoneData import tonemes, nasal_regex, front_vowel_regex
+from phonUtils.segment import _toSegment, _is_vowel
+from phonUtils.syllables import syllabify
 
 # HELPER FUNCTIONS
 def _is_front_env(ch):
@@ -29,6 +30,8 @@ def get_phon_env(segments, i):
     segments = [_toSegment(seg) for seg in segments]
     segment_i = segments[i]
     base = segment_i.base
+    # if segment_i.phone_class in ('VOWEL', 'DIPHTHONG'):
+    #     syllables = syllabify()
 
     # Tonemes
     if base in tonemes: 

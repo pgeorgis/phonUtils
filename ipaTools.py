@@ -3,11 +3,8 @@ import os
 import re
 import sys
 
-# Add the project's root directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Load constants initialized in initPhoneData.py
-from PhoneticSimilarity.initPhoneData import diacritics, diacritic_regex, valid_ipa_ch, ipa_norm_map
+from phonUtils.initPhoneData import diacritics, diacritic_regex, valid_ipa_ch, ipa_norm_map
 
 # FUNCTIONS FOR IPA STRING MANIPULATION AND NORMALIZATION
 def strip_diacritics(string, excepted=[]):

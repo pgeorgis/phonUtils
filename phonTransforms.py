@@ -3,9 +3,9 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from PhoneticSimilarity.initPhoneData import plosives, fricatives
-from PhoneticSimilarity.segment import segment_ipa
-import PhoneticSimilarity.syllables as syllables
+from phonUtils.initPhoneData import plosives, fricatives
+from phonUtils.segment import segment_ipa
+from phonUtils import syllables
 
 #General phonological transformation functions
 devoice_dict = {
