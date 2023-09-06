@@ -4,13 +4,10 @@ import random
 import re
 import sys
 
-# Add the project's root directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Load phonological constants initialized in initPhoneData.py
-from PhoneticSimilarity.phonSim import _toSegment, _is_vowel, segment_ipa, vowels, affricates
-from PhoneticSimilarity.phonTransforms import split_affricates 
-from PhoneticSimilarity.segment import segment_ipa 
+from PhoneticSimilarity.initPhoneData import vowels, affricates
+from PhoneticSimilarity.segment import _toSegment, segment_ipa, _is_vowel
+from PhoneticSimilarity.phonTransforms import split_affricates
 
 #Functions related to syllable types
 def isSyllabic(segment):
