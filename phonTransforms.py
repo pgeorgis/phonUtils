@@ -5,7 +5,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PhoneticSimilarity.initPhoneData import plosives, fricatives
 from PhoneticSimilarity.segment import segment_ipa
-from PhoneticSimilarity.syllables import syllabify, findSyllabic
+import PhoneticSimilarity.syllables as syllables
 
 #General phonological transformation functions
 devoice_dict = {
@@ -74,12 +74,12 @@ def shiftStress(word, n_syl, type='PRIMARY'):
         raise ValueError(f'Error: unrecognized type "{type}". Must be one of "PRIMARY", "SECONDARY"')
 
     nostress = re.sub('[ˈˌ]','', word)
-    syls = syllabify(nostress)
+    syls = syllables.syllabify(nostress)
     syls = [syls[i].syl for i in syls]
     n_syl = min(n_syl, len(syls)-1)
     n_syl = max(n_syl, -len(syls))
     target_syl = segment_ipa(syls[n_syl])
-    syllabic_i = findSyllabic(target_syl)[0]
+    syllabic_i = syllables.findSyllabic(target_syl)[0]
     target_syl.insert(syllabic_i, ch)
     target_syl = ''.join(target_syl)
     syls[n_syl] = target_syl
