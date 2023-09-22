@@ -5,7 +5,7 @@ import sys
 from collections import defaultdict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from PhoneticSimilarity.initPhoneData import (
+from phonUtils.initPhoneData import (
     # Top-level phone sets
     vowels, glides, consonants, tonemes,
     # Phone classes by manner of articulation
@@ -23,7 +23,7 @@ from PhoneticSimilarity.initPhoneData import (
     # Helper functions
     _is_affricate
 )
-from PhoneticSimilarity.ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
+from phonUtils.ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
 
 
 class Segment:

@@ -9,8 +9,8 @@ from sklearn.metrics import jaccard_score
 from scipy.spatial.distance import cosine
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from PhoneticSimilarity.initPhoneData import vowels, consonants, tonemes, feature_weights
-from PhoneticSimilarity.segment import _toSegment
+from phonUtils.initPhoneData import vowels, consonants, tonemes, feature_weights
+from phonUtils.segment import _toSegment
 
 
 # SIMILARITY / DISTANCE MEASURES

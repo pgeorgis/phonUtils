@@ -5,9 +5,9 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from PhoneticSimilarity.initPhoneData import vowels, affricates
-from PhoneticSimilarity.segment import _toSegment, segment_ipa, _is_vowel
-from PhoneticSimilarity.phonTransforms import split_affricates
+from phonUtils.initPhoneData import vowels, affricates
+from phonUtils.segment import _toSegment, segment_ipa, _is_vowel
+from phonUtils import phonTransforms
 
 #Functions related to syllable types
 def isSyllabic(segment):
@@ -119,7 +119,7 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
     # Split affricates across syllable boundaries (False by default)
     # Doesn't make any difference for monosyllabic words, so skip if <2 syllables
     if split_affricate and len(syllabic_i) > 1:
-        word, matched_affricates = split_affricates(word)
+        word, matched_affricates = phonTransforms.split_affricates(word)
         segments = segment_ipa(word)
         syllabic_i = findSyllabic(segments)
     
