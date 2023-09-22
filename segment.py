@@ -17,7 +17,7 @@ from PhoneticSimilarity.initPhoneData import (
     # Phonological features and feature geometry weights 
     phone_features, tone_levels,
     # IPA regexes and constants
-    segment_regex, preaspiration_regex, diphthong_regex,
+    segment_regex, preaspiration_regex, diphthong_regex, suprasegmental_diacritics,
     front_vowel_regex, central_vowel_regex, back_vowel_regex, 
     close_vowel_regex, close_mid_vowel_regex, open_vowel_regex, open_mid_vowel_regex,
     # Helper functions
@@ -617,7 +617,7 @@ class Segment:
         
 
 # IPA STRING SEGMENTATION
-def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True):
+def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True, suprasegmentals=None):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
@@ -641,7 +641,7 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
             segments.extend(segmented)
 
     # Move aspiration diacritic <ʰʱ> from preceding vowel or glide to following consonant
-    # Can't easily be distinguished in regex since the same symble is usually a post-diacritic for post-aspiration
+    # Can't easily be distinguished in regex since the same symbol is usually a post-diacritic for post-aspiration
     if preaspiration:
         for i, seg in enumerate(segments):
             preasp = preaspiration_regex.search(seg)
@@ -686,6 +686,22 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True)
                 updated_segments.append(seg)
                 i += 1
         
+        segments = updated_segments
+    
+    # Split off suprasegmentals
+    if suprasegmentals:
+        suprasegmental_regex = re.compile(rf'[{suprasegmental_diacritics}{tonemes}{suprasegmentals}]')
+        updated_segments = []
+        for segment in segments:
+            match = suprasegmental_regex.match(segment)
+            if match:
+                match = match.group()
+                seg_minus_supraseg = suprasegmental_regex.sub('', segment)
+                if seg_minus_supraseg:
+                    updated_segments.append(seg_minus_supraseg)
+                updated_segments.append(match)
+            else:
+                updated_segments.append(segment)
         segments = updated_segments
 
     return segments
