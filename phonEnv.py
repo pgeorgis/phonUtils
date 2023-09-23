@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load phonological constants initialized in initPhoneData.py
-from phonUtils.initPhoneData import tonemes, nasal_regex, front_vowel_regex
+from phonUtils.initPhoneData import tonemes, nasal_regex, front_vowel_regex, diacritics
 from phonUtils.segment import _toSegment, _is_vowel
 from phonUtils.syllables import syllabify
 
@@ -26,20 +26,26 @@ def _is_nasal_env(ch):
 # PHONOLOGICAL ENVIRONMENT
 def get_phon_env(segments, i):
     """Returns a string representing the phonological environment of a segment within a word"""
+    # TODO should remove all tonemes from word and reevaluate without them, so that final segments are considered final despite being "followed" by a toneme
+    if segments[i] in diacritics:
+        return '|S|'
+    
     # Convert IPA strings to Segment objects and get base segment
-    segments = [_toSegment(seg) for seg in segments]
+    adjust = 0
+    segs = []
+    for seg in segments:
+        if seg not in diacritics:
+            segs.append(_toSegment(seg))
+        else:
+            adjust += 1
+    i -= adjust
+    segments = segs
     segment_i = segments[i]
-    base = segment_i.base
     # if segment_i.phone_class in ('VOWEL', 'DIPHTHONG'):
     #     syllables = syllabify()
 
-    # Tonemes
-    if base in tonemes: 
-        # TODO should remove all tonemes from word and reevaluate without them, so that final segments are considered final despite being "followed" by a toneme
-        return '|T|'
-
     # Word-initial segments (free-standing segments also considered word-initial)
-    elif i == 0:
+    if i == 0:
         if len(segments) > 1:
             next_segment = segments[i+1]
             sonority_i, next_sonority = segment_i.sonority, next_segment.sonority
