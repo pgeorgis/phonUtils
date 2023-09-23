@@ -25,6 +25,20 @@ from phonUtils.initPhoneData import (
 )
 from phonUtils.ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
 
+# TODO make toneme-tone diacritic map file
+tone_diacritics_map = {
+            '̏':'˩',
+            '̀':'˨',
+            '̄':'˧',
+            '́':'˦',
+            '̋':'˥',
+            '̂':'˥˩',
+            '̌':'˩˥',
+            '᷅':'˩˨',
+            '᷄':'˦˥',
+            '᷈':'˧˦˧',
+            }
+
 
 class Segment:
     segments = {}
@@ -41,12 +55,13 @@ class Segment:
         # Get distinctive phonological feature dictionary
         self.features = self.get_phone_features(self.segment)
         
-        # Get voicing status
-        self.voiced = self.features['periodicGlottalSource'] == 1
-        self.voiceless = self.features['periodicGlottalSource'] == 0
-
-        # Get phone class, manner, and place of articulation
+        # Get phone class
         self.phone_class = self.get_phone_class()
+
+        # Get voicing status, manner, and place of articulation
+        if self.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
+            self.voiced = self.features['periodicGlottalSource'] == 1
+            self.voiceless = self.features['periodicGlottalSource'] == 0
         self.manner = self.get_manner()
         self.poa = self.get_poa()
 
@@ -65,7 +80,8 @@ class Segment:
     def get_base_ch(self):
         no_diacritics = strip_diacritics(self.segment)
         if len(no_diacritics) < 1:
-            raise ValueError(f'Error: invalid segment <{self.segment}>, no base IPA character found!')
+            #raise ValueError(f'Error: invalid segment <{self.segment}>, no base IPA character found!')
+            return '', self.segment
         else:
             return no_diacritics, no_diacritics[0]
 
@@ -79,8 +95,10 @@ class Segment:
             return 'VOWEL'
         elif self.base in consonants:
             return 'CONSONANT'
-        elif self.base in tonemes:
+        elif self.base in tonemes or self.base in tone_diacritics_map:
             return 'TONEME'
+        elif self.base in suprasegmental_diacritics:
+            return 'SUPRASEGMENTAL'
         else:
             raise ValueError(f'Could not determine phone class of {self.segment}')
 
@@ -106,7 +124,8 @@ class Segment:
                 # Base of the segment is the non-diacritic portion
                 base = strip_diacritics(part)
                 if not base:
-                    raise AssertionError(f'Error: invalid segment <{segment}>, no base IPA character found!')
+                    #raise AssertionError(f'Error: invalid segment <{segment}>, no base IPA character found!')
+                    return self.get_suprasegmental_features(segment)
                 bases.append(base)
 
                 # If the length of the base > 1, the segment is a diphthong (e.g. /e̯a/) or complex toneme (e.g. /˥˩/)
@@ -211,7 +230,9 @@ class Segment:
         base = toneme[0]
         
         # Create copy of original feature dictionary, or else it modifies the source
-        toneme_id = {feature:phone_features[base][feature] for feature in phone_features[base]}
+        toneme_id = defaultdict(lambda:0)
+        for feature in phone_features[base]:
+            toneme_id[feature] = phone_features[base][feature]
         
         # Get the tone level of each tonal component of the toneme
         toneme_levels = [tone_levels[t] for t in toneme if t in tonemes]
@@ -264,6 +285,17 @@ class Segment:
                     contours[t] = 'level'
         
         return toneme_id
+
+
+    def get_suprasegmental_features(self, supraseg):
+        tone_diacritics = set(tone_diacritics_map.keys())
+        if supraseg in tone_diacritics_map:
+            return self.get_tonal_features(tone_diacritics_map[supraseg])
+        else:
+            features = defaultdict(lambda:0)
+            for feature, value in diacritics_effects[supraseg]:
+                features[feature] = value
+            return features
 
 
     def get_manner(self):
@@ -481,7 +513,10 @@ class Segment:
                     contour = 'LOW ' + contour
 
                 return contour
-
+        
+        elif self.phone_class == 'SUPRASEGMENTAL': # TODO add better description for suprasegmentals
+            return ''
+            
         else:
             raise val_err
 
@@ -580,8 +615,8 @@ class Segment:
                 else:
                     return 1
         
-        # Tonemes
-        elif self.phone_class == 'TONEME':
+        # Tonemes and other suprasegmentals
+        elif self.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
             return 0
         
         # Other sounds: raise error message
@@ -605,7 +640,7 @@ class Segment:
                 f'Sonority: {self.sonority}',
             ])
         
-        else: # TONEME
+        elif self.phone_class == 'TONEME':
             shape = re.search(r'((RISING|FALLING|LEVEL)-?(RISING|FALLING)?)', self.poa).group()
             info.append(f'Shape: {shape}')
             level = re.search(r'((EXTRA )?(HIGH|MID|LOW)-?(MID)?)', self.poa)
@@ -693,13 +728,13 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
         suprasegmental_regex = re.compile(rf'[{suprasegmental_diacritics}{tonemes}{suprasegmentals}]')
         updated_segments = []
         for segment in segments:
-            match = suprasegmental_regex.match(segment)
+            match = suprasegmental_regex.search(segment)
             if match:
                 match = match.group()
+                updated_segments.append(match)
                 seg_minus_supraseg = suprasegmental_regex.sub('', segment)
                 if seg_minus_supraseg:
                     updated_segments.append(seg_minus_supraseg)
-                updated_segments.append(match)
             else:
                 updated_segments.append(segment)
         segments = updated_segments

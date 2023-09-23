@@ -50,7 +50,7 @@ def load_diacritics_data(dir):
     # Isolate suprasegmental diacritics
     suprasegmental_diacritics = set(diacritics_data.Diacritic[i] 
                                     for i in range(len(diacritics_data)) 
-                                    if diacritics_data.Type[i] == 'suprasegmental')
+                                    if diacritics_data.Type[i] in ('suprasegmental', 'voice quality'))
     suprasegmental_diacritics.remove('ː') # don't include length as a suprasegmental
 
 
