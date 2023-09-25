@@ -617,7 +617,7 @@ class Segment:
         
         # Tonemes and other suprasegmentals
         elif self.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
-            return 0
+            return 17 # Highest sonority
         
         # Other sounds: raise error message
         else:
