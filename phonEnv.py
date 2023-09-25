@@ -33,11 +33,15 @@ def get_phon_env(segments, i):
     # Convert IPA strings to Segment objects and get base segment
     adjust = 0
     segs = []
+    supra_segs = []
     for seg in segments:
+        s = _toSegment(seg)
         if seg not in diacritics:
-            segs.append(_toSegment(seg))
+            segs.append(s)
         else:
             adjust += 1
+        supra_segs.append(s)
+
     i -= adjust
     segments = segs
     segment_i = segments[i]
@@ -100,6 +104,10 @@ def get_phon_env(segments, i):
         # Add front vowel environment
         if _is_front_env(prev_segment.base):
             env = 'F_' + env
+        
+        # Add accented/prosodically marked environment
+        if supra_segs[i+adjust-1].phone_class in ('TONEME', 'SUPRASEGMENTAL'):
+            env = 'A_' + env
                         
         # # Add the previous segment itself
         # env = prev_segment.segment + '_' + env
@@ -174,6 +182,9 @@ def get_phon_env(segments, i):
         # Add following nasal environment
         if _is_nasal_env(next_segment.base):
             env += '_N'
+        # Add accented/prosodically marked environment
+        if supra_segs[i+adjust-1].phone_class in ('TONEME', 'SUPRASEGMENTAL'):
+            env = 'A_' + env
             
         # # Add the next segment itself
         # env += '_' + next_segment.segment
