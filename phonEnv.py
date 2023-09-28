@@ -26,20 +26,18 @@ def _is_nasal_env(ch):
 # PHONOLOGICAL ENVIRONMENT
 def get_phon_env(segments, i):
     """Returns a string representing the phonological environment of a segment within a word"""
-    # TODO should remove all tonemes from word and reevaluate without them, so that final segments are considered final despite being "followed" by a toneme
-    if segments[i] in diacritics:
-        return '|S|'
-    
     # Convert IPA strings to Segment objects and get base segment
     adjust = 0
     segs = []
     supra_segs = []
-    for seg in segments:
+    for j, seg in enumerate(segments):
         s = _toSegment(seg)
-        if seg not in diacritics:
+        if s.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
             segs.append(s)
-        else:
+        elif j < i:
             adjust += 1
+        elif j == i: # skip the rest of the phon env computation for tonemes/suprasegmentals
+            return '|S|'
         supra_segs.append(s)
 
     i -= adjust
