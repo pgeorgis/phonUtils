@@ -288,13 +288,14 @@ class Segment:
 
 
     def get_suprasegmental_features(self, supraseg):
-        tone_diacritics = set(tone_diacritics_map.keys())
-        if supraseg in tone_diacritics_map:
-            return self.get_tonal_features(tone_diacritics_map[supraseg])
+        if all([s in tone_diacritics_map for s in supraseg]):
+            tone_eq = ''.join([tone_diacritics_map[s] for s in supraseg])
+            return self.get_tonal_features(tone_eq)
         else:
             features = defaultdict(lambda:0)
-            for feature, value in diacritics_effects[supraseg]:
-                features[feature] = value
+            for s in supraseg:
+                for feature, value in diacritics_effects[s]:
+                    features[feature] = max(value, features[feature])
             return features
 
 
