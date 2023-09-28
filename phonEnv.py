@@ -37,7 +37,7 @@ def get_phon_env(segments, i):
         elif j < i:
             adjust += 1
         elif j == i: # skip the rest of the phon env computation for tonemes/suprasegmentals
-            return '|S|'
+            return '|T|'
         supra_segs.append(s)
 
     i -= adjust
