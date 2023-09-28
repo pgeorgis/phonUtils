@@ -97,7 +97,7 @@ class Segment:
             return 'CONSONANT'
         elif self.base in tonemes or self.base in tone_diacritics_map:
             return 'TONEME'
-        elif self.base in suprasegmental_diacritics:
+        elif all([ch in diacritics_effects for ch in self.base]):
             return 'SUPRASEGMENTAL'
         else:
             raise ValueError(f'Could not determine phone class of {self.segment}')
