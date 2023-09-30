@@ -17,7 +17,7 @@ from phonUtils.initPhoneData import (
     # Phonological features and feature geometry weights 
     phone_features, tone_levels,
     # IPA regexes and constants
-    segment_regex, preaspiration_regex, diphthong_regex, suprasegmental_diacritics,
+    segment_regex, preaspiration_regex, diphthong_regex, suprasegmental_diacritics, toneme_regex,
     front_vowel_regex, central_vowel_regex, back_vowel_regex, 
     close_vowel_regex, close_mid_vowel_regex, open_vowel_regex, open_mid_vowel_regex,
     # Helper functions
@@ -675,6 +675,24 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
             segments.extend(segmented[1:])
         else:
             segments.extend(segmented)
+    
+    # For some reason toneme segmentation by regex is a bit glitchy and adjacent components of tonemes are segmented separately
+    # even if an appropriate regex is supplied; something because of the diacritic characters not interacting well with regex
+    # e.g. 'jɐn⁵⁵' -> ['j', 'ɐ', 'n', '⁵', '⁵'] rather than ['j', 'ɐ', 'n', '⁵⁵']
+    # Combine these back together
+    # TODO add pytests to confirm that this segmentation works
+    if toneme_regex.search(word):
+        toneme_i = [i for i, seg in enumerate(segments) if toneme_regex.search(seg)]
+        if len(toneme_i) > 1:
+            toneme_i.reverse()
+            for i, index in enumerate(toneme_i):
+                try:
+                    prev_index = toneme_i[i+1] # previous toneme index is next in list, since it is reversed
+                    if index-1 == prev_index:
+                        segments[prev_index] += segments[index]
+                        segments = [s for i, s in enumerate(segments) if i != index]
+                except IndexError:
+                    pass
 
     # Move aspiration diacritic <ʰʱ> from preceding vowel or glide to following consonant
     # Can't easily be distinguished in regex since the same symbol is usually a post-diacritic for post-aspiration

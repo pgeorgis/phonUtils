@@ -117,6 +117,8 @@ def load_ipa_norm_map(dir):
 
 
 def get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacritics, pre_preaspiration):
+    consonants = ''.join(consonants)
+    pre_preaspiration = ''.join(pre_preaspiration)
     segment_regexes = [
         fr'(?<=[{pre_preaspiration}])[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
         fr'(?<=^)[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
@@ -177,6 +179,7 @@ close_vowel_regex = re.compile(r'[iyɨʉɯu]')
 close_mid_vowel_regex = re.compile(r'[ɪʏʊeøɘɵɤo]')
 open_mid_vowel_regex = re.compile(r'[ɛœɜɞɝʌɔæɐ]')
 open_vowel_regex = re.compile(r'[aɶɑɒ]')
+toneme_regex = re.compile(rf'[{tonemes}]')
 
 # Auxiliary functions for certain phone classes
 def _is_affricate(phone):
