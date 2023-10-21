@@ -132,7 +132,7 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
     for i in syllables:
         if i > 0:
             if i-1 not in syllables:
-                if segments[i-1] not in illegal_onset:
+                if not any(re.search(Xonset, segments[i-1]) for Xonset in illegal_onset):
                     syllables[i].insert(0, segments[i-1])
                     onsets.append(i-1)
 
@@ -210,6 +210,8 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
                 elif syl2[-2:] == [plosive_part]+[fricative_part]:
                     syllables[index2] = syllables[index2][:-2]
                     syllables[index2] = syllables[index2] + [affr]
+                elif syl2[:2] == [plosive_part]+[fricative_part]:
+                    syllables[index2] = [affr] + syl2[2:]
                 # Combine split affricates in initial syllable
                 elif syl1[:2] == [plosive_part]+[fricative_part]:
                     syllables[index1] = [affr] + syl1[2:]
