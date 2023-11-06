@@ -32,6 +32,39 @@ def finalDevoicing(word, phones, devoice_dict=devoice_dict):
         word = re.sub(f'{phone}(ʲ)?$', fr'{devoiced}\1', word)
     return word
 
+def regressiveVoicingAssimilation(form, 
+                                  devoice_dict=devoice_dict, 
+                                  to_voiceless=True,
+                                  to_voiced=True,
+                                  exception=[], 
+                                  verbose=False):
+    original = form[:]
+    voicing_dict = {devoice_dict[p]:p for p in devoice_dict}
+    all_voiced = devoice_dict.keys()
+    voiced_str = ''.join(all_voiced)
+    all_voiceless = devoice_dict.values()
+    voiceless_str = ''.join(all_voiceless)
+
+    # Voiced C1, voiceless C2
+    if to_voiceless:
+        for voiced, voiceless in devoice_dict.items():
+            form = re.sub(rf'{voiced}(?=ʲ?[{voiceless_str}])', voiceless, form)
+
+    # Voiceless C1, voiced C2
+    if to_voiced:
+        for voiceless, voiced in voicing_dict.items():
+            form = re.sub(rf'{voiceless}(?=ʲ?[{voiced_str}])', voiced, form)
+
+    # Cancel the assimilation if it results in an illegal sequence
+    for exc in exception:
+        if re.search(exc, form):
+            if not re.search(exc, original):
+                return original
+
+    if verbose and form != original:
+        print(f'Applying rule: /{original}/ > /{form}/')
+    
+    return form
 
 def degeminate(word, phones):
     for phone in phones:
