@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load phonological constants initialized in initPhoneData.py
-from phonUtils.initPhoneData import tonemes, nasal_regex, front_vowel_regex, diacritics
+from phonUtils.initPhoneData import tonemes, nasal_regex, rhotic_regex, front_vowel_regex, diacritics
 from phonUtils.segment import _toSegment, _is_vowel
 from phonUtils.syllables import syllabify
 
@@ -16,15 +16,19 @@ def _is_front_env(ch):
         return True
     return False
 
-
 def _is_nasal_env(ch):
     if nasal_regex.search(ch):
         return True
     return False
 
+def _is_rhotic_env(ch):
+    if rhotic_regex.search(ch):
+        return True
+    return False
+
 
 # PHONOLOGICAL ENVIRONMENT
-def get_phon_env(segments, i):
+def get_phon_env(segments, i, front=True, nasal=True, rhotic=True, accented=True):
     """Returns a string representing the phonological environment of a segment within a word"""
     # Convert IPA strings to Segment objects and get base segment
     adjust = 0
@@ -66,11 +70,14 @@ def get_phon_env(segments, i):
                 env = '#|S|<'
         
             # Add front vowel environment
-            if _is_front_env(next_segment.base):
+            if front and _is_front_env(next_segment.base):
                 env += '_F'
             # Add following nasal environment
-            if _is_nasal_env(next_segment.base):
+            if nasal and _is_nasal_env(next_segment.base):
                 env += '_N'
+            # Add following rhotic environment
+            if rhotic and _is_rhotic_env(next_segment.base):
+                env += '_R'
                 
             # # Add the next segment itself
             # env += '_' + next_segment.segment
@@ -100,11 +107,11 @@ def get_phon_env(segments, i):
                 env = '>|S|#' 
 
         # Add front vowel environment
-        if _is_front_env(prev_segment.base):
+        if front and _is_front_env(prev_segment.base):
             env = 'F_' + env
         
         # Add accented/prosodically marked environment
-        if supra_segs[i+adjust-1].phone_class in ('TONEME', 'SUPRASEGMENTAL'):
+        if accented and supra_segs[i+adjust-1].phone_class in ('TONEME', 'SUPRASEGMENTAL'):
             env = 'A_' + env
                         
         # # Add the previous segment itself
@@ -173,15 +180,19 @@ def get_phon_env(segments, i):
             raise ValueError(f'Unable to determine environment for segment {i} /{segments[i].segment}/ within /{"".join([seg.segment for seg in segments])}/')
         
         # Add front vowel environment
-        if _is_front_env(prev_segment.base):
+        if front and _is_front_env(prev_segment.base):
             env = 'F_' + env
-        if _is_front_env(next_segment.base):
+        if front and _is_front_env(next_segment.base):
             env += '_F'
         # Add following nasal environment
-        if _is_nasal_env(next_segment.base):
+        if nasal and _is_nasal_env(next_segment.base):
             env += '_N'
+        # Add following rhotic environment
+        if rhotic and _is_rhotic_env(next_segment.base):
+            env += '_R'
+
         # Add accented/prosodically marked environment
-        if supra_segs[i+adjust-1].phone_class in ('TONEME', 'SUPRASEGMENTAL'):
+        if accented and supra_segs[i+adjust-1].phone_class in ('TONEME', 'SUPRASEGMENTAL'):
             env = 'A_' + env
             
         # # Add the next segment itself
