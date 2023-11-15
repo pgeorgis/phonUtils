@@ -52,20 +52,12 @@ class PhonEnv:
         if i == 0:
             if len(self.segments) > 1:
                 next_segment = self.segments[i+1]
-                sonority_i, next_sonority = self.segment_i.sonority, next_segment.sonority
             else:
                 next_segment = None
 
             # Word-initial segments: #S
             if next_segment:
-                if self.segment_i == next_segment:
-                    env = '#|S|S'
-                elif sonority_i == next_sonority:
-                    env = '#|S|='
-                elif sonority_i > next_sonority:
-                    env = '#|S|>'
-                else: # sonority_i < next_sonority:
-                    env = '#|S|<'
+                env = self.relative_sonority(next_seg=next_segment)
             
                 # Add front vowel environment
                 if front:
@@ -90,19 +82,7 @@ class PhonEnv:
         elif i == len(self.segments)-1:
             assert len(self.segments) > 1
             prev_segment = self.segments[i-1]
-            if prev_segment == self.segment_i:
-                env = 'S|S|#'
-            else:
-                prev_sonority, sonority_i = prev_segment.sonority, self.segment_i.sonority
-                
-                if prev_sonority == sonority_i:
-                    env = '=|S|#'
-
-                elif prev_sonority < sonority_i:
-                    env = '<|S|#'
-
-                else: # prev_sonority > sonority_i
-                    env = '>|S|#' 
+            env = self.relative_sonority(prev_seg=prev_segment)
 
             # Add front vowel environment
             if front:
@@ -120,63 +100,8 @@ class PhonEnv:
         # Word-medial segments
         else:
             prev_segment, next_segment = self.segments[i-1], self.segments[i+1]
-            prev_sonority, sonority_i, next_sonority = prev_segment.sonority, self.segment_i.sonority, next_segment.sonority
-            
-            # Sonority plateau: =S=
-            if prev_segment == sonority_i == next_sonority:
-                env = '=|S|='
-            
-            # Sonority peak: <S>
-            elif prev_sonority < sonority_i > next_sonority:
-                env = '<|S|>'
-            
-            # Sonority trench: >S< # TODO is this the best term?
-            elif prev_sonority > sonority_i < next_sonority:
-                env = '>|S|<'
-            
-            # Descending sonority: >S>
-            elif prev_sonority > sonority_i > next_sonority:
-                env = '>|S|>'
-            
-            # Ascending sonority: <S<
-            elif prev_sonority < sonority_i < next_sonority:
-                env = '<|S|<'
-            
-            elif prev_sonority < sonority_i == next_sonority:
-                if self.segment_i == next_segment:
-                    env = '<|S|S'
-                else:
-                    env = '<|S|='
-            
-            elif prev_sonority > sonority_i == next_sonority:
-                if self.segment_i == next_segment:
-                    env = '>|S|S'
-                else:
-                    env = '>|S|='
-            
-            elif prev_sonority == sonority_i < next_sonority:
-                if self.segment_i == prev_segment:
-                    env = 'S|S|<'
-                else:
-                    env = '=|S|<'
-            
-            elif prev_sonority == sonority_i > next_sonority:
-                if self.segment_i == prev_segment:
-                    env = 'S|S|>'
-                else:
-                    env = '=|S|>'
-            
-            elif prev_sonority == sonority_i == next_sonority:
-                if self.segment_i == prev_segment:
-                    env = 'S|S|='
-                elif self.segment_i == next_segment:
-                    env = '=|S|S'
-                else:
-                    env = '=|S|='
-            
-            else:
-                raise ValueError(f'Unable to determine environment for segment {i} /{self.segments[i].segment}/ within /{"".join([seg.segment for seg in self.segments])}/')
-            
+            env = self.relative_sonority(prev_seg=prev_segment, next_seg=next_segment)
+
             # Add front vowel environment
             if front:
                 env = self.add_front_env(env, prev_segment.base, prefix=True)
@@ -200,6 +125,38 @@ class PhonEnv:
             
             return env
     
+    def relative_sonority(self, prev_seg=None, next_seg=None):
+        assert prev_seg is not None or next_seg is not None
+        if prev_seg is None:
+            prev_son = '#'
+        else:
+            prev_son = self.relative_prev_sonority(prev_seg)
+        if next_seg is None:
+            post_son = '#'
+        else:
+            post_son = self.relative_post_sonority(next_seg)
+        return f'{prev_son}|S|{post_son}'
+    
+    def relative_prev_sonority(self, prev_seg):
+        if prev_seg == self.segment_i:
+            return 'S'
+        elif prev_seg.sonority == self.segment_i.sonority:
+            return '='
+        elif prev_seg.sonority < self.segment_i.sonority:
+            return '<'
+        else: # prev_sonority > sonority_i
+            return '>'
+
+    def relative_post_sonority(self, next_seg):
+        if next_seg == self.segment_i:
+            return 'S'
+        elif next_seg.sonority == self.segment_i.sonority:
+            return '='
+        elif next_seg.sonority < self.segment_i.sonority:
+            return '>'
+        else: # sonority_i > next_seg
+            return '<'
+
     def add_env(self, 
                 env, ch, symbol, 
                 regex=None, 
