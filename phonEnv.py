@@ -20,17 +20,17 @@ def _is_env(ch, regex=None, ch_list=None):
 
 # Relative sonority functions
 def relative_prev_sonority(seg, prev_seg):
-    if prev_seg == seg:
+    if prev_seg == seg.sonority:
         return 'S'
-    elif prev_seg.sonority == seg:
+    elif prev_seg.sonority == seg.sonority:
         return '='
-    elif prev_seg.sonority < seg:
+    elif prev_seg.sonority < seg.sonority:
         return '<'
     else: # prev_sonority > sonority_i
         return '>'
     
 def relative_post_sonority(seg, next_seg):
-    if next_seg == seg:
+    if next_seg == seg.sonority:
             return 'S'
     elif next_seg.sonority == seg.sonority:
         return '='
@@ -159,7 +159,7 @@ class PhonEnv:
             return env
     
     def relative_sonority(self, prev_seg=None, next_seg=None):
-        return relative_sonority(self.sefment_i, prev_seg=prev_seg, next_seg=next_seg)
+        return relative_sonority(self.segment_i, prev_seg=prev_seg, next_seg=next_seg)
     
     def relative_prev_sonority(self, prev_seg):
         return relative_prev_sonority(self.segment_i, prev_seg)
