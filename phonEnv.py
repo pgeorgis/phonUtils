@@ -18,6 +18,39 @@ def _is_env(ch, regex=None, ch_list=None):
         return True
     return False
 
+# Relative sonority functions
+def relative_prev_sonority(seg, prev_seg):
+    if prev_seg == seg:
+        return 'S'
+    elif prev_seg.sonority == seg:
+        return '='
+    elif prev_seg.sonority < seg:
+        return '<'
+    else: # prev_sonority > sonority_i
+        return '>'
+    
+def relative_post_sonority(seg, next_seg):
+    if next_seg == seg:
+            return 'S'
+    elif next_seg.sonority == seg.sonority:
+        return '='
+    elif next_seg.sonority < seg.sonority:
+        return '>'
+    else: # sonority_i > next_seg
+        return '<'
+
+def relative_sonority(seg, prev_seg=None, next_seg=None):
+    assert prev_seg is not None or next_seg is not None
+    if prev_seg is None:
+        prev_son = '#'
+    else:
+        prev_son = relative_prev_sonority(seg, prev_seg)
+    if next_seg is None:
+        post_son = '#'
+    else:
+        post_son = relative_post_sonority(seg, next_seg)
+    return f'{prev_son}|S|{post_son}'
+
 # PHONOLOGICAL ENVIRONMENT
 class PhonEnv:
     def __init__(self, segments, i, **kwargs):
@@ -126,36 +159,13 @@ class PhonEnv:
             return env
     
     def relative_sonority(self, prev_seg=None, next_seg=None):
-        assert prev_seg is not None or next_seg is not None
-        if prev_seg is None:
-            prev_son = '#'
-        else:
-            prev_son = self.relative_prev_sonority(prev_seg)
-        if next_seg is None:
-            post_son = '#'
-        else:
-            post_son = self.relative_post_sonority(next_seg)
-        return f'{prev_son}|S|{post_son}'
+        return relative_sonority(self.sefment_i, prev_seg=prev_seg, next_seg=next_seg)
     
     def relative_prev_sonority(self, prev_seg):
-        if prev_seg == self.segment_i:
-            return 'S'
-        elif prev_seg.sonority == self.segment_i.sonority:
-            return '='
-        elif prev_seg.sonority < self.segment_i.sonority:
-            return '<'
-        else: # prev_sonority > sonority_i
-            return '>'
+        return relative_prev_sonority(self.segment_i, prev_seg)
 
     def relative_post_sonority(self, next_seg):
-        if next_seg == self.segment_i:
-            return 'S'
-        elif next_seg.sonority == self.segment_i.sonority:
-            return '='
-        elif next_seg.sonority < self.segment_i.sonority:
-            return '>'
-        else: # sonority_i > next_seg
-            return '<'
+        return relative_post_sonority(self.segment_i, next_seg)
 
     def add_env(self, 
                 env, ch, symbol, 
