@@ -199,43 +199,50 @@ class PhonEnv:
     def add_accented_env(self, env, seg, **kwargs):
         return self.add_env(env, seg, symbol='A', phone_class=('TONEME', 'SUPRASEGMENTAL'), **kwargs)
         
-    def phon_env_ngrams(self, exclude=set()):
+    def ngrams(self, exclude=set()):
         """Returns set of phonological environment strings of equal and lower order, 
         e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
 
         Returns:
             set: possible equal and lower order phonological environment strings
         """
-        phonEnv = self.phon_env
-        if re.search(r'.\|S\|.+', phonEnv):
-            prefix, base, suffix = phonEnv.split('|')
-            prefix = prefix.split('_')
-            prefixes = set()
-            for i in range(1, len(prefix)+1):
-                for x in combinations(prefix, i):
-                    prefixes.add('_'.join(x))
-            prefixes.add('')
-            suffix = suffix.split('_')
-            suffixes = set()
-            for i in range(1, len(suffix)+1):
-                for x in combinations(suffix, i):
-                    suffixes.add('_'.join(x))
-            suffixes.add('')
-            ngrams = set()
-            for prefix in prefixes:
-                for suffix in suffixes:
-                    ngrams.add(f'{prefix}|S|{suffix}')
-        else:
-            assert phonEnv == '|T|'
-            ngrams = [phonEnv]
-        
-        if len(exclude) > 0:
-            return [ngram for ngram in ngrams if ngram not in exclude]
-        return ngrams
+        return phon_env_ngrams(self.phon_env)
     
     def __str__(self):
         return self.phon_env
         
+def phon_env_ngrams(phonEnv, exclude=set()):
+    """Returns set of phonological environment strings of equal and lower order, 
+    e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
+
+    Returns:
+        set: possible equal and lower order phonological environment strings
+    """
+    if re.search(r'.\|S\|.+', phonEnv):
+        prefix, base, suffix = phonEnv.split('|')
+        prefix = prefix.split('_')
+        prefixes = set()
+        for i in range(1, len(prefix)+1):
+            for x in combinations(prefix, i):
+                prefixes.add('_'.join(x))
+        prefixes.add('')
+        suffix = suffix.split('_')
+        suffixes = set()
+        for i in range(1, len(suffix)+1):
+            for x in combinations(suffix, i):
+                suffixes.add('_'.join(x))
+        suffixes.add('')
+        ngrams = set()
+        for prefix in prefixes:
+            for suffix in suffixes:
+                ngrams.add(f'{prefix}|S|{suffix}')
+    else:
+        assert phonEnv == '|T|'
+        ngrams = [phonEnv]
+    
+    if len(exclude) > 0:
+        return [ngram for ngram in ngrams if ngram not in exclude]
+    return ngrams
 
 def get_phon_env(segments, i, **kwargs):
     phon_env = PhonEnv(segments, i, **kwargs)
