@@ -11,6 +11,9 @@ from phonUtils.initPhoneData import tonemes, nasal_regex, rhotic_regex, front_vo
 from phonUtils.segment import _toSegment, _is_vowel
 from phonUtils.syllables import syllabify
 
+# CONSTANTS
+PHON_ENV_REGEX = re.compile(r'.*\|[ST]\|.*')
+
 # HELPER FUNCTIONS
 def _is_env(ch, regex=None, ch_list=None):
     if regex and regex.search(ch):
