@@ -206,7 +206,7 @@ class PhonEnv:
         Returns:
             set: possible equal and lower order phonological environment strings
         """
-        return phon_env_ngrams(self.phon_env)
+        return phon_env_ngrams(self.phon_env, exclude=exclude)
     
     def __str__(self):
         return self.phon_env
