@@ -29,7 +29,7 @@ devoice_dict = {
 def finalDevoicing(word, phones, devoice_dict=devoice_dict):
     for phone in phones:
         devoiced = devoice_dict.get(phone, f'{phone}̥')
-        word = re.sub(f'{phone}(ʲ)?$', fr'{devoiced}\1', word)
+        word = re.sub(f'{phone}(?![̥̊])(ʲ)?$', fr'{devoiced}\1', word)
     return word
 
 def regressiveVoicingAssimilation(form, 
@@ -48,12 +48,12 @@ def regressiveVoicingAssimilation(form,
     # Voiced C1, voiceless C2
     if to_voiceless:
         for voiced, voiceless in devoice_dict.items():
-            form = re.sub(rf'{voiced}(?=ʲ?[{voiceless_str}])', voiceless, form)
+            form = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?[{voiceless_str}])', voiceless, form)
 
     # Voiceless C1, voiced C2
     if to_voiced:
         for voiceless, voiced in voicing_dict.items():
-            form = re.sub(rf'{voiceless}(?=ʲ?[{voiced_str}])', voiced, form)
+            form = re.sub(rf'{voiceless}(?=ʲ?[{voiced_str}](?![̥̊]))', voiced, form)
 
     # Cancel the assimilation if it results in an illegal sequence
     for exc in exception:
