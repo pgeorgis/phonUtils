@@ -3,7 +3,7 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.initPhoneData import plosives, fricatives
+from phonUtils.initPhoneData import plosives, fricatives, geminate_regex
 from phonUtils.segment import segment_ipa
 from phonUtils import syllables
 
@@ -72,6 +72,8 @@ def degeminate(word, phones):
         word = re.sub(f'{phone}ː', phone, word)
     return word
 
+def normalize_geminates(word):
+    return geminate_regex.sub(r'\1ː', word)
 
 def split_affricates(word):
     affricate_map = {
