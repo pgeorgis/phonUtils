@@ -97,7 +97,6 @@ def split_affricates(word):
 
     return word, matched
 
-
 def shiftStress(word, n_syl, type='PRIMARY'):
     """Shifts or adds stress to the nth syllable"""
 
@@ -120,3 +119,34 @@ def shiftStress(word, n_syl, type='PRIMARY'):
     syls[n_syl] = target_syl
     
     return ''.join(syls)
+
+def unstressedVowelReduction(word, vowels, reduced='ə'):
+    # vowels as dict, reduced as None
+    if reduced is None:
+        if isinstance(vowels, dict):
+            reduced_dict = vowels
+        else:
+            raise TypeError
+    
+    # reduced as str
+    elif isinstance(reduced, str):
+        if isinstance(vowels, str):
+            reduced_dict = {vowels:reduced}
+        elif isinstance(vowels, (list, tuple, set)):
+            reduced = [reduced]*len(vowels)
+            reduced_dict = {vowel:reduced_vowel for vowel, reduced_vowel in zip(vowels, reduced)}
+        else:
+            raise TypeError
+    
+    # reduced as iterable
+    elif isinstance(reduced, (list, tuple, set)):
+        assert len(vowels) == len(reduced)
+        reduced_dict = {vowel:reduced_vowel for vowel, reduced_vowel in zip(vowels, reduced)}
+        
+    else:
+        raise TypeError
+    
+    for vowel, reduced_vowel in reduced_dict.items():
+        word = re.sub(fr'(?<![ˈˌ]){vowel}', reduced_vowel, word)
+    
+    return word
