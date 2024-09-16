@@ -214,22 +214,22 @@ class PhonEnv:
         return phon_env_ngrams(self.phon_env, exclude=exclude)
     
     def get_phon_env_vector(self, max_dist=3):
-        pre_vector = defaultdict(lambda:0)
-        post_vector = defaultdict(lambda:0)
+        vector = defaultdict(lambda:0)
         for i in range(
             max(0, self.adjusted_index-max_dist),
             min(len(self.segments), self.adjusted_index+max_dist)
         ):
             if i < self.adjusted_index:
-                vector = pre_vector
+                direction = "pre"
             elif i > self.adjusted_index:
-                vector = post_vector
+                direction = "post"
             else: # the segment itself, do nothing
                 continue
             dist = abs(i - self.adjusted_index)
             seg = self.segments[i]
             for feature, value in seg.features.items():
-                vector[feature] += (value/dist)
+                vector[f"{direction}_{feature}"] += (value/dist)
+        return vector
     
     def __str__(self):
         return self.phon_env
