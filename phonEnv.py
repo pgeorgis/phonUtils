@@ -1,3 +1,4 @@
+from collections import defaultdict
 from itertools import combinations
 import os
 import re
@@ -64,6 +65,7 @@ class PhonEnv:
         self.segments, self.adjust_n = self.sep_segs_from_suprasegs(self.supra_segs, self.index)
         self.adjusted_index = self.index - self.adjust_n
         self.phon_env = self.get_phon_env(**kwargs)
+        self.phon_env_vector = self.get_phon_env_vector()
     
     def sep_segs_from_suprasegs(self, segments, i):
         adjust_n = 0
@@ -210,6 +212,24 @@ class PhonEnv:
             set: possible equal and lower order phonological environment strings
         """
         return phon_env_ngrams(self.phon_env, exclude=exclude)
+    
+    def get_phon_env_vector(self, max_dist=3):
+        pre_vector = defaultdict(lambda:0)
+        post_vector = defaultdict(lambda:0)
+        for i in range(
+            max(0, self.adjusted_index-max_dist),
+            min(len(self.segments), self.adjusted_index+max_dist)
+        ):
+            if i < self.adjusted_index:
+                vector = pre_vector
+            elif i > self.adjusted_index:
+                vector = post_vector
+            else: # the segment itself, do nothing
+                continue
+            dist = abs(i - self.adjusted_index)
+            seg = self.segments[i]
+            for feature, value in seg.features.items():
+                vector[feature] += (value/dist)
     
     def __str__(self):
         return self.phon_env
