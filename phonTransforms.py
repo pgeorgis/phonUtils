@@ -73,7 +73,7 @@ def degeminate(word, phones):
     return word
 
 def normalize_geminates(word):
-    return geminate_regex.sub(r'\1ː', word)
+    return geminate_regex.sub(r'\1\2\3\4ː', word)
 
 def split_affricates(word):
     affricate_map = {
