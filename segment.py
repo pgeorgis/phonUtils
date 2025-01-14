@@ -62,6 +62,9 @@ class Segment:
         if self.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
             self.voiced = self.features['periodicGlottalSource'] == 1
             self.voiceless = self.features['periodicGlottalSource'] == 0
+        else:
+            self.voiced = None
+            self.voiceless = None
         self.manner = self.get_manner()
         self.poa = self.get_poa()
 
