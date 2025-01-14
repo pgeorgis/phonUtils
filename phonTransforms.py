@@ -3,12 +3,12 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.initPhoneData import plosives, fricatives, geminate_regex, all_phones
+from phonUtils.initPhoneData import plosives, fricatives, geminate_regex, consonants
 from phonUtils.segment import _toSegment, segment_ipa
 from phonUtils import syllables
 
-VOICELESS = [phone for phone in all_phones if _toSegment(phone).voiceless]
-VOICED = [phone for phone in all_phones if _toSegment(phone).voiced]
+VOICELESS_CONSONANTS = [phone for phone in consonants if _toSegment(phone).voiceless]
+VOICED_CONSONANTS = [phone for phone in consonants if _toSegment(phone).voiced]
 
 #General phonological transformation functions
 devoice_dict = {
@@ -42,9 +42,9 @@ def regressiveVoicingAssimilation(form,
                                   exception=[]):
     original = form[:]
     voicing_dict = {devoice_dict[p]:p for p in devoice_dict}
-    all_voiced = set(list(devoice_dict.keys()) + VOICED)
+    all_voiced = set(list(devoice_dict.keys()) + VOICED_CONSONANTS)
     voiced_str = ''.join(all_voiced)
-    all_voiceless = set(list(devoice_dict.values()) + VOICELESS)
+    all_voiceless = set(list(devoice_dict.values()) + VOICELESS_CONSONANTS)
     voiceless_str = ''.join(all_voiceless)
 
     # Voiced C1, voiceless C2
