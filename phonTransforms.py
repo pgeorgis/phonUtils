@@ -7,23 +7,23 @@ from phonUtils.initPhoneData import plosives, fricatives, geminate_regex, conson
 from phonUtils.segment import _toSegment, segment_ipa
 from phonUtils import syllables
 
-VOICELESS_CONSONANTS = [phone for phone in consonants if _toSegment(phone).voiceless]
-VOICED_CONSONANTS = [phone for phone in consonants if _toSegment(phone).voiced]
+VOICELESS_CONSONANTS = ''.join([phone for phone in consonants if _toSegment(phone).voiceless])
+VOICED_CONSONANTS = ''.join([phone for phone in consonants if _toSegment(phone).voiced])
 
 #General phonological transformation functions
 devoice_dict = {
-    'b':'p', 
-    'd':'t', 
-    'ɟ':'c', 
-    'ɡ':'k', 
-    'ʣ':'ʦ', 
-    'ʤ':'ʧ', 
-    'ʥ':'ʨ', 
-    'v':'f', 
-    'ð':'θ', 
-    'z':'s', 
-    'ʒ':'ʃ', 
-    'ʐ':'ʂ', 
+    'b':'p',
+    'd':'t',
+    'ɟ':'c',
+    'ɡ':'k',
+    'ʣ':'ʦ',
+    'ʤ':'ʧ',
+    'ʥ':'ʨ',
+    'v':'f',
+    'ð':'θ',
+    'z':'s',
+    'ʒ':'ʃ',
+    'ʐ':'ʂ',
     'ɣ':'x',
     'ʁ':'χ',
     'ɦ':'h',
@@ -35,34 +35,34 @@ def finalDevoicing(word, phones, devoice_dict=devoice_dict):
         word = re.sub(f'{phone}(?![̥̊])(ʲ)?$', fr'{devoiced}\1', word)
     return word
 
-def regressiveVoicingAssimilation(form, 
-                                  devoice_dict=devoice_dict, 
+def regressiveVoicingAssimilation(form,
+                                  devoice_dict=devoice_dict,
+                                  voicing_dict=None,
                                   to_voiceless=True,
                                   to_voiced=True,
                                   exception=[]):
     original = form[:]
-    voicing_dict = {devoice_dict[p]:p for p in devoice_dict}
-    all_voiced = set(list(devoice_dict.keys()) + VOICED_CONSONANTS)
-    voiced_str = ''.join(all_voiced)
-    all_voiceless = set(list(devoice_dict.values()) + VOICELESS_CONSONANTS)
-    voiceless_str = ''.join(all_voiceless)
+    if voicing_dict is None:
+        voicing_dict = {devoice_dict[p]:p for p in devoice_dict}
+    voiced_str = '|'.join(devoice_dict.keys())
+    voiceless_str = '|'.join(devoice_dict.values())
 
     # Voiced C1, voiceless C2
     if to_voiceless:
         for voiced, voiceless in devoice_dict.items():
-            form = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?([{voiceless_str}]|.[̥̊]))', voiceless, form)
+            form = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?({VOICELESS_CONSONANTS}|{voiceless_str}|.[̥̊]))', voiceless, form)
 
     # Voiceless C1, voiced C2
     if to_voiced:
         for voiceless, voiced in voicing_dict.items():
-            form = re.sub(rf'{voiceless}(?=ʲ?([{voiced_str}](?![̥̊])|.̬))', voiced, form)
+            form = re.sub(rf'{voiceless}(?=ʲ?(({voiced_str}|{VOICED_CONSONANTS})(?![̥̊])|.̬))', voiced, form)
 
     # Cancel the assimilation if it results in an illegal sequence
     for exc in exception:
         if re.search(exc, form):
             if not re.search(exc, original):
                 return original
-    
+
     return form
 
 def degeminate(word, phones):
@@ -116,7 +116,7 @@ def shiftStress(word, n_syl, type='PRIMARY'):
     target_syl.insert(syllabic_i, ch)
     target_syl = ''.join(target_syl)
     syls[n_syl] = target_syl
-    
+
     return ''.join(syls)
 
 def unstressedVowelReduction(word, vowels, reduced='ə'):
@@ -126,7 +126,7 @@ def unstressedVowelReduction(word, vowels, reduced='ə'):
             reduced_dict = vowels
         else:
             raise TypeError
-    
+
     # reduced as str
     elif isinstance(reduced, str):
         if isinstance(vowels, str):
@@ -136,16 +136,16 @@ def unstressedVowelReduction(word, vowels, reduced='ə'):
             reduced_dict = {vowel:reduced_vowel for vowel, reduced_vowel in zip(vowels, reduced)}
         else:
             raise TypeError
-    
+
     # reduced as iterable
     elif isinstance(reduced, (list, tuple, set)):
         assert len(vowels) == len(reduced)
         reduced_dict = {vowel:reduced_vowel for vowel, reduced_vowel in zip(vowels, reduced)}
-        
+
     else:
         raise TypeError
-    
+
     for vowel, reduced_vowel in reduced_dict.items():
         word = re.sub(fr'(?<![ˈˌ]){vowel}', reduced_vowel, word)
-    
+
     return word
