@@ -50,12 +50,12 @@ def regressiveVoicingAssimilation(form,
     # Voiced C1, voiceless C2
     if to_voiceless:
         for voiced, voiceless in devoice_dict.items():
-            form = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?({VOICELESS_CONSONANTS}|{voiceless_str}|.[̥̊]))', voiceless, form)
+            form = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?([{VOICELESS_CONSONANTS}]|{voiceless_str}|.[̥̊]))', voiceless, form)
 
     # Voiceless C1, voiced C2
     if to_voiced:
         for voiceless, voiced in voicing_dict.items():
-            form = re.sub(rf'{voiceless}(?=ʲ?(({voiced_str}|{VOICED_CONSONANTS})(?![̥̊])|.̬))', voiced, form)
+            form = re.sub(rf'{voiceless}(?=ʲ?(({voiced_str}|[{VOICED_CONSONANTS}])(?![̥̊])|.̬))', voiced, form)
 
     # Cancel the assimilation if it results in an illegal sequence
     for exc in exception:
