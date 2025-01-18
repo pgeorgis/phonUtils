@@ -57,6 +57,9 @@ def regressiveVoicingAssimilation(form,
         for voiceless, voiced in voicing_dict.items():
             form = re.sub(rf'{voiceless}(?=ʲ?(({voiced_str}|[{VOICED_CONSONANTS}])(?![̥̊])|.̬))', voiced, form)
 
+    # Postprocess any misplaced diacritics
+    form = re.sub(r'ʲ([̥̊])', r'\1ʲ', form)
+
     # Cancel the assimilation if it results in an illegal sequence
     for exc in exception:
         if re.search(exc, form):
