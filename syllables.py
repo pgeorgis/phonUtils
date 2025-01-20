@@ -30,11 +30,12 @@ def countMorae(form, codaMora=False, **kwargs):
     morae = 0
     vowel_str = ''.join(vowels)
     for syl in syls:
-        nucleus = syls[syl].nucleus[0]
-        morae += len(re.findall(fr'[{vowel_str}ˑː̩]', nucleus))
-        if codaMora:
-            coda = syls[syl].coda
-            morae += len(coda)
+        if syls[syl].nucleus:
+            nucleus = syls[syl].nucleus[0]
+            morae += len(re.findall(fr'[{vowel_str}ˑː̩]', nucleus))
+            if codaMora:
+                coda = syls[syl].coda
+                morae += len(coda)
     return morae
 
 
@@ -94,6 +95,7 @@ def sylType(syl, g_open=True):
 
 class Syllable:
     def __init__(self, syl, g_open=True):
+        self.g_open = g_open
         if type(syl) == str:
             self.syl = syl
             self.segments = segment_ipa(syl)
@@ -102,9 +104,12 @@ class Syllable:
             self.segments = syl
         else:
             raise ValueError
-        self.onset, self.nucleus, self.coda = splitSyl(self.segments)
-        self.g_open = g_open
-        self.type = sylType(syl, g_open=self.g_open)
+        if len(findSyllabic(syl)) > 0:
+            self.onset, self.nucleus, self.coda = splitSyl(self.segments)
+            self.type = sylType(syl, g_open=self.g_open)
+        else: # No syllabic units found
+            self.onset, self.nucleus, self.coda = self.segments, [], []
+            self.type = "OTHER"
         self.stressed = 'STRESSED' if "ˈ" in self.syl else 'UNSTRESSED'
     
     def __str__(self):
@@ -123,10 +128,14 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
         segments = segment_ipa(word)
         syllabic_i = findSyllabic(segments)
     
-    try:
-        assert len(syllabic_i) >= 1
-    except AssertionError:
-        raise AssertionError(f'Error: no syllabic segments found in "{word}"')
+    # try:
+    #     assert len(syllabic_i) >= 1
+    # except AssertionError:
+    #     raise AssertionError(f'Error: no syllabic segments found in "{word}"')
+    # If no syllabic units are found, return the entire word as a single syllable
+    if len(syllabic_i) == 0:
+        return {0:Syllable(segments, g_open=g_open)}
+    
     syllables = {i:[segments[i]] for i in syllabic_i}
     onsets, codas = [], []
     for i in syllables:

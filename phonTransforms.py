@@ -115,10 +115,14 @@ def shiftStress(word, n_syl, type='PRIMARY'):
     n_syl = min(n_syl, len(syls)-1)
     n_syl = max(n_syl, -len(syls))
     target_syl = segment_ipa(syls[n_syl])
-    syllabic_i = syllables.findSyllabic(target_syl)[0]
-    target_syl.insert(syllabic_i, ch)
-    target_syl = ''.join(target_syl)
-    syls[n_syl] = target_syl
+    try:
+        syllabic_i = syllables.findSyllabic(target_syl)[0]
+        target_syl.insert(syllabic_i, ch)
+        target_syl = ''.join(target_syl)
+        syls[n_syl] = target_syl
+    except IndexError:
+        # No syllabic segment found in target syllable, skip
+        pass
 
     return ''.join(syls)
 
