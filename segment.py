@@ -752,10 +752,10 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
         for segment in segments:
             matches = suprasegmental_regex.findall(segment)
             if matches:
-                updated_segments.append(''.join(matches))
                 seg_minus_supraseg = suprasegmental_regex.sub('', segment)
                 if seg_minus_supraseg:
                     updated_segments.append(seg_minus_supraseg)
+                updated_segments.append(''.join(matches))
             else:
                 updated_segments.append(segment)
         segments = updated_segments
