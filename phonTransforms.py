@@ -32,7 +32,7 @@ devoice_dict = {
 def finalDevoicing(word, phones, devoice_dict=devoice_dict):
     for phone in phones:
         devoiced = devoice_dict.get(phone, f'{phone}̥')
-        word = re.sub(f'{phone}(?![̥̊])(ʲ)?$', fr'{devoiced}\1', word)
+        word = re.sub(f'(?<!^){phone}(?![̥̊])(ʲ)?$', fr'{devoiced}\1', word)
     return word
 
 def regressiveVoicingAssimilation(form,
