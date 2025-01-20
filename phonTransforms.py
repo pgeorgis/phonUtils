@@ -108,7 +108,10 @@ def shiftStress(word, n_syl, type='PRIMARY'):
         ch = 'ˌ'
     else:
         raise ValueError(f'Error: unrecognized type "{type}". Must be one of "PRIMARY", "SECONDARY"')
+    return shiftAccent(word, n_syl, ch)
 
+def shiftAccent(word, n_syl, accent_ch='ˈ'):
+    """Shifts or adds accent (pitch accent or stress) to the nth syllable"""
     nostress = re.sub('[ˈˌ]','', word)
     syls = syllables.syllabify(nostress)
     syls = [syls[i].syl for i in syls]
@@ -117,8 +120,12 @@ def shiftStress(word, n_syl, type='PRIMARY'):
     target_syl = segment_ipa(syls[n_syl])
     try:
         syllabic_i = syllables.findSyllabic(target_syl)[0]
-        target_syl.insert(syllabic_i, ch)
+        if accent_ch in {'ˈ', 'ˌ'}:
+            target_syl.insert(syllabic_i, accent_ch)
+        else:
+            target_syl.insert(syllabic_i + 1, accent_ch)
         target_syl = ''.join(target_syl)
+        target_syl = re.sub(fr'([ːˑ])({accent_ch})', r'\2\1', target_syl)
         syls[n_syl] = target_syl
     except IndexError:
         # No syllabic segment found in target syllable, skip
