@@ -4,7 +4,9 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.initPhoneData import diacritics, diacritic_regex, valid_ipa_ch, ipa_norm_map
+from phonUtils.initPhoneData import (diacritic_regex, diacritics, ipa_norm_map,
+                                     valid_ipa_ch)
+
 
 # FUNCTIONS FOR IPA STRING MANIPULATION AND NORMALIZATION
 def strip_diacritics(string, excepted=[]):

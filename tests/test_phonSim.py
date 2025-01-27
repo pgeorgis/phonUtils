@@ -1,7 +1,11 @@
+import os
+import sys
+
 import pytest
-import sys, os
+
 sys.path.insert(0, '/'.join(os.path.abspath(os.path.dirname(__file__)).split('/')[:-1]))
 from phonSim import segment_ipa
+
 
 def test_segmentation():
     for ipa, segments in [

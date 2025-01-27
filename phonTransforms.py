@@ -3,9 +3,10 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.initPhoneData import plosives, fricatives, geminate_regex, consonants
-from phonUtils.segment import _toSegment, segment_ipa
 from phonUtils import syllables
+from phonUtils.initPhoneData import (consonants, fricatives, geminate_regex,
+                                     plosives)
+from phonUtils.segment import _toSegment, segment_ipa
 
 VOICELESS_CONSONANTS = ''.join([phone for phone in consonants if _toSegment(phone).voiceless])
 VOICED_CONSONANTS = ''.join([phone for phone in consonants if _toSegment(phone).voiced])

@@ -5,11 +5,13 @@ import os
 import sys
 from collections import defaultdict
 from functools import lru_cache
-from sklearn.metrics import jaccard_score
+
 from scipy.spatial.distance import cosine
+from sklearn.metrics import jaccard_score
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.initPhoneData import vowels, consonants, tonemes, feature_weights
+from phonUtils.initPhoneData import (consonants, feature_weights, tonemes,
+                                     vowels)
 from phonUtils.segment import _toSegment
 
 

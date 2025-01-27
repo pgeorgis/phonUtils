@@ -1,13 +1,15 @@
 import os
-from more_itertools import consecutive_groups
 import random
 import re
 import sys
 
+from more_itertools import consecutive_groups
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.initPhoneData import vowels, affricates
-from phonUtils.segment import _toSegment, segment_ipa, _is_vowel
 from phonUtils import phonTransforms
+from phonUtils.initPhoneData import affricates, vowels
+from phonUtils.segment import _is_vowel, _toSegment, segment_ipa
+
 
 #Functions related to syllable types
 def isSyllabic(segment):

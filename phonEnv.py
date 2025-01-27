@@ -1,14 +1,15 @@
-from itertools import combinations
 import os
 import re
 import sys
+from itertools import combinations
 
 # Add the project's root directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load phonological constants initialized in initPhoneData.py
-from phonUtils.initPhoneData import tonemes, nasal_regex, rhotic_regex, front_vowel_regex, diacritics
-from phonUtils.segment import _toSegment, _is_vowel
+from phonUtils.initPhoneData import (diacritics, front_vowel_regex,
+                                     nasal_regex, rhotic_regex, tonemes)
+from phonUtils.segment import _is_vowel, _toSegment
 from phonUtils.syllables import syllabify
 
 # CONSTANTS
