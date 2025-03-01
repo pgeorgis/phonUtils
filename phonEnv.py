@@ -7,19 +7,100 @@ from itertools import combinations
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load phonological constants initialized in initPhoneData.py
-from phonUtils.initPhoneData import (diacritics, front_vowel_regex,
-                                     nasal_regex, rhotic_regex, tonemes)
-from phonUtils.segment import _is_vowel, _toSegment
+from phonUtils.initPhoneData import (alveolar, alveolopalatal, bilabial,
+                                     dental, epiglottal, front_vowel_regex,
+                                     glottal, labiodental, lateral, liquids,
+                                     nasal_regex, palatal, pharyngeal,
+                                     postalveolar, retroflex, rhotic_regex,
+                                     uvular, velar)
+from phonUtils.segment import Segment, _toSegment
 from phonUtils.syllables import syllabify
 
 # CONSTANTS
 PHON_ENV_REGEX = re.compile(r'.*\|[ST]\|.*')
 
+PHON_ENV_MAP = {
+    "FRONT": {
+        "symbol": "F",
+        "regex": front_vowel_regex,
+        "ch_list": {'j', 'ɥ'},
+    },
+    "NASAL": {
+        "symbol": "N",
+        "regex": nasal_regex,
+    },
+    "RHOTIC": {
+        "symbol": "R",
+        "regex": rhotic_regex,
+    },
+    "LATERAL": {
+        "symbol": "L",
+        "regex": re.compile(f"[{''.join(lateral)}ˡ]"),
+    },
+    "LIQUID": {
+        "symbol": "RL",
+        "regex": re.compile(f"[{''.join(liquids)}]"),
+    },
+    "LABIAL": {
+        "symbol": "B",
+        "regex": re.compile(f"[{''.join(bilabial.union(labiodental))}ʷᵝ]"),
+    },
+    "DENTAL/ALVEOLAR": {
+        "symbol": "D",
+        "regex": re.compile(f"[{''.join(dental.union(alveolar))}]"),
+    },
+    "POST-ALVEOLAR": {
+        "symbol": "Š",
+        "regex": re.compile(f"[{''.join(postalveolar.union(retroflex))}]"),
+    },
+    "PALATAL": {
+        "symbol": "P",
+        "regex": re.compile(f"[{''.join(palatal.union(alveolopalatal))}]"),
+    },
+    "VELAR/UVULAR": {
+        "symbol": "K",
+        "regex": re.compile(f"[{''.join(velar.union(uvular))}ˠ]"),
+    },
+    "PHARYNGEAL/(EPI)GLOTTAL": {
+        "symbol": "H",
+        "regex": re.compile(f"[{''.join(glottal.union(epiglottal).union(pharyngeal))}ˤˀ]"),
+    },
+    "VOICELESS": {
+        "symbol": "-Voice",
+        "features": {"periodicGlottalSource": 0},
+    },
+    "VOICED": {
+        "symbol": "+Voice",
+        "features": {"periodicGlottalSource": 1},
+    },
+    "VOWEL": {
+        "symbol": "V",
+        "phone_class": ['VOWEL'],
+    },
+    "CONSONANT": {
+        "symbol": "C",
+        "phone_class": ['CONSONANT', 'GLIDE'],
+    },
+    "ACCENTED": {
+        "symbol": "A",
+        "phone_class": ['TONEME', 'SUPRASEGMENTAL'],
+    },
+}
+
+# syllable onset: SylO
+# syllable medial: SylM
+# syllable coda: SylC
+
+
 # HELPER FUNCTIONS
-def _is_env(ch, regex=None, ch_list=None):
-    if regex and regex.search(ch):
+def _is_env(segment: Segment, regex=None, ch_list=None, features=None):
+    if features:
+        if all(segment.features.get(feature) == feature_val for feature, feature_val in features.items()):
+            return True
+        return False
+    if regex and regex.search(segment.segment):
         return True
-    if ch_list and ch in ch_list:
+    if ch_list and segment.base in ch_list:
         return True
     return False
 
@@ -78,7 +159,7 @@ class PhonEnv:
                 self.segment_i = seg
         return segs, adjust_n
     
-    def get_phon_env(self, front=True, nasal=True, rhotic=True, accented=True):
+    def get_phon_env(self):
         """Returns a string representing the phonological environment of a segment within a word"""
         
         # Tonemes/suprasegmentals
@@ -97,15 +178,8 @@ class PhonEnv:
             if next_segment:
                 env = self.relative_sonority(next_seg=next_segment)
             
-                # Add front vowel environment
-                if front:
-                    env = self.add_front_env(env, next_segment.base, suffix=True)
-                # Add following nasal environment
-                if nasal:
-                    env = self.add_nasal_env(env, next_segment.base, suffix=True)
-                # Add following rhotic environment
-                if rhotic:
-                    env = self.add_rhotic_env(env, next_segment.base, suffix=True)
+                # Add feature environments
+                env = self.add_envs(env, next_segment, suffix=True)
                     
                 # # Add the next segment itself
                 # env += '_' + next_segment.segment
@@ -122,14 +196,9 @@ class PhonEnv:
             prev_segment = self.segments[i-1]
             env = self.relative_sonority(prev_seg=prev_segment)
 
-            # Add front vowel environment
-            if front:
-                env = self.add_front_env(env, prev_segment.base, prefix=True)
-            
-            # Add accented/prosodically marked environment
-            if accented:
-                env = self.add_accented_env(env, self.supra_segs[self.index-1], prefix=True)
-                            
+            # Add feature environments
+            env = self.add_envs(env, prev_segment, prefix=True)
+
             # # Add the previous segment itself
             # env = prev_segment.segment + '_' + env
             
@@ -140,21 +209,10 @@ class PhonEnv:
             prev_segment, next_segment = self.segments[i-1], self.segments[i+1]
             env = self.relative_sonority(prev_seg=prev_segment, next_seg=next_segment)
 
-            # Add front vowel environment
-            if front:
-                env = self.add_front_env(env, prev_segment.base, prefix=True)
-                env = self.add_front_env(env, next_segment.base, suffix=True)
-            # Add following nasal environment
-            if nasal:
-                env = self.add_nasal_env(env, next_segment.base, suffix=True)
-            # Add following rhotic environment
-            if rhotic:
-                env = self.add_rhotic_env(env, next_segment.base, suffix=True)
+            # Add feature environments
+            env = self.add_envs(env, prev_segment, prefix=True)
+            env = self.add_envs(env, next_segment, suffix=True)
 
-            # Add accented/prosodically marked environment
-            if accented:
-                env = self.add_accented_env(env, self.supra_segs[self.index-1], prefix=True)
-                
             # # Add the next segment itself
             # env += '_' + next_segment.segment
                     
@@ -173,16 +231,20 @@ class PhonEnv:
         return relative_post_sonority(self.segment_i, next_seg)
 
     def add_env(self, 
-                env, ch, symbol, 
+                env,
+                segment,
+                symbol, 
                 regex=None, 
                 ch_list=None, 
                 phone_class=None, 
-                prefix=None, suffix=None, 
+                features=None,
+                prefix=None,
+                suffix=None,
                 sep='_'):
         assert prefix is not None or suffix is not None
-        if phone_class and ch.phone_class in phone_class:
+        if phone_class and segment.phone_class in phone_class:
             env_match = True
-        elif _is_env(ch=ch, regex=regex, ch_list=ch_list):
+        elif _is_env(segment=segment, features=features, regex=regex, ch_list=ch_list):
             env_match = True
         else:
             return env
@@ -190,6 +252,25 @@ class PhonEnv:
             return symbol + sep + env
         else: # suffix
             return env + sep + symbol
+    
+    def add_envs(self, env, segment, **kwargs):
+        for _, encoding_map in PHON_ENV_MAP.items():
+            symbol = encoding_map["symbol"]
+            regex = encoding_map.get("regex", None)
+            ch_list = encoding_map.get("ch_list", None)
+            phone_class = encoding_map.get("phone_class", None)
+            features = encoding_map.get("features", None)
+            env = self.add_env(
+                env,
+                segment,
+                symbol=symbol,
+                regex=regex,
+                ch_list=ch_list,
+                phone_class=phone_class,
+                features=features,
+                **kwargs
+            )
+        return env
     
     def add_front_env(self, env, ch, **kwargs):
         return self.add_env(env, ch, symbol='F', regex=front_vowel_regex, ch_list={'j', 'ɥ'}, **kwargs)
