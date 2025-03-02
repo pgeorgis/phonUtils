@@ -77,7 +77,7 @@ PHON_ENV_MAP = {
     # },
     "VOWEL": {
         "symbol": "V",
-        "phone_class": ['VOWEL'],
+        "phone_class": ['VOWEL', 'DIPHTHONG'],
     },
     "CONSONANT": {
         "symbol": "C",
