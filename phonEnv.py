@@ -18,7 +18,9 @@ from phonUtils.syllables import syllabify
 
 # CONSTANTS
 PHON_ENV_REGEX = re.compile(r'.*\|[ST]\|.*')
-
+BASE_SEGMENT_ENV = '|S|'
+BASE_TONEME_ENV = '|T|'
+BOUNDARY_TOKEN = "#"
 PHON_ENV_MAP = {
     "FRONT": {
         "symbol": "F",
@@ -29,14 +31,14 @@ PHON_ENV_MAP = {
         "symbol": "N",
         "regex": nasal_regex,
     },
-    "RHOTIC": {
-        "symbol": "R",
-        "regex": rhotic_regex,
-    },
-    "LATERAL": {
-        "symbol": "L",
-        "regex": re.compile(f"[{''.join(lateral)}ˡ]"),
-    },
+    # "RHOTIC": {
+    #     "symbol": "R",
+    #     "regex": rhotic_regex,
+    # },
+    # "LATERAL": {
+    #     "symbol": "L",
+    #     "regex": re.compile(f"[{''.join(lateral)}ˡ]"),
+    # },
     "LIQUID": {
         "symbol": "RL",
         "regex": re.compile(f"[{''.join(liquids)}]"),
@@ -45,34 +47,34 @@ PHON_ENV_MAP = {
         "symbol": "B",
         "regex": re.compile(f"[{''.join(bilabial.union(labiodental))}ʷᵝ]"),
     },
-    "DENTAL/ALVEOLAR": {
-        "symbol": "D",
-        "regex": re.compile(f"[{''.join(dental.union(alveolar))}]"),
-    },
-    "POST-ALVEOLAR": {
-        "symbol": "Š",
-        "regex": re.compile(f"[{''.join(postalveolar.union(retroflex))}]"),
-    },
-    "PALATAL": {
-        "symbol": "P",
-        "regex": re.compile(f"[{''.join(palatal.union(alveolopalatal))}]"),
-    },
-    "VELAR/UVULAR": {
-        "symbol": "K",
-        "regex": re.compile(f"[{''.join(velar.union(uvular))}ˠ]"),
-    },
-    "PHARYNGEAL/(EPI)GLOTTAL": {
-        "symbol": "H",
-        "regex": re.compile(f"[{''.join(glottal.union(epiglottal).union(pharyngeal))}ˤˀ]"),
-    },
+    # "DENTAL/ALVEOLAR": {
+    #     "symbol": "D",
+    #     "regex": re.compile(f"[{''.join(dental.union(alveolar))}]"),
+    # },
+    # "POST-ALVEOLAR": {
+    #     "symbol": "Š",
+    #     "regex": re.compile(f"[{''.join(postalveolar.union(retroflex))}]"),
+    # },
+    # "PALATAL": {
+    #     "symbol": "P",
+    #     "regex": re.compile(f"[{''.join(palatal.union(alveolopalatal))}]"),
+    # },
+    # "VELAR/UVULAR": {
+    #     "symbol": "K",
+    #     "regex": re.compile(f"[{''.join(velar.union(uvular))}ˠ]"),
+    # },
+    # "PHARYNGEAL/(EPI)GLOTTAL": {
+    #     "symbol": "H",
+    #     "regex": re.compile(f"[{''.join(glottal.union(epiglottal).union(pharyngeal))}ˤˀ]"),
+    # },
     "VOICELESS": {
         "symbol": "-Voice",
         "features": {"periodicGlottalSource": 0},
     },
-    "VOICED": {
-        "symbol": "+Voice",
-        "features": {"periodicGlottalSource": 1},
-    },
+    # "VOICED": {
+    #     "symbol": "+Voice",
+    #     "features": {"periodicGlottalSource": 1},
+    # },
     "VOWEL": {
         "symbol": "V",
         "phone_class": ['VOWEL'],
@@ -81,10 +83,10 @@ PHON_ENV_MAP = {
         "symbol": "C",
         "phone_class": ['CONSONANT', 'GLIDE'],
     },
-    "ACCENTED": {
-        "symbol": "A",
-        "phone_class": ['TONEME', 'SUPRASEGMENTAL'],
-    },
+    # "ACCENTED": {
+    #     "symbol": "A",
+    #     "phone_class": ['TONEME', 'SUPRASEGMENTAL'],
+    # },
 }
 
 # syllable onset: SylO
@@ -128,11 +130,11 @@ def relative_post_sonority(seg, next_seg):
 def relative_sonority(seg, prev_seg=None, next_seg=None):
     assert prev_seg is not None or next_seg is not None
     if prev_seg is None:
-        prev_son = '#'
+        prev_son = BOUNDARY_TOKEN
     else:
         prev_son = relative_prev_sonority(seg, prev_seg)
     if next_seg is None:
-        post_son = '#'
+        post_son = BOUNDARY_TOKEN
     else:
         post_son = relative_post_sonority(seg, next_seg)
     return f'{prev_son}|S|{post_son}'
@@ -164,7 +166,9 @@ class PhonEnv:
         
         # Tonemes/suprasegmentals
         if self.segment_i.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
-            return '|T|'
+            return BASE_TONEME_ENV
+        else:
+            env = BASE_SEGMENT_ENV
         
         # Word-initial segments (free-standing segments also considered word-initial)
         i = self.adjusted_index
@@ -176,7 +180,8 @@ class PhonEnv:
 
             # Word-initial segments: #S
             if next_segment:
-                env = self.relative_sonority(next_seg=next_segment)
+                #env = self.relative_sonority(next_seg=next_segment)
+                env = BOUNDARY_TOKEN + env
             
                 # Add feature environments
                 env = self.add_envs(env, next_segment, suffix=True)
@@ -188,13 +193,14 @@ class PhonEnv:
             
             # Free-standing segments
             else:
-                return '#|S|#'
+                return f"{BOUNDARY_TOKEN}{BASE_SEGMENT_ENV}{BOUNDARY_TOKEN}"
         
         # Word-final segments: S#
         elif i == len(self.segments)-1:
             assert len(self.segments) > 1
             prev_segment = self.segments[i-1]
-            env = self.relative_sonority(prev_seg=prev_segment)
+            #env = self.relative_sonority(prev_seg=prev_segment)
+            env += BOUNDARY_TOKEN
 
             # Add feature environments
             env = self.add_envs(env, prev_segment, prefix=True)
@@ -207,7 +213,7 @@ class PhonEnv:
         # Word-medial segments
         else:
             prev_segment, next_segment = self.segments[i-1], self.segments[i+1]
-            env = self.relative_sonority(prev_seg=prev_segment, next_seg=next_segment)
+            #env = self.relative_sonority(prev_seg=prev_segment, next_seg=next_segment)
 
             # Add feature environments
             env = self.add_envs(env, prev_segment, prefix=True)
@@ -303,7 +309,7 @@ def phon_env_ngrams(phonEnv, exclude=set()):
     Returns:
         set: possible equal and lower order phonological environment strings
     """
-    if re.search(r'.\|S\|.+', phonEnv):
+    if re.search(r'.*\|S\|.*', phonEnv):
         prefix, base, suffix = phonEnv.split('|')
         prefix = prefix.split('_')
         prefixes = set()
@@ -322,7 +328,7 @@ def phon_env_ngrams(phonEnv, exclude=set()):
             for suffix in suffixes:
                 ngrams.add(f'{prefix}|S|{suffix}')
     else:
-        assert phonEnv == '|T|'
+        assert phonEnv in (BASE_TONEME_ENV, BASE_SEGMENT_ENV)
         ngrams = [phonEnv]
     
     if len(exclude) > 0:
