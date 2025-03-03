@@ -82,7 +82,7 @@ class PhonEnv:
                 continue
             elif isinstance(segment, tuple) and BOUNDARY_TOKEN in segment[0]:
                 adj_segments.extend(segment[1:])
-                minus_offset += len(segment) - 2
+                plus_offset += len(segment) - 2
                 continue
             if segment == self.gap_ch:
                 minus_offset += 1
