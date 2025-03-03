@@ -74,26 +74,26 @@ class PhonEnv:
     
     def preprocess_aligned_sequence(self, segments, i):
         """Drop gaps and boundaries and flatten complex ngrams."""
-        offset = 0
+        minus_offset, plus_offset = 0, 0
         adj_segments = []
         for j, segment in enumerate(segments[:i]):
             if j == 0:
                 if isinstance(segment, str) and BOUNDARY_TOKEN in segment:
-                    offset += 1
+                    minus_offset += 1
                     continue
                 elif isinstance(segment, tuple) and BOUNDARY_TOKEN in segment[0]:
                     adj_segments.extend(segment[1:])
-                    offset += len(segment) - 2
+                    minus_offset += len(segment) - 2
                     continue
             if segment == self.gap_ch:
-                offset += 1
+                minus_offset += 1
             else:
                 if isinstance(segment, tuple):
                     adj_segments.extend(segment)
-                    offset += len(segment) - 1
+                    plus_offset += len(segment) - 1
                 else:
                     adj_segments.append(segment)
-        adjusted_i = i - offset
+        adjusted_i = i - minus_offset + plus_offset
         adj_segments.append(segments[i])
         for segment in segments[i:][1:]:
             if not self.is_gappy(segment):
