@@ -148,6 +148,9 @@ class PhonEnv:
                 # Add following rhotic environment
                 if rhotic:
                     env = self.add_rhotic_env(env, next_segment.base, suffix=True)
+                # Add accented/prosodically marked environment
+                if accented:
+                    env = self.add_accented_env(env, self.supra_segs[self.index + 1], suffix=True)
                     
                 # # Add the next segment itself
                 # env += '_' + next_segment.segment
@@ -168,10 +171,6 @@ class PhonEnv:
             # Add front vowel environment
             if front:
                 env = self.add_front_env(env, prev_segment.base, prefix=True)
-            
-            # Add accented/prosodically marked environment
-            if accented:
-                env = self.add_accented_env(env, self.supra_segs[self.index-1], prefix=True)
                             
             # # Add the previous segment itself
             # env = prev_segment.segment + '_' + env
@@ -197,7 +196,7 @@ class PhonEnv:
 
             # Add accented/prosodically marked environment
             if accented:
-                env = self.add_accented_env(env, self.supra_segs[self.index-1], prefix=True)
+                env = self.add_accented_env(env, self.supra_segs[self.index + 1], suffix=True)
                 
             # # Add the next segment itself
             # env += '_' + next_segment.segment
