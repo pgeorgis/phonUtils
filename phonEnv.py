@@ -270,7 +270,7 @@ def phon_env_ngrams(phonEnv, exclude=set()):
     Returns:
         set: possible equal and lower order phonological environment strings
     """
-    if re.search(r'.\|S\|.+', phonEnv):
+    if re.search(r'.+\|S\|.*', phonEnv) or re.search(r'.*\|S\|.+', phonEnv):
         prefix, base, suffix = phonEnv.split('|')
         prefix = prefix.split('_')
         prefixes = set()
@@ -289,7 +289,7 @@ def phon_env_ngrams(phonEnv, exclude=set()):
             for suffix in suffixes:
                 ngrams.add(f'{prefix}|S|{suffix}')
     else:
-        assert phonEnv == BASE_TONEME_ENV
+        assert phonEnv in (BASE_TONEME_ENV, BASE_SEGMENT_ENV)
         ngrams = [phonEnv]
     
     if len(exclude) > 0:
