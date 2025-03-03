@@ -35,7 +35,7 @@ def relative_prev_sonority(seg, prev_seg):
         return '>'
     
 def relative_post_sonority(seg, next_seg):
-    if next_seg == seg.sonority:
+    if next_seg.segment == seg.segment:
             return 'S'
     elif next_seg.sonority == seg.sonority:
         return '='
