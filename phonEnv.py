@@ -76,15 +76,14 @@ class PhonEnv:
         """Drop gaps and boundaries and flatten complex ngrams."""
         minus_offset, plus_offset = 0, 0
         adj_segments = []
-        for j, segment in enumerate(segments[:i]):
-            if j == 0:
-                if isinstance(segment, str) and BOUNDARY_TOKEN in segment:
-                    minus_offset += 1
-                    continue
-                elif isinstance(segment, tuple) and BOUNDARY_TOKEN in segment[0]:
-                    adj_segments.extend(segment[1:])
-                    minus_offset += len(segment) - 2
-                    continue
+        for segment in segments[:i]:
+            if isinstance(segment, str) and BOUNDARY_TOKEN in segment:
+                minus_offset += 1
+                continue
+            elif isinstance(segment, tuple) and BOUNDARY_TOKEN in segment[0]:
+                adj_segments.extend(segment[1:])
+                minus_offset += len(segment) - 2
+                continue
             if segment == self.gap_ch:
                 minus_offset += 1
             else:
