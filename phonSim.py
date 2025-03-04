@@ -1,6 +1,8 @@
 # PHONETIC SEGMENT ANALYSIS AND PHONETIC SIMILARITY/DISTANCE
 # Code developed by Philip Georgis (Last updated: August 2023)
+from typing import Iterable
 
+import cython
 import os
 import sys
 from collections import defaultdict
@@ -12,19 +14,21 @@ from sklearn.metrics import jaccard_score
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils.initPhoneData import (consonants, feature_weights, tonemes,
                                      vowels)
-from phonUtils.segment import _toSegment
+from phonUtils.segment import _toSegment, Segment
 
 
 # SIMILARITY / DISTANCE MEASURES
-def hamming_distance(vec1, vec2, normalize=True):
+@cython.ccall
+def hamming_distance(vec1, vec2, normalize=True) -> float:
     differences = len([feature for feature in vec1 if vec1[feature] != vec2[feature]])
     if normalize:
         return differences / len(vec1)
-    else: 
+    else:
         return differences
 
 
-def jaccard_sim(vec1, vec2):
+@cython.ccall
+def jaccard_sim(vec1, vec2) -> float:
     features = sorted(list(vec1.keys()))
     vec1_values = [vec1[feature] for feature in features]
     vec2_values = [vec2[feature] for feature in features]
@@ -39,12 +43,14 @@ def jaccard_sim(vec1, vec2):
     return jaccard_score(vec1_values, vec2_values)
 
 
-def dice_sim(vec1, vec2):
+@cython.ccall
+def dice_sim(vec1, vec2) -> float:
     jaccard = jaccard_sim(vec1, vec2)
     return (2*jaccard) / (1+jaccard)
 
 
-def weighted_hamming(vec1, vec2, weights=feature_weights):
+@cython.ccall
+def weighted_hamming(vec1, vec2, weights=feature_weights) -> float:
     diffs = 0
     for feature in vec1:
         if vec1[feature] != vec2[feature]:
@@ -52,7 +58,8 @@ def weighted_hamming(vec1, vec2, weights=feature_weights):
     return diffs/len(vec1)
 
 
-def weighted_jaccard(vec1, vec2, weights=feature_weights):
+@cython.ccall
+def weighted_jaccard(vec1, vec2, weights=feature_weights) -> float:
     union, intersection = 0, 0
     for feature in vec1:
         if ((vec1[feature] == 1) and (vec2[feature] == 1)):
@@ -62,14 +69,16 @@ def weighted_jaccard(vec1, vec2, weights=feature_weights):
     return intersection/union
             
 
-def weighted_dice(vec1, vec2, weights=feature_weights):
+@cython.ccall
+def weighted_dice(vec1, vec2, weights=feature_weights) -> float:
     w_jaccard = weighted_jaccard(vec1, vec2, weights)
     return (2*w_jaccard) / (1+w_jaccard)
 
 
 # PHONE COMPARISON
 @lru_cache(maxsize=None)
-def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None):
+@cython.ccall
+def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None) -> float:
     """Returns the similarity of the features of the two phones according to
     the specified distance/similarity function;
     Features not to be included in the comparison should be passed as a list to
@@ -82,7 +91,7 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
     phone1, phone2 = map(_toSegment, [phone1, phone2])
 
     # Get feature dictionaries for each phone
-    phone_id1, phone_id2 = phone1.features.copy(), phone2.features.copy()
+    phone_id1, phone_id2 = phone1.get_features().copy(), phone2.get_features().copy()
 
     # Exclude specified features
     for feature in exclude_features:
@@ -121,28 +130,29 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
 
 
 # Helper functions for identifying phones with particular features
-def lookup_segments(features, values, segment_list=consonants.union(vowels).union(tonemes)):
+def lookup_segments(features, values, segment_list=consonants.union(vowels).union(tonemes)) -> set[str]:
     """Returns a list of segments whose feature values match the search criteria"""
     matches = []
     for segment in segment_list:
-        segment = _toSegment(segment)
+        segment: Segment = _toSegment(segment)
         match_tallies = 0
         for feature, value in zip(features, values):
-            if segment.features[feature] == value:
+            if segment.get_feature(feature) == value:
                 match_tallies += 1
         if match_tallies == len(features):
-            matches.append(segment.segment)
+            matches.append(segment.get_segment())
     return set(matches)
 
 
-def common_features(segment_list, start_features=feature_weights.keys()):
+def common_features(segment_list: Iterable[Segment],
+                    start_features=feature_weights.keys()) -> list[tuple[str, str]]:
     """Returns the features/values shared by all segments in the list"""
     features = set(start_features)
     feature_values = defaultdict(lambda:[])
     for segment in segment_list:
-        segment = _toSegment(segment)
+        segment: Segment = _toSegment(segment)
         for feature in features:
-            value = segment.features[feature]
+            value = segment.get_feature(feature)
             if value not in feature_values[feature]:
                 feature_values[feature].append(value)
     common = [(feature, feature_values[feature][0]) for feature in feature_values if len(feature_values[feature]) == 1]

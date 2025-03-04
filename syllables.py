@@ -14,7 +14,7 @@ from phonUtils.segment import _is_vowel, _toSegment, segment_ipa
 #Functions related to syllable types
 def isSyllabic(segment):
     segment = _toSegment(segment)
-    if segment.features['syllabic'] > 0:
+    if segment.get_feature('syllabic') > 0:
         return True
     else:
         return False
@@ -80,7 +80,7 @@ def sylType(syl, g_open=True):
         else:
             if g_open:
                 finalSeg = _toSegment(finalSeg)
-                if finalSeg.phone_class == 'GLIDE':
+                if finalSeg.get_phone_class() == 'GLIDE':
                     return 'OPEN'
                 else:
                     return 'CLOSED'

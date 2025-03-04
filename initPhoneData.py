@@ -5,6 +5,11 @@ from math import log
 
 import pandas as pd
 
+pre_diacritics, post_diacritics = [], []
+suprasegmental_diacritics = set()
+alveolopalatal, palatal, postalveolar = set(), set(), set()
+affricates, approximants, fricatives, glides, liquids, nasals, plosives, tonemes = set(), set(), set(), set(), set(), set(), set(), set()
+diacritics = ''
 
 def binary_feature(feature):
     """Converts features of type ['0', '-', '+'] to binary [0, 1]"""
@@ -108,7 +113,7 @@ def load_feature_geometry(dir):
 def load_ipa_norm_map(dir):
     map_file = os.path.join(dir, 'phoneData', 'ipa_normalization.map')
     ipa_norm_map = {}
-    with open(map_file, 'r') as map_f:
+    with open(map_file, 'r', encoding='utf-8') as map_f:
         for line in map_f.readlines():
             if not re.match(r'\s*#', line) and line.strip() != '':
                 ch, repl = line.strip().split('\t')
@@ -132,7 +137,7 @@ def get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacriti
 
 
 # INITIALIZE ALL CONSTANTS
-dir = os.path.dirname(__file__)
+dir = os.path.join(os.getcwd(), 'phyloLing', 'phonUtils')
 features, phone_features, phone_classes = load_phone_data(dir)
 diacritics_data = load_diacritics_data(dir)
 ipa_norm_map = load_ipa_norm_map(dir)

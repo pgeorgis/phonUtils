@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import cython
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import syllables
@@ -8,8 +9,8 @@ from phonUtils.initPhoneData import (consonants, fricatives, geminate_regex,
                                      plosives)
 from phonUtils.segment import _toSegment, segment_ipa
 
-VOICELESS_CONSONANTS = ''.join([phone for phone in consonants if _toSegment(phone).voiceless])
-VOICED_CONSONANTS = ''.join([phone for phone in consonants if _toSegment(phone).voiced])
+VOICELESS_CONSONANTS: str = ''.join([phone for phone in consonants if _toSegment(phone).is_voiceless()])
+VOICED_CONSONANTS: str = ''.join([phone for phone in consonants if _toSegment(phone).is_voiced()])
 
 #General phonological transformation functions
 devoice_dict = {
@@ -75,10 +76,11 @@ def degeminate(word, phones):
         word = re.sub(f'{phone}ː', phone, word)
     return word
 
-def normalize_geminates(word):
+@cython.ccall
+def normalize_geminates(word: str) -> str:
     return geminate_regex.sub(r'\1\2\3\4ː', word)
 
-def split_affricates(word):
+def split_affricates(word) -> tuple[str, dict]:
     affricate_map = {
         'ʦ':'ts',
         'ʣ':'dz',

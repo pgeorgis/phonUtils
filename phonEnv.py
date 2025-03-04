@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import cython
 from itertools import combinations
 
 # Add the project's root directory to the Python path
@@ -19,7 +20,9 @@ BASE_TONEME_ENV = "|T|"
 BOUNDARY_TOKEN = "#"
 
 # HELPER FUNCTIONS
-def _is_env(ch, regex=None, ch_list=None):
+@cython.ccall
+@cython.returns(cython.bint)
+def _is_env(ch, regex=None, ch_list=None) -> bool:
     if regex and regex.search(ch):
         return True
     if ch_list and ch in ch_list:
@@ -27,27 +30,42 @@ def _is_env(ch, regex=None, ch_list=None):
     return False
 
 # Relative sonority functions
-def relative_prev_sonority(seg, prev_seg):
-    if prev_seg == seg.sonority:
+@cython.ccall
+def relative_prev_sonority(seg: Segment, prev_seg: Segment) -> str:
+    if prev_seg.get_segment() == seg.get_segment():
         return 'S'
-    elif prev_seg.sonority == seg.sonority:
+
+    seg_sonority = seg.get_sonority()
+    prev_seg_sonority = prev_seg.get_sonority()
+
+    if prev_seg_sonority == seg_sonority:
         return '='
-    elif prev_seg.sonority < seg.sonority:
+    elif prev_seg_sonority < seg_sonority:
         return '<'
     else: # prev_sonority > sonority_i
         return '>'
-    
-def relative_post_sonority(seg, next_seg):
-    if next_seg.segment == seg.segment:
-            return 'S'
-    elif next_seg.sonority == seg.sonority:
+
+
+@cython.ccall
+def relative_post_sonority(seg: Segment, next_seg: Segment) -> str:
+    if next_seg.get_segment() == seg.get_segment():
+        return 'S'
+
+    next_seg_sonority = next_seg.get_sonority()
+    seg_sonority = seg.get_sonority()
+    if next_seg_sonority == seg_sonority:
         return '='
-    elif next_seg.sonority < seg.sonority:
+    elif next_seg_sonority < seg_sonority:
         return '>'
     else: # sonority_i > next_seg
         return '<'
 
-def relative_sonority(seg, prev_seg=None, next_seg=None):
+
+@cython.ccall
+def relative_sonority(seg: Segment,
+                      prev_seg: Segment | None = None,
+                      next_seg: Segment | None = None,
+                      ) -> str:
     assert prev_seg is not None or next_seg is not None
     if prev_seg is None:
         prev_son = BOUNDARY_TOKEN
@@ -60,7 +78,18 @@ def relative_sonority(seg, prev_seg=None, next_seg=None):
     return f'{prev_son}{BASE_SEGMENT_ENV}{post_son}'
 
 # PHONOLOGICAL ENVIRONMENT
+@cython.final
+@cython.cclass
 class PhonEnv:
+    gap_ch: str | None
+    index: int
+    segment_i: Segment | None
+    supra_segs: list[Segment]
+    segments: list[Segment]
+    adjust_n: int
+    adjusted_index: int
+    phon_env: str
+
     def __init__(self, segments, i, gap_ch=None, **kwargs):
         self.gap_ch = gap_ch
         if self.gap_ch:
@@ -108,7 +137,7 @@ class PhonEnv:
         adjust_n = 0
         segs = []
         for j, seg in enumerate(segments):
-            if isinstance(seg, Segment) and seg.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
+            if isinstance(seg, Segment) and seg.get_phone_class() not in ('TONEME', 'SUPRASEGMENTAL'):
                 segs.append(seg)
             elif isinstance(seg, str): # str: gap or boundary
                 segs.append(seg)
@@ -122,7 +151,7 @@ class PhonEnv:
         """Returns a string representing the phonological environment of a segment within a word"""
         
         # Tonemes/suprasegmentals
-        if isinstance(self.segment_i, Segment) and self.segment_i.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
+        if isinstance(self.segment_i, Segment) and self.segment_i.get_phone_class() in ('TONEME', 'SUPRASEGMENTAL'):
             return BASE_TONEME_ENV
         
         # Word-initial segments (free-standing segments also considered word-initial)
@@ -141,13 +170,13 @@ class PhonEnv:
             
                 # Add front vowel environment
                 if front:
-                    env = self.add_front_env(env, next_segment.base, suffix=True)
+                    env = self.add_front_env(env, next_segment.get_base(), suffix=True)
                 # Add following nasal environment
                 if nasal:
-                    env = self.add_nasal_env(env, next_segment.base, suffix=True)
+                    env = self.add_nasal_env(env, next_segment.get_base(), suffix=True)
                 # Add following rhotic environment
                 if rhotic:
-                    env = self.add_rhotic_env(env, next_segment.base, suffix=True)
+                    env = self.add_rhotic_env(env, next_segment.get_base(), suffix=True)
                 # Add accented/prosodically marked environment
                 if accented:
                     env = self.add_accented_env(env, self.supra_segs[self.index + 1], suffix=True)
@@ -170,7 +199,7 @@ class PhonEnv:
 
             # Add front vowel environment
             if front:
-                env = self.add_front_env(env, prev_segment.base, prefix=True)
+                env = self.add_front_env(env, prev_segment.get_base(), prefix=True)
                             
             # # Add the previous segment itself
             # env = prev_segment.segment + '_' + env
@@ -185,14 +214,14 @@ class PhonEnv:
 
             # Add front vowel environment
             if front:
-                env = self.add_front_env(env, prev_segment.base, prefix=True)
-                env = self.add_front_env(env, next_segment.base, suffix=True)
+                env = self.add_front_env(env, prev_segment.get_base(), prefix=True)
+                env = self.add_front_env(env, next_segment.get_base(), suffix=True)
             # Add following nasal environment
             if nasal:
-                env = self.add_nasal_env(env, next_segment.base, suffix=True)
+                env = self.add_nasal_env(env, next_segment.get_base(), suffix=True)
             # Add following rhotic environment
             if rhotic:
-                env = self.add_rhotic_env(env, next_segment.base, suffix=True)
+                env = self.add_rhotic_env(env, next_segment.get_base(), suffix=True)
 
             # Add accented/prosodically marked environment
             if accented:
@@ -226,7 +255,7 @@ class PhonEnv:
                 prefix=None, suffix=None, 
                 sep='_'):
         assert prefix is not None or suffix is not None
-        if phone_class and ch.phone_class in phone_class:
+        if phone_class and ch.get_phone_class() in phone_class:
             env_match = True
         elif _is_env(ch=ch, regex=regex, ch_list=ch_list):
             env_match = True
