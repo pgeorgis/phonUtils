@@ -102,7 +102,8 @@ class Segment:
         return self.features
 
     @cython.ccall
-    def get_feature(self, feature) -> int:
+    @cython.returns(object)
+    def get_feature(self, feature) -> int | float:
         return self.features[feature]
 
     @cython.ccall
