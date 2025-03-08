@@ -703,7 +703,7 @@ class Segment:
         
 
 # IPA STRING SEGMENTATION
-def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True, suprasegmentals=None):
+def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True, autonomous_diacritics=None):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
@@ -792,16 +792,16 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
         
         segments = updated_segments
     
-    # Split off suprasegmentals
-    if suprasegmentals:
-        suprasegmental_regex = re.compile(rf'[{suprasegmental_diacritics}{tonemes}{suprasegmentals}]')
+    # Split off specified free-standing/autosegmental (typically prosodic) units (or other diacritics)
+    if autonomous_diacritics:
+        autonomous_diacritic_regex = re.compile(rf'[{autonomous_diacritics}]')
         updated_segments = []
         for segment in segments:
-            matches = suprasegmental_regex.findall(segment)
+            matches = autonomous_diacritic_regex.findall(segment)
             if matches:
-                seg_minus_supraseg = suprasegmental_regex.sub('', segment)
-                if seg_minus_supraseg:
-                    updated_segments.append(seg_minus_supraseg)
+                seg_minus_diacritic = autonomous_diacritic_regex.sub('', segment)
+                if seg_minus_diacritic:
+                    updated_segments.append(seg_minus_diacritic)
                 updated_segments.append(''.join(matches))
             else:
                 updated_segments.append(segment)
