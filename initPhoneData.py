@@ -150,7 +150,7 @@ vowels = set(phone for phone in phone_features if phone not in consonants.union(
 obstruents = set(plosives.union(affricates).union(fricatives))
 sonorants = set(nasals.union(liquids).union(glides).union(approximants).union(set(vowels)))
 all_phones = ''.join(consonants.union(vowels).union(tonemes))
-valid_ipa_ch = ''.join([all_phones, diacritics, ' ', '‿'])
+valid_ipa_ch = ''.join([all_phones, diacritics, ' ', '‿', r'\-'])
 
 # Create mapping of toneme letters to their relative pitch values # TODO could be loaded in from external file
 tone_levels = {'˩':1, '¹':1, 
