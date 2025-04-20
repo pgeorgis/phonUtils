@@ -393,6 +393,21 @@ class PhonEnv:
 
 
 @cython.ccall
+@cython.locals(value = str, parts = list,
+               i = cython.Py_ssize_t,
+               x = tuple[str, cython.Py_ssize_t])
+@cython.returns(set)
+def join_n_fix(value) -> set:
+    parts: list = value.split('_')
+    result: set = set()
+    for i in range(1, len(parts) + 1):
+        for x in combinations(parts, i):
+            result.add('_'.join(x))
+    result.add('')
+    return result
+
+
+@cython.ccall
 @cython.locals(
     phonEnv = str, exclude = set,
     prefix = str, base = str, suffix = str,
@@ -408,25 +423,15 @@ def phon_env_ngrams(phonEnv: str, exclude: set) -> list:
     """
     if re.search(r'.+\|S\|.*', phonEnv) or re.search(r'.*\|S\|.+', phonEnv):
         prefix, base, suffix = phonEnv.split('|')
-        prefix = prefix.split('_')
-        prefixes = set()
-        for i in range(1, len(prefix)+1):
-            for x in combinations(prefix, i):
-                prefixes.add('_'.join(x))
-        prefixes.add('')
-        suffix = suffix.split('_')
-        suffixes = set()
-        for i in range(1, len(suffix)+1):
-            for x in combinations(suffix, i):
-                suffixes.add('_'.join(x))
-        suffixes.add('')
+        prefixes = join_n_fix(prefix)
+        suffixes = join_n_fix(suffix)
         ngrams = set()
         for prefix in prefixes:
             for suffix in suffixes:
                 ngrams.add(f'{prefix}|S|{suffix}')
     else:
         assert phonEnv in (BASE_TONEME_ENV, BASE_SEGMENT_ENV)
-        ngrams = {phonEnv}
+        ngrams: set = {phonEnv}
     
     if len(exclude) > 0:
         return [ngram for ngram in ngrams if ngram not in exclude]

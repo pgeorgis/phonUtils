@@ -794,9 +794,9 @@ def _toSegment(ch) -> Segment:
     return Segment.segments.get(ch, Segment(ch))
 
 @cython.cfunc
-@cython.locals(ch = str, l = list)
+@cython.locals(ch = str, l = set)
 @cython.returns(cython.bint)
-def _is_ch(ch: str, l: list) -> bool:
+def _is_ch(ch: str, l: set) -> bool:
     try:
         if strip_diacritics(ch)[0] in l:
             return True
