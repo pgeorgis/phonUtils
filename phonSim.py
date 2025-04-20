@@ -91,7 +91,7 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
     phone1, phone2 = map(_toSegment, [phone1, phone2])
 
     # Get feature dictionaries for each phone
-    phone_id1, phone_id2 = phone1.get_features().copy(), phone2.get_features().copy()
+    phone_id1, phone_id2 = phone1.features.copy(), phone2.features.copy()
 
     # Exclude specified features
     for feature in exclude_features:
@@ -137,10 +137,10 @@ def lookup_segments(features, values, segment_list=consonants.union(vowels).unio
         segment: Segment = _toSegment(segment)
         match_tallies = 0
         for feature, value in zip(features, values):
-            if segment.get_feature(feature) == value:
+            if segment.features[feature] == value:
                 match_tallies += 1
         if match_tallies == len(features):
-            matches.append(segment.get_segment())
+            matches.append(segment.segment)
     return set(matches)
 
 
@@ -152,7 +152,7 @@ def common_features(segment_list: Iterable[Segment],
     for segment in segment_list:
         segment: Segment = _toSegment(segment)
         for feature in features:
-            value = segment.get_feature(feature)
+            value = segment.features[feature]
             if value not in feature_values[feature]:
                 feature_values[feature].append(value)
     common = [(feature, feature_values[feature][0]) for feature in feature_values if len(feature_values[feature]) == 1]

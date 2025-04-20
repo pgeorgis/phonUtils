@@ -9,8 +9,8 @@ from phonUtils.initPhoneData import (consonants, fricatives, geminate_regex,
                                      plosives)
 from phonUtils.segment import _toSegment, segment_ipa
 
-VOICELESS_CONSONANTS: str = ''.join([phone for phone in consonants if _toSegment(phone).is_voiceless()])
-VOICED_CONSONANTS: str = ''.join([phone for phone in consonants if _toSegment(phone).is_voiced()])
+VOICELESS_CONSONANTS: str = ''.join([phone for phone in consonants if _toSegment(phone).voiceless])
+VOICED_CONSONANTS: str = ''.join([phone for phone in consonants if _toSegment(phone).voiced])
 
 #General phonological transformation functions
 devoice_dict = {
