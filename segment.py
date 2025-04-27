@@ -686,7 +686,11 @@ def segment_ipa(word: str,
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
-    verify_charset(word)
+    try:
+        verify_charset(word)
+    except ValueError:
+        word = normalize_ipa_ch(word)
+        verify_charset(word)
     
     # Remove spaces and other specified characters/diacritics (e.g. stress, linking ties for phonological words)
     remove_ch += '\s‿'
