@@ -1,7 +1,6 @@
 import os
 import re
 import sys
-import cython
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import syllables
@@ -76,7 +75,6 @@ def degeminate(word, phones):
         word = re.sub(f'{phone}ː', phone, word)
     return word
 
-@cython.ccall
 def normalize_geminates(word: str) -> str:
     return geminate_regex.sub(r'\1\2\3\4ː', word)
 

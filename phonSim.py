@@ -2,7 +2,6 @@
 # Code developed by Philip Georgis (Last updated: August 2023)
 from typing import Iterable
 
-import cython
 import os
 import sys
 from collections import defaultdict
@@ -18,8 +17,7 @@ from phonUtils.segment import _toSegment, Segment
 
 
 # SIMILARITY / DISTANCE MEASURES
-@cython.ccall
-def hamming_distance(vec1, vec2, normalize=True) -> float:
+def hamming_distance(vec1, vec2, normalize=True):
     differences = len([feature for feature in vec1 if vec1[feature] != vec2[feature]])
     if normalize:
         return differences / len(vec1)
@@ -27,8 +25,7 @@ def hamming_distance(vec1, vec2, normalize=True) -> float:
         return differences
 
 
-@cython.ccall
-def jaccard_sim(vec1, vec2) -> float:
+def jaccard_sim(vec1, vec2):
     features = sorted(list(vec1.keys()))
     vec1_values = [vec1[feature] for feature in features]
     vec2_values = [vec2[feature] for feature in features]
@@ -43,14 +40,12 @@ def jaccard_sim(vec1, vec2) -> float:
     return jaccard_score(vec1_values, vec2_values)
 
 
-@cython.ccall
-def dice_sim(vec1, vec2) -> float:
+def dice_sim(vec1, vec2):
     jaccard = jaccard_sim(vec1, vec2)
     return (2*jaccard) / (1+jaccard)
 
 
-@cython.ccall
-def weighted_hamming(vec1, vec2, weights=feature_weights) -> float:
+def weighted_hamming(vec1, vec2, weights=feature_weights):
     diffs = 0
     for feature in vec1:
         if vec1[feature] != vec2[feature]:
@@ -58,8 +53,7 @@ def weighted_hamming(vec1, vec2, weights=feature_weights) -> float:
     return diffs/len(vec1)
 
 
-@cython.ccall
-def weighted_jaccard(vec1, vec2, weights=feature_weights) -> float:
+def weighted_jaccard(vec1, vec2, weights=feature_weights):
     union, intersection = 0, 0
     for feature in vec1:
         if ((vec1[feature] == 1) and (vec2[feature] == 1)):
@@ -69,16 +63,14 @@ def weighted_jaccard(vec1, vec2, weights=feature_weights) -> float:
     return intersection/union
             
 
-@cython.ccall
-def weighted_dice(vec1, vec2, weights=feature_weights) -> float:
+def weighted_dice(vec1, vec2, weights=feature_weights):
     w_jaccard = weighted_jaccard(vec1, vec2, weights)
     return (2*w_jaccard) / (1+w_jaccard)
 
 
 # PHONE COMPARISON
 @lru_cache(maxsize=None)
-@cython.ccall
-def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None) -> float:
+def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None):
     """Returns the similarity of the features of the two phones according to
     the specified distance/similarity function;
     Features not to be included in the comparison should be passed as a list to

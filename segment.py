@@ -1,4 +1,3 @@
-import cython
 import os
 import re
 import sys
@@ -40,20 +39,8 @@ tone_diacritics_map = {
             }
 
 
-@cython.final
-@cython.cclass
 class Segment:
     segments: dict = {}
-    segment: str = cython.declare(str, visibility='readonly')
-    stripped: str = cython.declare(str, visibility='readonly')
-    base: str = cython.declare(str, visibility='readonly')
-    features: defaultdict = cython.declare(object, visibility='readonly')
-    phone_class: str = cython.declare(str, visibility='readonly')
-    voiced: cython.bint = cython.declare(cython.bint, visibility='readonly')
-    voiceless: cython.bint = cython.declare(cython.bint, visibility='readonly')
-    manner: str
-    poa: str
-    sonority: cython.int = cython.declare(cython.int, visibility='readonly')
 
     def __init__(self, segment, normalize=False):
         # Normalize IPA string input and check for non-IPA characters
@@ -68,33 +55,31 @@ class Segment:
         self.features = self.get_phone_features(self.segment)
         
         # Get phone class
-        self.phone_class = self.calculate_phone_class()
+        self.phone_class = self.get_phone_class()
 
         # Get voicing status, manner, and place of articulation
         if self.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
             self.voiced = self.features['periodicGlottalSource'] == 1
             self.voiceless = self.features['periodicGlottalSource'] == 0
         else:
-            self.voiced = False
-            self.voiceless = False
+            self.voiced = None
+            self.voiceless = None
         self.manner = self.get_manner()
         self.poa = self.get_poa()
 
         # Get sonority
-        self.sonority = self.calculate_sonority()
+        self.sonority = self.get_sonority()
 
         # Add Segment instance to Segment class attribute dictionary
         Segment.segments[self.segment] = self
 
-    @cython.cfunc
-    @cython.returns(cython.void)
-    def normalize(self) -> None:
+
+    def normalize(self):
         self.segment = normalize_ipa_ch(self.segment)
         verify_charset(self.segment)
 
-    @cython.cfunc
-    @cython.returns(tuple)
-    def get_base_ch(self) -> tuple:
+
+    def get_base_ch(self):
         no_diacritics = strip_diacritics(self.segment)
         if len(no_diacritics) < 1:
             #raise ValueError(f'Error: invalid segment <{self.segment}>, no base IPA character found!')
@@ -102,9 +87,8 @@ class Segment:
         else:
             return no_diacritics, no_diacritics[0]
 
-    @cython.cfunc
-    @cython.returns(str)
-    def calculate_phone_class(self) -> str:
+
+    def get_phone_class(self):
         if diphthong_regex.search(self.segment):
             return 'DIPHTHONG'
         elif self.base in glides:
@@ -120,10 +104,8 @@ class Segment:
         else:
             raise ValueError(f'Could not determine phone class of {self.segment}')
 
-    @cython.cfunc
-    @cython.locals(segment = object)
-    @cython.returns(object)
-    def get_phone_features(self, segment) -> dict | defaultdict:
+
+    def get_phone_features(self, segment):
         """Returns a dictionary of distinctive phonological feature values for the segment"""
         
         # Retrieve saved feature dictionary if already generated for this segment
@@ -179,13 +161,9 @@ class Segment:
 
         return feature_dict
 
-    @cython.cfunc
-    @cython.locals(base = str, base_features = dict, diacritics = set,
-                   modified_features = dict, modifier = str,
-                   feature = str, value = cython.int)
-    def apply_diacritics(self, base: str,
-                         base_features: dict,
-                         diacritics: set) -> dict:
+
+
+    def apply_diacritics(self, base:str, base_features:dict, diacritics:set):
         """Applies feature values of diacritics to base segments
 
         Args:
@@ -221,7 +199,7 @@ class Segment:
         
         return modified_features
 
-    @cython.cfunc
+
     def get_diphthong_features(self, diphthong):
         """Returns dictionary of features for diphthongal segment"""
         components = segment_ipa(diphthong, combine_diphthongs=False)
@@ -246,7 +224,8 @@ class Segment:
             
         return diphth_dict
 
-    def get_tonal_features(self, toneme) -> defaultdict:
+
+    def get_tonal_features(self, toneme):
         """Computes complex tonal features"""
         
         # Set the base as the first component of the toneme
@@ -309,7 +288,7 @@ class Segment:
         
         return toneme_id
 
-    @cython.cfunc
+
     def get_suprasegmental_features(self, supraseg):
         if all([s in tone_diacritics_map for s in supraseg]):
             tone_eq = ''.join([tone_diacritics_map[s] for s in supraseg])
@@ -321,9 +300,8 @@ class Segment:
                     features[feature] = max(value, features[feature])
             return features
 
-    @cython.cfunc
-    @cython.returns(str)
-    def get_manner(self) -> str:
+
+    def get_manner(self):
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if self.base in affricates or _is_affricate(self.segment):
                 manner = 'AFFRICATE'
@@ -414,9 +392,8 @@ class Segment:
 
         return manner
         
-    @cython.cfunc
-    @cython.returns(str)
-    def get_poa(self) -> str:
+
+    def get_poa(self):
         val_err = ValueError(f'Could not determine place of articulation for {self.segment}')
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if re.search(r'([wʍ])|([kɡ].*͡[pb])', self.segment):
@@ -546,9 +523,7 @@ class Segment:
         else:
             raise val_err
 
-    @cython.ccall
-    @cython.returns(cython.int)
-    def calculate_sonority(self) -> int:
+    def get_sonority(self):
         """Returns the sonority level of a phone according to Parker's (2002) 
         universal sonority hierarchy
         
@@ -645,7 +620,7 @@ class Segment:
         # Tonemes and other suprasegmentals
         elif self.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
             return 17 # Highest sonority
-        
+
         # Other sounds: raise error message
         raise ValueError(f'Error: the sonority of phone "{self.segment}" cannot be determined!')
 
@@ -678,11 +653,7 @@ class Segment:
         
 
 # IPA STRING SEGMENTATION
-def segment_ipa(word: str,
-                remove_ch: str='',
-                combine_diphthongs: bool=True,
-                preaspiration: bool=True,
-                autonomous_diacritics: bool=False) -> list:
+def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True, autonomous_diacritics=None):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
@@ -794,13 +765,11 @@ def segment_ipa(word: str,
 
 
 # AUXILIARY FUNCTIONS
-def _toSegment(ch) -> Segment:
+def _toSegment(ch):
     return Segment.segments.get(ch, Segment(ch))
 
-@cython.cfunc
-@cython.locals(ch = str, l = set)
-@cython.returns(cython.bint)
-def _is_ch(ch: str, l: set) -> bool:
+
+def _is_ch(ch, l):
     try:
         if strip_diacritics(ch)[0] in l:
             return True
@@ -810,9 +779,6 @@ def _is_ch(ch: str, l: set) -> bool:
         return False
 
 
-@cython.ccall
-@cython.locals(ch = str)
-@cython.returns(cython.bint)
-def _is_vowel(ch: str) -> bool:
+def _is_vowel(ch):
     return _is_ch(ch, vowels)
 

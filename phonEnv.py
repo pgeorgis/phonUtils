@@ -1,10 +1,8 @@
 import os
 import re
 import sys
-from typing import Self, Optional
-
-import cython
 from itertools import combinations
+from typing import Optional
 
 # Add the project's root directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,16 +20,9 @@ BASE_TONEME_ENV = "|T|"
 BOUNDARY_TOKEN = "#"
 
 # HELPER FUNCTIONS
-@cython.cfunc
-@cython.returns(cython.bint)
-@cython.locals(
-    ch = object,
-    regex = object,
-    ch_list = set,
-)
 def _is_env(ch: Segment,
             regex: re.Pattern[str] = None,
-            ch_list: set=None) -> cython.bint:
+            ch_list: set=None) -> bool:
     if regex and regex.search(ch):
         return True
     if ch_list and ch in ch_list:
@@ -39,8 +30,6 @@ def _is_env(ch: Segment,
     return False
 
 # Relative sonority functions
-@cython.cfunc
-@cython.returns(str)
 def relative_prev_sonority(seg: Segment, prev_seg: Segment) -> str:
     if prev_seg.segment == seg.segment:
         return 'S'
@@ -56,13 +45,6 @@ def relative_prev_sonority(seg: Segment, prev_seg: Segment) -> str:
         return '>'
 
 
-@cython.cfunc
-@cython.returns(str)
-@cython.locals(
-    seg = object,
-    next_seg = object,
-
-)
 def relative_post_sonority(seg: Segment, next_seg: Segment) -> str:
     if next_seg.segment == seg.segment:
         return 'S'
@@ -77,8 +59,6 @@ def relative_post_sonority(seg: Segment, next_seg: Segment) -> str:
         return '<'
 
 
-@cython.cfunc
-@cython.returns(str)
 def relative_sonority(seg: Segment,
                       prev_seg: Segment | None = None,
                       next_seg: Segment | None = None,
@@ -95,47 +75,28 @@ def relative_sonority(seg: Segment,
     return f'{prev_son}{BASE_SEGMENT_ENV}{post_son}'
 
 # PHONOLOGICAL ENVIRONMENT
-@cython.final
-@cython.cclass
 class PhonEnv:
-    gap_ch: str | None = cython.declare(str)
-    index: cython.Py_ssize_t = cython.declare(cython.Py_ssize_t)
-    segment_i: Segment | None = cython.declare(object)
-    supra_segs: list[Segment] = cython.declare(list)
-    segments: list[Segment] = cython.declare(list)
-    adjust_n: cython.Py_ssize_t = cython.declare(cython.Py_ssize_t)
-    adjusted_index: int = cython.declare(cython.int)
-    phon_env: str = cython.declare(str)
+    gap_ch: str | None # = cython.declare(str)
+    index: int # = cython.declare(cython.Py_ssize_t)
+    segment_i: Segment | None # = cython.declare(object)
+    supra_segs: list # = cython.declare(list)
+    segments: list # = cython.declare(list)
+    adjust_n: int # = cython.declare(cython.Py_ssize_t)
+    adjusted_index: int #  = cython.declare(cython.int)
+    phon_env: str # = cython.declare(str)
 
-    @cython.locals(
-        segments = list,
-        i = cython.Py_ssize_t,
-        gap_ch = Optional[str],
-    )
-    @cython.returns(Self)
-    def __init__(self, segments, i, gap_ch=None):
+    def __init__(self, segments, i, gap_ch=None, **kwargs):
         self.gap_ch = gap_ch
         if self.gap_ch:
             i, segments = self.preprocess_aligned_sequence(segments, i)
-        self.index: cython.Py_ssize_t = i
+        self.index = i
         self.segment_i = None
         self.supra_segs = [_toSegment(s) if not self.is_gappy(s) else s for s in segments]
         self.segments, self.adjust_n = self.sep_segs_from_suprasegs(self.supra_segs, self.index)
-        self.adjusted_index: cython.Py_ssize_t = self.index - self.adjust_n
-        self.phon_env = self.get_phon_env()
+        self.adjusted_index = self.index - self.adjust_n
+        self.phon_env = self.get_phon_env(**kwargs)
 
-    @cython.cfunc
-    @cython.locals(
-        segments = list,
-        i = cython.Py_ssize_t,
-        minus_offset = cython.Py_ssize_t,
-        plus_offset = cython.Py_ssize_t,
-        adj_segments = list,
-        segment = object
-    )
-    @cython.returns(tuple[cython.Py_ssize_t, list])
-    def preprocess_aligned_sequence(self, segments: list,
-                                    i: cython.Py_ssize_t) -> tuple[cython.Py_ssize_t, list]:
+    def preprocess_aligned_sequence(self, segments, i):
         """Drop gaps and boundaries and flatten complex ngrams."""
         minus_offset, plus_offset = 0, 0
         adj_segments = []
@@ -167,17 +128,7 @@ class PhonEnv:
                     adj_segments.append(segment)
         return adjusted_i, adj_segments
 
-    @cython.cfunc
-    @cython.locals(
-        segments = list,
-        i = cython.Py_ssize_t,
-        j = cython.Py_ssize_t,
-        adjust_n = cython.Py_ssize_t,
-        segs = list,
-        seg  = object
-    )
-    @cython.returns(tuple[list, cython.Py_ssize_t])
-    def sep_segs_from_suprasegs(self, segments, i) -> tuple[list, cython.Py_ssize_t]:
+    def sep_segs_from_suprasegs(self, segments, i):
         adjust_n = 0
         segs = []
         for j, seg in enumerate(segments):
@@ -191,19 +142,7 @@ class PhonEnv:
                 self.segment_i = seg
         return segs, adjust_n
 
-    @cython.cfunc
-    @cython.locals(
-        front = cython.bint,
-        nasal = cython.bint,
-        rhotic = cython.bint,
-        accented = cython.bint,
-        env = str,
-        i = cython.Py_ssize_t,
-        prev_segment = object,
-        next_segment = object,
-    )
-    @cython.returns(str)
-    def get_phon_env(self, front=True, nasal=True, rhotic=True, accented=True) -> str:
+    def get_phon_env(self, front=True, nasal=True, rhotic=True, accented=True):
         """Returns a string representing the phonological environment of a segment within a word"""
         
         # Tonemes/suprasegmentals
@@ -211,8 +150,8 @@ class PhonEnv:
             return BASE_TONEME_ENV
         
         # Word-initial segments (free-standing segments also considered word-initial)
-        env: str = BASE_SEGMENT_ENV
-        i: cython.Py_ssize_t = self.adjusted_index
+        env = BASE_SEGMENT_ENV
+        i = self.adjusted_index
         if i == 0:
             if len(self.segments) > 1:
                 next_segment = self.segments[i+1]
@@ -222,12 +161,11 @@ class PhonEnv:
             # Word-initial segments: #S
             if next_segment:
                 if not self.is_gappy(self.segments[self.adjusted_index]):
-                    env = self.relative_sonority(prev_seg=None,
-                                                 next_seg=next_segment)
+                    env = self.relative_sonority(next_seg=next_segment)
             
                 # Add front vowel environment
                 if front:
-                    env = self.add_front_env(env, next_segment.base, suffix=True, prefix=None)
+                    env = self.add_front_env(env, next_segment.base, suffix=True)
                 # Add following nasal environment
                 if nasal:
                     env = self.add_nasal_env(env, next_segment.base, suffix=True)
@@ -271,8 +209,8 @@ class PhonEnv:
 
             # Add front vowel environment
             if front:
-                env = self.add_front_env(env, prev_segment.base, prefix=True, suffix=None)
-                env = self.add_front_env(env, next_segment.base, suffix=True, prefix=None)
+                env = self.add_front_env(env, prev_segment.base, prefix=True)
+                env = self.add_front_env(env, next_segment.base, suffix=True)
             # Add following nasal environment
             if nasal:
                 env = self.add_nasal_env(env, next_segment.base, suffix=True)
@@ -292,36 +230,18 @@ class PhonEnv:
             
             return env
 
-    @cython.cfunc
     def is_gappy(self, seg):
         return isinstance(seg, str) and (seg == self.gap_ch or BOUNDARY_TOKEN in seg)
 
-    @cython.cfunc
-    @cython.locals(
-        prev_seg = Optional[object],
-        next_seg = Optional[object],
-    )
     def relative_sonority(self, prev_seg=None, next_seg=None):
         return relative_sonority(self.segment_i, prev_seg=prev_seg, next_seg=next_seg)
 
-    @cython.cfunc
     def relative_prev_sonority(self, prev_seg):
         return relative_prev_sonority(self.segment_i, prev_seg)
 
-    @cython.cfunc
     def relative_post_sonority(self, next_seg):
         return relative_post_sonority(self.segment_i, next_seg)
 
-    @cython.cfunc
-    @cython.locals(
-        env = str,
-        ch = object,
-        symbol = str,
-        regex = Optional[object],
-        ch_list = Optional[set],
-        phone_class = Optional[tuple]
-    )
-    @cython.returns(str)
     def add_env(self,
                 env: str,
                 ch: Segment,
@@ -344,40 +264,17 @@ class PhonEnv:
         else: # suffix
             return env + sep + symbol
 
-    @cython.cfunc
-    @cython.returns(str)
-    def add_front_env(self, env, ch, prefix: Optional[bool] = None,
-                      suffix: Optional[bool] = None,
-                      phone_class: Optional[set] = None) -> str:
-        return self.add_env(env, ch, symbol='F', regex=front_vowel_regex, ch_list={'j', 'ɥ'},
-                            prefix=prefix, suffix=suffix, phone_class=phone_class)
+    def add_front_env(self, env, ch, **kwargs):
+        return self.add_env(env, ch, symbol='F', regex=front_vowel_regex, ch_list={'j', 'ɥ'}, **kwargs)
 
-    @cython.cfunc
-    @cython.returns(str)
-    def add_nasal_env(self, env, ch, suffix: bool) -> str:
-        return self.add_env(env, ch, symbol='N', regex=nasal_regex, suffix=suffix,
-                            ch_list=None, phone_class=None, prefix=None)
+    def add_nasal_env(self, env, ch, **kwargs):
+        return self.add_env(env, ch, symbol='N', regex=nasal_regex, **kwargs)
 
-    @cython.cfunc
-    @cython.returns(str)
-    def add_rhotic_env(self, env, ch, suffix: bool) -> str:
-        return self.add_env(env, ch, symbol='R', regex=rhotic_regex, suffix=suffix,
-                            ch_list=None, phone_class=None, prefix=None)
+    def add_rhotic_env(self, env, ch, **kwargs):
+        return self.add_env(env, ch, symbol='R', regex=rhotic_regex, **kwargs)
 
-    @cython.cfunc
-    @cython.locals(
-        env = str,
-        seg = object,
-        suffix = cython.bint,
-    )
-    @cython.returns(str)
-    def add_accented_env(self, env: str,
-                         seg: Segment,
-                         suffix: bool) -> str:
-        return self.add_env(env, seg,
-                            symbol='A',
-                            phone_class=('TONEME', 'SUPRASEGMENTAL'), suffix=suffix,
-                            prefix=None, regex=None, ch_list=None)
+    def add_accented_env(self, env, seg, **kwargs):
+        return self.add_env(env, seg, symbol='A', phone_class=('TONEME', 'SUPRASEGMENTAL'), **kwargs)
         
     def ngrams(self, exclude=set()):
         """Returns set of phonological environment strings of equal and lower order, 
@@ -392,11 +289,6 @@ class PhonEnv:
         return self.phon_env
 
 
-@cython.ccall
-@cython.locals(value = str, parts = list,
-               i = cython.Py_ssize_t,
-               x = tuple[str, cython.Py_ssize_t])
-@cython.returns(set)
 def join_n_fix(value) -> set:
     parts: list = value.split('_')
     result: set = set()
@@ -407,13 +299,6 @@ def join_n_fix(value) -> set:
     return result
 
 
-@cython.ccall
-@cython.locals(
-    phonEnv = str, exclude = set,
-    prefix = str, base = str, suffix = str,
-    prefixes = set, suffixes = set, ngrams = set,
-)
-@cython.returns(list)
 def phon_env_ngrams(phonEnv: str, exclude: set) -> list:
     """Returns list of phonological environment strings of equal and lower order,
     e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
@@ -437,7 +322,6 @@ def phon_env_ngrams(phonEnv: str, exclude: set) -> list:
         return [ngram for ngram in ngrams if ngram not in exclude]
     return list(ngrams)
 
-@cython.ccall
-@cython.returns(str)
-def get_phon_env(segments, i) -> str:
-    return PhonEnv(segments, i).phon_env
+def get_phon_env(segments, i, **kwargs):
+    phon_env = PhonEnv(segments, i, **kwargs)
+    return phon_env.phon_env
