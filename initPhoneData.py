@@ -139,7 +139,7 @@ def get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacriti
 
 
 # INITIALIZE ALL CONSTANTS
-dir = os.path.join(os.getcwd(), 'phyloLing', 'phonUtils')
+dir = os.path.join(os.getcwd(), 'phonUtils')
 features, phone_features, phone_classes = load_phone_data(dir)
 diacritics_data = load_diacritics_data(dir)
 ipa_norm_map = load_ipa_norm_map(dir)
