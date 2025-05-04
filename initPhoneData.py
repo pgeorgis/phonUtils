@@ -3,6 +3,8 @@ import re
 from collections import defaultdict
 from math import log
 
+import warnings
+warnings.filterwarnings('ignore', category=FutureWarning) # pandas
 import pandas as pd
 
 pre_diacritics, post_diacritics = [], []
