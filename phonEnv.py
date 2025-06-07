@@ -31,67 +31,83 @@ PHON_ENV_MAP = {
         "symbol": "F",
         "regex": front_vowel_regex,
         "ch_list": {'j', 'ɥ'},
+        "active": True,
     },
     "NASAL": {
         "symbol": "N",
         "regex": nasal_regex,
+        "active": True,
     },
-    # "RHOTIC": {
-    #     "symbol": "R",
-    #     "regex": rhotic_regex,
-    # },
-    # "LATERAL": {
-    #     "symbol": "L",
-    #     "regex": re.compile(f"[{''.join(lateral)}ˡ]"),
-    # },
+    "RHOTIC": {
+        "symbol": "R",
+        "regex": rhotic_regex,
+        "active": False,
+    },
+    "LATERAL": {
+        "symbol": "L",
+        "regex": re.compile(f"[{''.join(lateral)}ˡ]"),
+        "active": False,
+    },
     "LIQUID": {
         "symbol": "RL",
         "regex": re.compile(f"[{''.join(liquids)}]"),
+        "active": True,
     },
     "LABIAL": {
         "symbol": "B",
         "regex": re.compile(f"[{''.join(bilabial.union(labiodental))}ʷᵝ]"),
+        "active": True,
     },
-    # "DENTAL/ALVEOLAR": {
-    #     "symbol": "D",
-    #     "regex": re.compile(f"[{''.join(dental.union(alveolar))}]"),
-    # },
-    # "POST-ALVEOLAR": {
-    #     "symbol": "Š",
-    #     "regex": re.compile(f"[{''.join(postalveolar.union(retroflex))}]"),
-    # },
-    # "PALATAL": {
-    #     "symbol": "P",
-    #     "regex": re.compile(f"[{''.join(palatal.union(alveolopalatal))}]"),
-    # },
-    # "VELAR/UVULAR": {
-    #     "symbol": "K",
-    #     "regex": re.compile(f"[{''.join(velar.union(uvular))}ˠ]"),
-    # },
-    # "PHARYNGEAL/(EPI)GLOTTAL": {
-    #     "symbol": "H",
-    #     "regex": re.compile(f"[{''.join(glottal.union(epiglottal).union(pharyngeal))}ˤˀ]"),
-    # },
+    "DENTAL/ALVEOLAR": {
+        "symbol": "D",
+        "regex": re.compile(f"[{''.join(dental.union(alveolar))}]"),
+        "active": False,
+    },
+    "POST-ALVEOLAR": {
+        "symbol": "Š",
+        "regex": re.compile(f"[{''.join(postalveolar.union(retroflex))}]"),
+        "active": False,
+    },
+    "PALATAL": {
+        "symbol": "P",
+        "regex": re.compile(f"[{''.join(palatal.union(alveolopalatal))}]"),
+        "active": False,
+    },
+    "VELAR/UVULAR": {
+        "symbol": "K",
+        "regex": re.compile(f"[{''.join(velar.union(uvular))}ˠ]"),
+        "active": False,
+    },
+    "PHARYNGEAL/(EPI)GLOTTAL": {
+        "symbol": "H",
+        "regex": re.compile(f"[{''.join(glottal.union(epiglottal).union(pharyngeal))}ˤˀ]"),
+        "active": False,
+    },
     "VOICELESS": {
         "symbol": "-Voice",
         "features": {"periodicGlottalSource": 0},
+        "active": True,
     },
-    # "VOICED": {
-    #     "symbol": "+Voice",
-    #     "features": {"periodicGlottalSource": 1},
-    # },
+    "VOICED": {
+        "symbol": "+Voice",
+        "features": {"periodicGlottalSource": 1},
+        "active": False,
+    },
     "VOWEL": {
         "symbol": "V",
         "phone_class": ['VOWEL', 'DIPHTHONG'],
+        "active": False,
     },
     "CONSONANT": {
         "symbol": "C",
         "phone_class": ['CONSONANT', 'GLIDE'],
+        "active": False,
     },
-    # "ACCENTED": {
-    #     "symbol": "A",
-    #     "phone_class": ['TONEME', 'SUPRASEGMENTAL'],
-    # },
+    "ACCENTED": {
+        "symbol": "A",
+        "phone_class": ['TONEME', 'SUPRASEGMENTAL'],
+        "active": False,
+    },
 }
 
 
@@ -326,6 +342,8 @@ class PhonEnv:
     
     def add_envs(self, env, segment, **kwargs):
         for _, encoding_map in PHON_ENV_MAP.items():
+            if encoding_map["active"] is False:
+                continue
             symbol = encoding_map["symbol"]
             regex = encoding_map.get("regex", None)
             ch_list = encoding_map.get("ch_list", None)
