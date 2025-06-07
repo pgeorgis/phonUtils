@@ -118,7 +118,7 @@ def relative_prev_sonority(seg, prev_seg):
         return '>'
     
 def relative_post_sonority(seg, next_seg):
-    if next_seg == seg.sonority:
+    if next_seg.segment == seg.segment:
             return 'S'
     elif next_seg.sonority == seg.sonority:
         return '='
@@ -137,23 +137,60 @@ def relative_sonority(seg, prev_seg=None, next_seg=None):
         post_son = BOUNDARY_TOKEN
     else:
         post_son = relative_post_sonority(seg, next_seg)
-    return f'{prev_son}|S|{post_son}'
+    return f'{prev_son}{BASE_SEGMENT_ENV}{post_son}'
 
 # PHONOLOGICAL ENVIRONMENT
 class PhonEnv:
-    def __init__(self, segments, i, **kwargs):
+    def __init__(self, segments, i, gap_ch=None, **kwargs):
+        self.gap_ch = gap_ch
+        if self.gap_ch:
+            i, segments = self.preprocess_aligned_sequence(segments, i)
         self.index = i
         self.segment_i = None
-        self.supra_segs = [_toSegment(s) for s in segments]
+        self.supra_segs = [_toSegment(s) if not self.is_gappy(s) else s for s in segments]
         self.segments, self.adjust_n = self.sep_segs_from_suprasegs(self.supra_segs, self.index)
         self.adjusted_index = self.index - self.adjust_n
         self.phon_env = self.get_phon_env(**kwargs)
+    
+    def preprocess_aligned_sequence(self, segments, i):
+        """Drop gaps and boundaries and flatten complex ngrams."""
+        minus_offset, plus_offset = 0, 0
+        adj_segments = []
+        for segment in segments[:i]:
+            if isinstance(segment, str) and BOUNDARY_TOKEN in segment:
+                minus_offset += 1
+                continue
+            elif isinstance(segment, tuple) and BOUNDARY_TOKEN in segment[0]:
+                adj_segments.extend(segment[1:])
+                plus_offset += len(segment) - 2
+                continue
+            if segment == self.gap_ch:
+                minus_offset += 1
+            else:
+                if isinstance(segment, tuple):
+                    adj_segments.extend(segment)
+                    plus_offset += len(segment) - 1
+                else:
+                    adj_segments.append(segment)
+        adjusted_i = i - minus_offset + plus_offset
+        adj_segments.append(segments[i])
+        for segment in segments[i:][1:]:
+            if not self.is_gappy(segment):
+                if isinstance(segment, tuple) and any(self.is_gappy(subseg) for subseg in segment):
+                    continue
+                elif isinstance(segment, tuple):
+                    adj_segments.extend(segment)
+                else:
+                    adj_segments.append(segment)
+        return adjusted_i, adj_segments
     
     def sep_segs_from_suprasegs(self, segments, i):
         adjust_n = 0
         segs = []
         for j, seg in enumerate(segments):
-            if seg.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
+            if isinstance(seg, Segment) and seg.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
+                segs.append(seg)
+            elif isinstance(seg, str): # str: gap or boundary
                 segs.append(seg)
             elif j < i:
                 adjust_n += 1
@@ -165,12 +202,11 @@ class PhonEnv:
         """Returns a string representing the phonological environment of a segment within a word"""
         
         # Tonemes/suprasegmentals
-        if self.segment_i.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
+        if isinstance(self.segment_i, Segment) and self.segment_i.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
             return BASE_TONEME_ENV
-        else:
-            env = BASE_SEGMENT_ENV
         
         # Word-initial segments (free-standing segments also considered word-initial)
+        env = BASE_SEGMENT_ENV
         i = self.adjusted_index
         if i == 0:
             if len(self.segments) > 1:
@@ -226,6 +262,9 @@ class PhonEnv:
             # env = prev_segment.segment + '_' + env
             
             return env
+    
+    def is_gappy(self, seg):
+        return isinstance(seg, str) and (seg == self.gap_ch or BOUNDARY_TOKEN in seg)
     
     def relative_sonority(self, prev_seg=None, next_seg=None):
         return relative_sonority(self.segment_i, prev_seg=prev_seg, next_seg=next_seg)
@@ -309,7 +348,7 @@ def phon_env_ngrams(phonEnv, exclude=set()):
     Returns:
         set: possible equal and lower order phonological environment strings
     """
-    if re.search(r'.*\|S\|.*', phonEnv):
+    if re.search(r'.+\|S\|.*', phonEnv) or re.search(r'.*\|S\|.+', phonEnv):
         prefix, base, suffix = phonEnv.split('|')
         prefix = prefix.split('_')
         prefixes = set()
