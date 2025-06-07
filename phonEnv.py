@@ -20,8 +20,10 @@ from phonUtils.syllables import syllabify
 PHON_ENV_REGEX = re.compile(r'.*\|[ST]\|.*')
 BASE_SEGMENT_ENV = '|S|'
 BASE_TONEME_ENV = '|T|'
-OPEN_SYLLABLE_SYM = 'SylOpen'
-CLOSED_SYLLABLE_SYM = 'SylClosed'
+OPEN_SYLLABLE_ENV = 'SylOpen'
+CLOSED_SYLLABLE_ENV = 'SylClosed'
+SYLLABLE_ONSET_ENV = 'SylOnset'
+SYLLABLE_CODA_ENV = 'SylCoda'
 BOUNDARY_TOKEN = "#"
 PHON_ENV_MAP = {
     "FRONT": {
@@ -240,7 +242,7 @@ class PhonEnv:
             # Free-standing segments
             else:
                 if self.segment_i.phone_class in {"VOWEL", "DIPHTHONG"}:
-                    return f"{BOUNDARY_TOKEN}{BASE_SEGMENT_ENV}{OPEN_SYLLABLE_SYM}{BOUNDARY_TOKEN}"
+                    return f"{BOUNDARY_TOKEN}{BASE_SEGMENT_ENV}{OPEN_SYLLABLE_ENV}{BOUNDARY_TOKEN}"
                 return f"{BOUNDARY_TOKEN}{BASE_SEGMENT_ENV}{BOUNDARY_TOKEN}"
         
         # Word-final segments: S#
@@ -336,15 +338,21 @@ class PhonEnv:
         return env
 
     def add_syllable_env(self, i, env):
-        """Add 'OPEN' or 'CLOSED' to syllable nuclei."""
+        """Add 'OPEN' or 'CLOSED' to syllable nuclei, 'ONSET' or 'CODA' to other segments within a syllable."""
         if i in self.syllables:
             syllable_type = self.syllables[i].type
             assert syllable_type in {"OPEN", "CLOSED"}
             if syllable_type == "OPEN":
-                syllable_marker = OPEN_SYLLABLE_SYM
+                syllable_env = OPEN_SYLLABLE_ENV
             else: # "CLOSED"
-                syllable_marker = CLOSED_SYLLABLE_SYM
-            env += '_' + syllable_marker
+                syllable_env = CLOSED_SYLLABLE_ENV
+        else:
+            syllable_env = SYLLABLE_CODA_ENV
+            for nucleus_i in self.syllables:
+                if i < nucleus_i:
+                    syllable_env = SYLLABLE_ONSET_ENV
+                    break
+        env += '_' + syllable_env
         return env
     
     def add_front_env(self, env, ch, **kwargs):
