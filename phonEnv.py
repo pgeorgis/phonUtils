@@ -347,11 +347,13 @@ class PhonEnv:
         """Add 'OPEN' or 'CLOSED' to syllable nuclei, 'ONSET' or 'CODA' to other segments within a syllable."""
         if i in self.syllables:
             syllable_type = self.syllables[i].type
-            assert syllable_type in {"OPEN", "CLOSED"}
+            assert syllable_type in {"OPEN", "CLOSED", "OTHER"}
             if syllable_type == "OPEN":
                 syllable_env = OPEN_SYLLABLE_ENV
-            else: # "CLOSED"
+            elif syllable_type == "CLOSED":
                 syllable_env = CLOSED_SYLLABLE_ENV
+            else: # "OTHER"
+                return env
         else:
             syllable_env = SYLLABLE_CODA_ENV
             for nucleus_i in self.syllables:
