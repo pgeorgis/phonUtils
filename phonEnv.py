@@ -18,6 +18,7 @@ from phonUtils.syllables import syllabify
 
 # CONSTANTS
 PHON_ENV_REGEX = re.compile(r'.*\|[ST]\|.*')
+PHON_ENV_SEP = "_"
 BASE_SEGMENT_ENV = '|S|'
 BASE_TONEME_ENV = '|T|'
 OPEN_SYLLABLE_ENV = 'SylOpen'
@@ -93,10 +94,6 @@ PHON_ENV_MAP = {
     # },
 }
 
-# syllable onset: SylO
-# syllable medial: SylM
-# syllable coda: SylC
-
 
 # HELPER FUNCTIONS
 def _is_env(segment: Segment, regex=None, ch_list=None, features=None):
@@ -134,14 +131,14 @@ def relative_post_sonority(seg, next_seg):
 def relative_sonority(seg, prev_seg=None, next_seg=None):
     assert prev_seg is not None or next_seg is not None
     if prev_seg is None:
-        prev_son = BOUNDARY_TOKEN
+        prev_son = None
     else:
         prev_son = relative_prev_sonority(seg, prev_seg)
     if next_seg is None:
-        post_son = BOUNDARY_TOKEN
+        post_son = None
     else:
         post_son = relative_post_sonority(seg, next_seg)
-    return f'{prev_son}{BASE_SEGMENT_ENV}{post_son}'
+    return prev_son, post_son
 
 # PHONOLOGICAL ENVIRONMENT
 class PhonEnv:
@@ -225,14 +222,17 @@ class PhonEnv:
 
             # Word-initial segments: #S
             if next_segment:
-                #env = self.relative_sonority(next_seg=next_segment)
                 env = BOUNDARY_TOKEN + env
+
+                # Add relative sonority environment
+                _, post_sonority = self.relative_sonority(next_seg=next_segment)
+                env += PHON_ENV_SEP + post_sonority
             
                 # Add feature environments
                 env = self.add_envs(env, next_segment, suffix=True)
                     
                 # # Add the next segment itself
-                # env += '_' + next_segment.segment
+                # env += PHON_ENV_SEP + next_segment.segment
 
                 # If vowel, mark whether syllable is open or closed
                 env = self.add_syllable_env(i, env)
@@ -249,14 +249,17 @@ class PhonEnv:
         elif i == len(self.segments)-1:
             assert len(self.segments) > 1
             prev_segment = self.segments[i-1]
-            #env = self.relative_sonority(prev_seg=prev_segment)
             env += BOUNDARY_TOKEN
+
+            # Add relative sonority environment
+            pre_sonority, _ = self.relative_sonority(prev_seg=prev_segment)
+            env = PHON_ENV_SEP.join([pre_sonority, env])
 
             # Add feature environments
             env = self.add_envs(env, prev_segment, prefix=True)
 
             # # Add the previous segment itself
-            # env = prev_segment.segment + '_' + env
+            # env = PHON_ENV_SEP.join([prev_segment.segment, env])
 
             # If vowel, mark whether syllable is open or closed
             env = self.add_syllable_env(i, env)
@@ -266,17 +269,20 @@ class PhonEnv:
         # Word-medial segments
         else:
             prev_segment, next_segment = self.segments[i-1], self.segments[i+1]
-            #env = self.relative_sonority(prev_seg=prev_segment, next_seg=next_segment)
+
+            # Add sonority environments
+            prev_sonority, post_sonority = self.relative_sonority(prev_seg=prev_segment, next_seg=next_segment)
+            env = PHON_ENV_SEP.join([prev_sonority, env, post_sonority])
 
             # Add feature environments
             env = self.add_envs(env, prev_segment, prefix=True)
             env = self.add_envs(env, next_segment, suffix=True)
 
             # # Add the next segment itself
-            # env += '_' + next_segment.segment
+            # env += PHON_ENV_SEP + next_segment.segment
 
             # # Add the previous segment itself
-            # env = prev_segment.segment + '_' + env
+            # env = PHON_ENV_SEP.join([prev_segment.segment, env])
 
             # If vowel, mark whether syllable is open or closed
             env = self.add_syllable_env(i, env)
@@ -305,7 +311,7 @@ class PhonEnv:
                 features=None,
                 prefix=None,
                 suffix=None,
-                sep='_'):
+                sep=PHON_ENV_SEP):
         assert prefix is not None or suffix is not None
         if phone_class and segment.phone_class in phone_class:
             env_match = True
@@ -352,7 +358,7 @@ class PhonEnv:
                 if i < nucleus_i:
                     syllable_env = SYLLABLE_ONSET_ENV
                     break
-        env += '_' + syllable_env
+        env += PHON_ENV_SEP + syllable_env
         return env
     
     def add_front_env(self, env, ch, **kwargs):
@@ -388,17 +394,17 @@ def phon_env_ngrams(phonEnv, exclude=set()):
     """
     if re.search(r'.+\|S\|.*', phonEnv) or re.search(r'.*\|S\|.+', phonEnv):
         prefix, base, suffix = phonEnv.split('|')
-        prefix = prefix.split('_')
+        prefix = prefix.split(PHON_ENV_SEP)
         prefixes = set()
         for i in range(1, len(prefix)+1):
             for x in combinations(prefix, i):
-                prefixes.add('_'.join(x))
+                prefixes.add(PHON_ENV_SEP.join(x))
         prefixes.add('')
-        suffix = suffix.split('_')
+        suffix = suffix.split(PHON_ENV_SEP)
         suffixes = set()
         for i in range(1, len(suffix)+1):
             for x in combinations(suffix, i):
-                suffixes.add('_'.join(x))
+                suffixes.add(PHON_ENV_SEP.join(x))
         suffixes.add('')
         ngrams = set()
         for prefix in prefixes:
