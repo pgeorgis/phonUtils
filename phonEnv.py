@@ -20,6 +20,8 @@ from phonUtils.syllables import syllabify
 PHON_ENV_REGEX = re.compile(r'.*\|[ST]\|.*')
 BASE_SEGMENT_ENV = '|S|'
 BASE_TONEME_ENV = '|T|'
+OPEN_SYLLABLE_SYM = 'SylOpen'
+CLOSED_SYLLABLE_SYM = 'SylClosed'
 BOUNDARY_TOKEN = "#"
 PHON_ENV_MAP = {
     "FRONT": {
@@ -150,6 +152,7 @@ class PhonEnv:
         self.supra_segs = [_toSegment(s) if not self.is_gappy(s) else s for s in segments]
         self.segments, self.adjust_n = self.sep_segs_from_suprasegs(self.supra_segs, self.index)
         self.adjusted_index = self.index - self.adjust_n
+        self.syllables = self.get_syllables()
         self.phon_env = self.get_phon_env(**kwargs)
     
     def preprocess_aligned_sequence(self, segments, i):
@@ -198,6 +201,10 @@ class PhonEnv:
                 self.segment_i = seg
         return segs, adjust_n
     
+    def get_syllables(self):
+        """Return syllable dictionary with segment indices constituting syllable nuclei as keys and Syllable objects as values."""
+        return syllabify(''.join(s.segment for s in self.segments))
+    
     def get_phon_env(self):
         """Returns a string representing the phonological environment of a segment within a word"""
         
@@ -224,11 +231,16 @@ class PhonEnv:
                     
                 # # Add the next segment itself
                 # env += '_' + next_segment.segment
+
+                # If vowel, mark whether syllable is open or closed
+                env = self.add_syllable_env(i, env)
                         
                 return env
             
             # Free-standing segments
             else:
+                if self.segment_i.phone_class in {"VOWEL", "DIPHTHONG"}:
+                    return f"{BOUNDARY_TOKEN}{BASE_SEGMENT_ENV}{OPEN_SYLLABLE_SYM}{BOUNDARY_TOKEN}"
                 return f"{BOUNDARY_TOKEN}{BASE_SEGMENT_ENV}{BOUNDARY_TOKEN}"
         
         # Word-final segments: S#
@@ -243,6 +255,9 @@ class PhonEnv:
 
             # # Add the previous segment itself
             # env = prev_segment.segment + '_' + env
+
+            # If vowel, mark whether syllable is open or closed
+            env = self.add_syllable_env(i, env)
             
             return env
         
@@ -257,9 +272,12 @@ class PhonEnv:
 
             # # Add the next segment itself
             # env += '_' + next_segment.segment
-                    
+
             # # Add the previous segment itself
             # env = prev_segment.segment + '_' + env
+
+            # If vowel, mark whether syllable is open or closed
+            env = self.add_syllable_env(i, env)
             
             return env
     
@@ -315,6 +333,18 @@ class PhonEnv:
                 features=features,
                 **kwargs
             )
+        return env
+
+    def add_syllable_env(self, i, env):
+        """Add 'OPEN' or 'CLOSED' to syllable nuclei."""
+        if i in self.syllables:
+            syllable_type = self.syllables[i].type
+            assert syllable_type in {"OPEN", "CLOSED"}
+            if syllable_type == "OPEN":
+                syllable_marker = OPEN_SYLLABLE_SYM
+            else: # "CLOSED"
+                syllable_marker = CLOSED_SYLLABLE_SYM
+            env += '_' + syllable_marker
         return env
     
     def add_front_env(self, env, ch, **kwargs):
