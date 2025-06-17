@@ -11,7 +11,7 @@ from phonUtils.initPhoneData import affricates, vowels
 from phonUtils.segment import _is_vowel, _toSegment, segment_ipa
 
 
-#Functions related to syllable types
+# Functions related to syllable types
 def isSyllabic(segment):
     segment = _toSegment(segment)
     if segment.features['syllabic'] > 0:
@@ -47,7 +47,7 @@ def splitSyl(syl):
     n_syl = len(nucleus)
     try:
         assert n_syl == 1
-        
+
         onset = syl[:nucleus[0]]
         try:
             coda = syl[nucleus[0]+1:]
@@ -76,7 +76,7 @@ def sylType(syl, g_open=True):
 
         if _is_vowel(finalSeg):
             return 'OPEN'
-        
+
         else:
             if g_open:
                 finalSeg = _toSegment(finalSeg)
@@ -113,12 +113,20 @@ class Syllable:
             self.onset, self.nucleus, self.coda = self.segments, [], []
             self.type = "OTHER"
         self.stressed = 'STRESSED' if "ˈ" in self.syl else 'UNSTRESSED'
-    
+
     def __str__(self):
         return self.syl
 
 
-def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], illegal_onset=[], default_coda=True, g_open=True, split_affricate=False):
+def syllabify(word,
+              segments=None,
+              illegal_coda=[],
+              illegal_onset=[],
+              default_coda=True,
+              g_open=True,
+              split_affricate=False,
+              **kwargs,
+              ):
     if segments is None:
         segments = segment_ipa(word)
     syllabic_i = findSyllabic(segments)
@@ -129,7 +137,7 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
         word, matched_affricates = phonTransforms.split_affricates(word)
         segments = segment_ipa(word)
         syllabic_i = findSyllabic(segments)
-    
+
     # try:
     #     assert len(syllabic_i) >= 1
     # except AssertionError:
@@ -137,7 +145,7 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
     # If no syllabic units are found, return the entire word as a single syllable
     if len(syllabic_i) == 0:
         return {0:Syllable(segments, g_open=g_open)}
-    
+
     syllables = {i:[segments[i]] for i in syllabic_i}
     onsets, codas = [], []
     for i in syllables:
@@ -147,7 +155,7 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
                     syllables[i].insert(0, segments[i-1])
                     onsets.append(i-1)
 
-    #Automatically assign any non-syllabic units preceding the first syllabic nucleus to its onset, regardless of legality
+    # Automatically assign any non-syllabic units preceding the first syllabic nucleus to its onset, regardless of legality
     syl1_i = min(syllabic_i)
     if syl1_i > 0:
         if len(onsets) > 0:
@@ -157,33 +165,43 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
         for i in range(o-1,-1,-1):
             syllables[syl1_i].insert(0, segments[i])
             onsets.append(i)
-            
-    #Automatically assign any non-syllabic units following the last syllabic nucleus to its coda, regardless of legality
+
+    # Automatically assign any non-syllabic units following the last syllabic nucleus to its coda, regardless of legality
     sylN_i = max(syllabic_i)
     if sylN_i < len(segments)-1:
         for i in range(sylN_i+1, len(segments)):
             syllables[sylN_i].append(segments[i])
             codas.append(i)
 
-    #Identify indices of segments which are not yet assigned as syllable nuclei, onsets, or codas
+    # Identify indices of segments which are not yet assigned as syllable nuclei, onsets, or codas
     unassigned = [j for j in range(len(segments)) if j not in syllabic_i if j not in onsets if j not in codas]
-    
-    #Combine unassigned indices into consecutive groups
+
+    # Combine unassigned indices into consecutive groups
     subsets = [list(group) for group in consecutive_groups(unassigned)]
 
-    #Iterate through unassigned segment subsets
+    # Iterate through unassigned segment subsets
     for seq in subsets:
         start, end = seq[0], seq[-1]
 
-        #Find the preceding and following syllables to sequence
+        # Find the preceding and following syllables to sequence
         positions = sorted(seq + syllabic_i)
         start_index = positions.index(start)
         end_index = positions.index(end)
         preSyl = syllables[positions[start_index-1]]
         postSyl = syllables[positions[end_index+1]]
-        
-        preSyl_score = scoreSyl(preSyl, max_onset=max_onset, max_coda=max_coda, illegal_coda=illegal_coda, illegal_onset=illegal_onset)
-        postSyl_score = scoreSyl(postSyl, max_onset=max_onset, max_coda=max_coda, illegal_coda=illegal_coda, illegal_onset=illegal_onset)
+
+        preSyl_score = scoreSyl(
+            preSyl,
+            illegal_coda=illegal_coda,
+            illegal_onset=illegal_onset,
+            **kwargs
+        )
+        postSyl_score = scoreSyl(
+            postSyl,
+            illegal_coda=illegal_coda,
+            illegal_onset=illegal_onset,
+            **kwargs
+        )
         start_score = preSyl_score + postSyl_score
 
         q_scores = {}
@@ -192,8 +210,18 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
             q_coda, q_onset = [segments[s] for s in seq[:q]], [segments[s] for s in seq[q:]]
             hypPre = preSyl + q_coda
             hypPost = q_onset + postSyl
-            hypPre_score = scoreSyl(hypPre, max_onset=max_onset, max_coda=max_coda, illegal_coda=illegal_coda, illegal_onset=illegal_onset)
-            hypPost_score = scoreSyl(hypPost, max_onset=max_onset, max_coda=max_coda, illegal_coda=illegal_coda, illegal_onset=illegal_onset)
+            hypPre_score = scoreSyl(
+                hypPre,
+                illegal_coda=illegal_coda,
+                illegal_onset=illegal_onset,
+                **kwargs
+            )
+            hypPost_score = scoreSyl(
+                hypPost,
+                illegal_coda=illegal_coda,
+                illegal_onset=illegal_onset,
+                **kwargs
+            )
             q_scores[q] = (hypPre_score + hypPost_score) - start_score
             q_syls[q] = hypPre, hypPost
         min_q = min(q_scores.values())
@@ -206,7 +234,7 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
 
         syllables[positions[start_index-1]] = newPre
         syllables[positions[end_index+1]] = newPost
-    
+
     # Convert split affricates back
     if split_affricate and len(syllabic_i) > 1:
         syllable_indices = list(syllables.keys())
@@ -226,10 +254,10 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
                 # Combine split affricates in initial syllable
                 elif syl1[:2] == [plosive_part]+[fricative_part]:
                     syllables[index1] = [affr] + syl1[2:]
-    
-    #Initialize syllables as Syllable class objects
+
+    # Initialize syllables as Syllable class objects
     syllables = {i:Syllable(syllables[i], g_open=g_open) for i in syllables}
-        
+
     return syllables
 
 
@@ -239,21 +267,35 @@ def sylTypes(word, **kwargs):
     return {i:(syllables[i], syllables[i].type) for i in syllables}
 
 
-def scoreSyl(syl, max_onset=2, max_coda=2, illegal_coda=[], illegal_onset=[]):
-    """Evaluates the degree of ill-formedness of a syllable according to various criteria"""
-    #penalize:
-    #- exceeding max coda length
-    #- not having an onset
-    #- having a complex onset
-    #- having a coda
-    #- having illegal segments in onset or coda
-
-    #to add: TODO
-    #- sonority hierarchy violations
+def scoreSyl(syl,
+             max_onset=2,
+             max_coda=2,
+             illegal_coda=[],
+             illegal_onset=[],
+             no_onset_penalty=5,
+             coda_penalty=2,
+             complex_onset_penalty=1, # per extra segment in onset
+             complex_coda_penalty=2,  # per extra segment in coda
+             geminate_onset_penalty=3,
+             exceeded_max_onset_penalty=5,
+             exceeded_max_coda_penalty=5,
+             sonority_violation_penalty=5,
+             illegal_onset_penalty=5,  # per illegal onset segment
+             illegal_coda_penalty=5,  # per illegal coda segment
+             ):
+    """Evaluates the degree of ill-formedness of a syllable according to various criteria.
+    Penalizes:
+    - no onset
+    - complex onset
+    - coda
+    - exceeding max onset or coda length
+    - illegal segments in onset or coda
+    - sonority hierarchy violations
+    """
 
     penalty = 0
-    #syl, matched_affricates = split_affricates(''.join(syl))
-    #syl = segment_ipa(syl)
+    # syl, matched_affricates = split_affricates(''.join(syl))
+    # syl = segment_ipa(syl)
 
     if type(syl) == list:
         onset, nucleus, coda = splitSyl(syl)
@@ -264,66 +306,66 @@ def scoreSyl(syl, max_onset=2, max_coda=2, illegal_coda=[], illegal_onset=[]):
     else:
         raise ValueError
 
-    #NO ONSET PENALTY=5
+    # NO ONSET PENALTY (default = 5)
     if len(onset) < 1:
-        penalty += 5
+        penalty += no_onset_penalty
     else:
         onset_length = len(onset)
-        #Affricates in onset count as if they were two consonants
+        # Affricates in onset count as if they were two consonants
         onset_length += sum([1 for o in onset if o in affricates])
-        #COMPLEX ONSET PENALTY=additional onset length
+        # COMPLEX ONSET PENALTY = default 1 * additional onset length
         if onset_length > 1:
-            penalty += onset_length-1    
-        
-            #PENALIZE GEMINATES IN ONSET
+            penalty += (onset_length * complex_onset_penalty) - 1
+
+            # PENALIZE GEMINATES IN ONSET (default = 3)
             for i in range(1, len(onset)):
                 if onset[i] == onset[i-1]:
-                    penalty += 3
+                    penalty += geminate_onset_penalty
 
-        #EXCEEDED MAX ONSET LENGTH PENALTY=5
+        # EXCEEDED MAX ONSET LENGTH PENALTY (default = 5)
         if onset_length > max_onset:
-            penalty += 5
+            penalty += exceeded_max_onset_penalty
 
-        #ILLEGAL SEGMENTS/SEQUENCES IN ONSET: 5 each
+        # ILLEGAL SEGMENTS/SEQUENCES IN ONSET (default = 5 each)
         for Xonset in illegal_onset:
             if re.search(Xonset, ''.join(onset)):
-                penalty += 5  
-        
-        #SONORITY HIERARCHY VIOLATION PENALTY=5
-        #Sonority should increase from the left edge of the syllable toward the nucleus
-        #Also penalize clusters of equal sonority in onset
+                penalty += illegal_onset_penalty
+
+        # SONORITY HIERARCHY VIOLATION PENALTY (default = 5)
+        # Sonority should increase from the left edge of the syllable toward the nucleus
+        # Also penalize clusters of equal sonority in onset
         if onset_length > 1:
             onset_son = [_toSegment(o).get_sonority() for o in onset]
             for i in range(1, len(onset_son)):
                 if onset_son[i] <= onset_son[i-1]:
-                    penalty += 5
-    
-    #CODA PENALTY=2
-    coda_length = len(coda) 
-    #Affricates in coda count as if they were two consonants
-    #coda_length += sum([2 for c in coda if c in affricate])
-    if coda_length > 0:
-        penalty += 2
+                    penalty += sonority_violation_penalty
 
-        #COMPLEX CODA PENALTY=2 * additional length of coda 
+    # CODA PENALTY (default = 2)
+    coda_length = len(coda)
+    # Affricates in coda count as if they were two consonants
+    # coda_length += sum([2 for c in coda if c in affricate])
+    if coda_length > 0:
+        penalty += coda_penalty
+
+        # COMPLEX CODA PENALTY (default = 2 * additional length of coda)
         # (-1 because having a coda at all is already penalized)
         if coda_length > 1:
-            penalty += 2*(coda_length-1)
+            penalty += complex_coda_penalty * (coda_length - 1)
 
-        #EXCEEDED MAX CODA LENGTH PENALTY=5
+        # EXCEEDED MAX CODA LENGTH PENALTY (default = 5)
         if coda_length > max_coda:
-            penalty += 5
-    
-        #ILLEGAL SEGMENTS/SEQUENCES IN CODA: 5 each
+            penalty += exceeded_max_coda_penalty
+
+        # ILLEGAL SEGMENTS/SEQUENCES IN CODA: 5 each
         for Xcoda in illegal_coda:
             if re.search(Xcoda, ''.join(coda)):
-                penalty += 5
-        
-        #SONORITY HIERARCHY VIOLATION PENALTY=5
-        #Sonority should decrease toward the right edge of a syllable
+                penalty += illegal_coda_penalty
+
+        # SONORITY HIERARCHY VIOLATION PENALTY (default = 5)
+        # Sonority should decrease toward the right edge of a syllable
         coda_son = [_toSegment(c).get_sonority() for c in coda]
         if sorted(coda_son, reverse=True) != coda_son:
-            penalty += 5
+            penalty += sonority_violation_penalty
 
     return penalty
 
