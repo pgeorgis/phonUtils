@@ -280,8 +280,8 @@ def scoreSyl(syl,
              exceeded_max_onset_penalty=5,
              exceeded_max_coda_penalty=5,
              sonority_violation_penalty=5,
-             illegal_onset_penalty=5,  # per illegal onset segment
-             illegal_coda_penalty=5,  # per illegal coda segment
+             illegal_onset_penalty=10,  # per illegal onset segment
+             illegal_coda_penalty=10,  # per illegal coda segment
              ):
     """Evaluates the degree of ill-formedness of a syllable according to various criteria.
     Penalizes:
