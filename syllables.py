@@ -183,7 +183,7 @@ def syllabify(word, segments=None, max_onset=2, max_coda=2, illegal_coda=[], ill
         postSyl = syllables[positions[end_index+1]]
         
         preSyl_score = scoreSyl(preSyl, max_onset=max_onset, max_coda=max_coda, illegal_coda=illegal_coda, illegal_onset=illegal_onset)
-        postSyl_score = scoreSyl(preSyl, max_onset=max_onset, max_coda=max_coda, illegal_coda=illegal_coda, illegal_onset=illegal_onset)
+        postSyl_score = scoreSyl(postSyl, max_onset=max_onset, max_coda=max_coda, illegal_coda=illegal_coda, illegal_onset=illegal_onset)
         start_score = preSyl_score + postSyl_score
 
         q_scores = {}
