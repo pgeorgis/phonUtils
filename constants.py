@@ -1,0 +1,8 @@
+FILE_READER_DEFAULTS = {
+    'encoding': 'utf-8',
+}
+
+FILE_WRITER_DEFAULTS = {
+    **FILE_READER_DEFAULTS,
+    'newline': '\n',
+}
