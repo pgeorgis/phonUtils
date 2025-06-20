@@ -4,5 +4,4 @@ FILE_READER_DEFAULTS = {
 
 FILE_WRITER_DEFAULTS = {
     **FILE_READER_DEFAULTS,
-    'newline': '\n',
 }
