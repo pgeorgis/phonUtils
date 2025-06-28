@@ -28,7 +28,7 @@ def load_phone_data(dir):
     features = set(feature for sound in phone_features for feature in phone_features[sound])
 
     # Load phone classes by manner and place of articulation, e.g. plosive, fricative, velar, palatal
-    phone_classes = pd.read_csv(os.path.join(dir, 'phoneData/phone_classes.tsv'), **FILE_READER_DEFAULTS)
+    phone_classes = pd.read_csv(os.path.join(dir, 'phoneData/phone_classes.csv'), **FILE_READER_DEFAULTS)
     phone_classes = {phone_classes['Group'][i]:set(phone_classes['Phones'][i].split())
                     for i in range(len(phone_classes))}
     
