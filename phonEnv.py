@@ -31,84 +31,69 @@ PHON_ENV_MAP = {
         "symbol": "F",
         "regex": front_vowel_regex,
         "ch_list": {'j', 'ɥ'},
-        "active": True,
     },
     "NASAL": {
         "symbol": "N",
         "regex": nasal_regex,
-        "active": True,
     },
     "RHOTIC": {
         "symbol": "R",
         "regex": rhotic_regex,
-        "active": False,
     },
     "LATERAL": {
         "symbol": "L",
         "regex": re.compile(f"[{''.join(lateral)}ˡ]"),
-        "active": False,
     },
     "LIQUID": {
         "symbol": "RL",
         "regex": re.compile(f"[{''.join(liquids)}]"),
-        "active": True,
     },
     "LABIAL": {
         "symbol": "B",
         "regex": re.compile(f"[{''.join(bilabial.union(labiodental))}ʷᵝ]"),
-        "active": True,
     },
     "DENTAL/ALVEOLAR": {
         "symbol": "D",
         "regex": re.compile(f"[{''.join(dental.union(alveolar))}]"),
-        "active": False,
     },
     "POST-ALVEOLAR": {
         "symbol": "Š",
         "regex": re.compile(f"[{''.join(postalveolar.union(retroflex))}]"),
-        "active": False,
     },
     "PALATAL": {
         "symbol": "P",
         "regex": re.compile(f"[{''.join(palatal.union(alveolopalatal))}]"),
-        "active": False,
     },
     "VELAR/UVULAR": {
         "symbol": "K",
         "regex": re.compile(f"[{''.join(velar.union(uvular))}ˠ]"),
-        "active": False,
     },
     "PHARYNGEAL/(EPI)GLOTTAL": {
         "symbol": "H",
         "regex": re.compile(f"[{''.join(glottal.union(epiglottal).union(pharyngeal))}ˤˀ]"),
-        "active": False,
     },
     "VOICELESS": {
         "symbol": "-Voice",
         "features": {"periodicGlottalSource": 0},
-        "active": True,
     },
     "VOICED": {
         "symbol": "+Voice",
         "features": {"periodicGlottalSource": 1},
-        "active": False,
     },
     "VOWEL": {
         "symbol": "V",
         "phone_class": ['VOWEL', 'DIPHTHONG'],
-        "active": False,
     },
     "CONSONANT": {
         "symbol": "C",
         "phone_class": ['CONSONANT', 'GLIDE'],
-        "active": False,
     },
     "ACCENTED": {
         "symbol": "A",
         "phone_class": ['TONEME', 'SUPRASEGMENTAL'],
-        "active": False,
     },
 }
+ALL_PHON_ENVS = list(PHON_ENV_MAP.keys())
 
 
 # HELPER FUNCTIONS
@@ -133,7 +118,7 @@ def relative_prev_sonority(seg, prev_seg):
         return '<'
     else: # prev_sonority > sonority_i
         return '>'
-    
+
 def relative_post_sonority(seg, next_seg):
     if next_seg.segment == seg.segment:
             return 'S'
@@ -158,7 +143,8 @@ def relative_sonority(seg, prev_seg=None, next_seg=None):
 
 # PHONOLOGICAL ENVIRONMENT
 class PhonEnv:
-    def __init__(self, segments, i, gap_ch=None, **kwargs):
+    def __init__(self, segments, i, gap_ch=None, phon_env_map=PHON_ENV_MAP, **kwargs):
+        self.phon_env_map = phon_env_map
         self.gap_ch = gap_ch
         if self.gap_ch:
             i, segments = self.preprocess_aligned_sequence(segments, i)
@@ -169,7 +155,7 @@ class PhonEnv:
         self.adjusted_index = self.index - self.adjust_n
         self.syllables = self.get_syllables()
         self.phon_env = self.get_phon_env(**kwargs)
-    
+
     def preprocess_aligned_sequence(self, segments, i):
         """Drop gaps and boundaries and flatten complex ngrams."""
         minus_offset, plus_offset = 0, 0
@@ -201,7 +187,7 @@ class PhonEnv:
                 else:
                     adj_segments.append(segment)
         return adjusted_i, adj_segments
-    
+
     def sep_segs_from_suprasegs(self, segments, i):
         adjust_n = 0
         segs = []
@@ -215,18 +201,18 @@ class PhonEnv:
             if j == i:
                 self.segment_i = seg
         return segs, adjust_n
-    
+
     def get_syllables(self):
         """Return syllable dictionary with segment indices constituting syllable nuclei as keys and Syllable objects as values."""
         return syllabify(''.join(s.segment for s in self.segments))
-    
+
     def get_phon_env(self):
         """Returns a string representing the phonological environment of a segment within a word"""
-        
+
         # Tonemes/suprasegmentals
         if isinstance(self.segment_i, Segment) and self.segment_i.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
             return BASE_TONEME_ENV
-        
+
         # Word-initial segments (free-standing segments also considered word-initial)
         env = BASE_SEGMENT_ENV
         i = self.adjusted_index
@@ -243,24 +229,24 @@ class PhonEnv:
                 # Add relative sonority environment
                 _, post_sonority = self.relative_sonority(next_seg=next_segment)
                 env += PHON_ENV_SEP + post_sonority
-            
+
                 # Add feature environments
                 env = self.add_envs(env, next_segment, suffix=True)
-                    
+
                 # # Add the next segment itself
                 # env += PHON_ENV_SEP + next_segment.segment
 
                 # If vowel, mark whether syllable is open or closed
                 env = self.add_syllable_env(i, env)
-                        
+
                 return env
-            
+
             # Free-standing segments
             else:
                 if self.segment_i.phone_class in {"VOWEL", "DIPHTHONG"}:
                     return f"{BOUNDARY_TOKEN}{BASE_SEGMENT_ENV}{OPEN_SYLLABLE_ENV}{BOUNDARY_TOKEN}"
                 return f"{BOUNDARY_TOKEN}{BASE_SEGMENT_ENV}{BOUNDARY_TOKEN}"
-        
+
         # Word-final segments: S#
         elif i == len(self.segments)-1:
             assert len(self.segments) > 1
@@ -279,9 +265,9 @@ class PhonEnv:
 
             # If vowel, mark whether syllable is open or closed
             env = self.add_syllable_env(i, env)
-            
+
             return env
-        
+
         # Word-medial segments
         else:
             prev_segment, next_segment = self.segments[i-1], self.segments[i+1]
@@ -302,28 +288,28 @@ class PhonEnv:
 
             # If vowel, mark whether syllable is open or closed
             env = self.add_syllable_env(i, env)
-            
+
             return env
-    
+
     def is_gappy(self, seg):
         return isinstance(seg, str) and (seg == self.gap_ch or BOUNDARY_TOKEN in seg)
-    
+
     def relative_sonority(self, prev_seg=None, next_seg=None):
         return relative_sonority(self.segment_i, prev_seg=prev_seg, next_seg=next_seg)
-    
+
     def relative_prev_sonority(self, prev_seg):
         return relative_prev_sonority(self.segment_i, prev_seg)
 
     def relative_post_sonority(self, next_seg):
         return relative_post_sonority(self.segment_i, next_seg)
 
-    def add_env(self, 
+    def add_env(self,
                 env,
                 segment,
-                symbol, 
-                regex=None, 
-                ch_list=None, 
-                phone_class=None, 
+                symbol,
+                regex=None,
+                ch_list=None,
+                phone_class=None,
                 features=None,
                 prefix=None,
                 suffix=None,
@@ -339,10 +325,10 @@ class PhonEnv:
             return symbol + sep + env
         else: # suffix
             return env + sep + symbol
-    
+
     def add_envs(self, env, segment, **kwargs):
-        for _, encoding_map in PHON_ENV_MAP.items():
-            if encoding_map["active"] is False:
+        for _, encoding_map in self.phon_env_map.items():
+            if encoding_map.get("active", True) is False:
                 continue
             symbol = encoding_map["symbol"]
             regex = encoding_map.get("regex", None)
@@ -380,33 +366,33 @@ class PhonEnv:
                     break
         env += PHON_ENV_SEP + syllable_env
         return env
-    
+
     def add_front_env(self, env, ch, **kwargs):
         return self.add_env(env, ch, symbol='F', regex=front_vowel_regex, ch_list={'j', 'ɥ'}, **kwargs)
-    
+
     def add_nasal_env(self, env, ch, **kwargs):
         return self.add_env(env, ch, symbol='N', regex=nasal_regex, **kwargs)
-    
+
     def add_rhotic_env(self, env, ch, **kwargs):
         return self.add_env(env, ch, symbol='R', regex=rhotic_regex, **kwargs)
-    
+
     def add_accented_env(self, env, seg, **kwargs):
         return self.add_env(env, seg, symbol='A', phone_class=('TONEME', 'SUPRASEGMENTAL'), **kwargs)
-        
+
     def ngrams(self, exclude=set()):
-        """Returns set of phonological environment strings of equal and lower order, 
+        """Returns set of phonological environment strings of equal and lower order,
         e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
 
         Returns:
             set: possible equal and lower order phonological environment strings
         """
         return phon_env_ngrams(self.phon_env, exclude=exclude)
-    
+
     def __str__(self):
         return self.phon_env
-        
+
 def phon_env_ngrams(phonEnv, exclude=set()):
-    """Returns set of phonological environment strings of equal and lower order, 
+    """Returns set of phonological environment strings of equal and lower order,
     e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
 
     Returns:
@@ -433,11 +419,25 @@ def phon_env_ngrams(phonEnv, exclude=set()):
     else:
         assert phonEnv in (BASE_TONEME_ENV, BASE_SEGMENT_ENV)
         ngrams = [phonEnv]
-    
+
     if len(exclude) > 0:
         return [ngram for ngram in ngrams if ngram not in exclude]
     return ngrams
 
-def get_phon_env(segments, i, **kwargs):
-    phon_env = PhonEnv(segments, i, **kwargs)
+
+def custom_phon_env_map(active_envs: list) -> dict:
+    """Adjust the default phoneEnv map to activate only the specified environments."""
+    phon_env_map = PHON_ENV_MAP.copy()
+    for env in phon_env_map:
+        if env not in active_envs:
+            phon_env_map[env]["active"] = False
+    for env in active_envs:
+        if env not in phon_env_map:
+            raise ValueError(f"Unknown phonEnv type '{env}'")
+    return phon_env_map
+
+
+def get_phon_env(segments, i, active_envs=ALL_PHON_ENVS, **kwargs):
+    phon_env_map = custom_phon_env_map(active_envs)
+    phon_env = PhonEnv(segments, i, phon_env_map=phon_env_map, **kwargs)
     return phon_env.phon_env
