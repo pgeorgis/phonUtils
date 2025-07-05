@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+from functools import lru_cache
 from itertools import combinations
 
 # Add the project's root directory to the Python path
@@ -402,7 +403,9 @@ class PhonEnv:
     def __str__(self):
         return self.phon_env
 
-def phon_env_ngrams(phonEnv, exclude=set()):
+
+@lru_cache
+def phon_env_ngrams(phonEnv, exclude_base=True):
     """Returns set of phonological environment strings of equal and lower order,
     e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
 
@@ -431,8 +434,8 @@ def phon_env_ngrams(phonEnv, exclude=set()):
         assert phonEnv in (BASE_TONEME_ENV, BASE_SEGMENT_ENV)
         ngrams = [phonEnv]
 
-    if len(exclude) > 0:
-        return [ngram for ngram in ngrams if ngram not in exclude]
+    if exclude_base:
+        return [ngram for ngram in ngrams if ngram != f'{PHON_ENV_SPLIT_CH}{SEGMENT_CH}{PHON_ENV_SPLIT_CH}']
     return ngrams
 
 
