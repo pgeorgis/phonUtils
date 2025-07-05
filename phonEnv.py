@@ -364,7 +364,10 @@ class PhonEnv:
                 if i < nucleus_i:
                     syllable_env = SYLLABLE_ONSET_ENV
                     break
-        env += PHON_ENV_SEP + syllable_env
+        if syllable_env == SYLLABLE_ONSET_ENV:
+            env = PHON_ENV_SEP.join([syllable_env, env])
+        else:
+            env += PHON_ENV_SEP + syllable_env
         return env
 
     def add_front_env(self, env, ch, **kwargs):
