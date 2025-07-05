@@ -398,14 +398,14 @@ class PhonEnv:
         Returns:
             set: possible equal and lower order phonological environment strings
         """
-        return phon_env_ngrams(self.phon_env, exclude=exclude)
+        return list_phon_env_ngram_subcontexts(self.phon_env, exclude=exclude)
 
     def __str__(self):
         return self.phon_env
 
 
 @lru_cache
-def phon_env_ngrams(phonEnv, exclude_base=True):
+def list_phon_env_ngram_subcontexts(phonEnv, exclude_base=True):
     """Returns set of phonological environment strings of equal and lower order,
     e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
 
