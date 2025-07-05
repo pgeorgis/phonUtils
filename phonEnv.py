@@ -17,15 +17,23 @@ from phonUtils.segment import Segment, _toSegment
 from phonUtils.syllables import syllabify
 
 # CONSTANTS
-PHON_ENV_REGEX = re.compile(r'.*\|[ST]\|.*')
+SEGMENT_CH = 'S'
+TONEME_CH = 'T'
+PHON_ENV_SPLIT_CH = "|"
 PHON_ENV_SEP = "_"
-BASE_SEGMENT_ENV = '|S|'
-BASE_TONEME_ENV = '|T|'
+BASE_SEGMENT_ENV = f'{PHON_ENV_SPLIT_CH}{SEGMENT_CH}{PHON_ENV_SPLIT_CH}'
+BASE_TONEME_ENV = f'{PHON_ENV_SPLIT_CH}{TONEME_CH}{PHON_ENV_SPLIT_CH}'
 OPEN_SYLLABLE_ENV = 'SylOpen'
 CLOSED_SYLLABLE_ENV = 'SylClosed'
 SYLLABLE_ONSET_ENV = 'SylOnset'
 SYLLABLE_CODA_ENV = 'SylCoda'
 BOUNDARY_TOKEN = "#"
+PHON_ENV_REGEX = re.compile(rf'.*{re.escape(PHON_ENV_SPLIT_CH)}[{SEGMENT_CH}{TONEME_CH}]{re.escape(PHON_ENV_SPLIT_CH)}.*')
+PHON_ENV_WITH_AFFIX_REGEXES = [
+    re.compile(rf'.+{re.escape(PHON_ENV_SPLIT_CH)}{SEGMENT_CH}{re.escape(PHON_ENV_SPLIT_CH)}.*'),
+    re.compile(rf'.*{re.escape(PHON_ENV_SPLIT_CH)}{SEGMENT_CH}{re.escape(PHON_ENV_SPLIT_CH)}.+'),
+]
+
 PHON_ENV_MAP = {
     "FRONT": {
         "symbol": "F",
@@ -401,8 +409,8 @@ def phon_env_ngrams(phonEnv, exclude=set()):
     Returns:
         set: possible equal and lower order phonological environment strings
     """
-    if re.search(r'.+\|S\|.*', phonEnv) or re.search(r'.*\|S\|.+', phonEnv):
-        prefix, base, suffix = phonEnv.split('|')
+    if any(regex.search(phonEnv) for regex in PHON_ENV_WITH_AFFIX_REGEXES):
+        prefix, base, suffix = phonEnv.split(PHON_ENV_SPLIT_CH)
         prefix = [p for p in prefix.split(PHON_ENV_SEP) if p]
         prefixes = set()
         for i in range(1, len(prefix)+1):
@@ -418,7 +426,7 @@ def phon_env_ngrams(phonEnv, exclude=set()):
         ngrams = set()
         for prefix in prefixes:
             for suffix in suffixes:
-                ngrams.add(f'{prefix}|S|{suffix}')
+                ngrams.add(f'{prefix}{PHON_ENV_SPLIT_CH}{SEGMENT_CH}{PHON_ENV_SPLIT_CH}{suffix}')
     else:
         assert phonEnv in (BASE_TONEME_ENV, BASE_SEGMENT_ENV)
         ngrams = [phonEnv]
