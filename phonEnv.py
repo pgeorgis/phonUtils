@@ -400,13 +400,13 @@ def phon_env_ngrams(phonEnv, exclude=set()):
     """
     if re.search(r'.+\|S\|.*', phonEnv) or re.search(r'.*\|S\|.+', phonEnv):
         prefix, base, suffix = phonEnv.split('|')
-        prefix = prefix.split(PHON_ENV_SEP)
+        prefix = [p for p in prefix.split(PHON_ENV_SEP) if p]
         prefixes = set()
         for i in range(1, len(prefix)+1):
             for x in combinations(prefix, i):
                 prefixes.add(PHON_ENV_SEP.join(x))
         prefixes.add('')
-        suffix = suffix.split(PHON_ENV_SEP)
+        suffix = [s for s in suffix.split(PHON_ENV_SEP) if s]
         suffixes = set()
         for i in range(1, len(suffix)+1):
             for x in combinations(suffix, i):
