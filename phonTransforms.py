@@ -71,7 +71,7 @@ def regressiveVoicingAssimilation(form,
 
 def degeminate(word, phones):
     for phone in phones:
-        word = re.sub(f'{phone}{phone}', phone, word)
+        word = re.sub(f'{phone}{phone}(?!̩)', phone, word)
         word = re.sub(f'{phone}ː', phone, word)
     return word
 
