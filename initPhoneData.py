@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings('ignore', category=FutureWarning) # pandas
 import pandas as pd
 
-from .constants import FILE_READER_DEFAULTS
+from phonUtils.constants import FILE_READER_DEFAULTS
 
 pre_diacritics, post_diacritics = [], []
 suprasegmental_diacritics = set()
