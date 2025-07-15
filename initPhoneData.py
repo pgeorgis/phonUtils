@@ -7,8 +7,13 @@ import warnings
 warnings.filterwarnings('ignore', category=FutureWarning) # pandas
 import pandas as pd
 
+from .constants import FILE_READER_DEFAULTS
+
 pre_diacritics, post_diacritics = [], []
 suprasegmental_diacritics = set()
+alveolar, bilabial, dental, epiglottal = set(), set(), set(), set()
+glottal, labiodental, lateral = set(), set(), set()
+pharyngeal, retroflex, uvular, velar = set(), set(), set(), set()
 alveolopalatal, palatal, postalveolar = set(), set(), set()
 affricates, approximants, fricatives, glides, liquids, nasals, plosives, tonemes = set(), set(), set(), set(), set(), set(), set(), set()
 diacritics = ''
@@ -22,7 +27,7 @@ def binary_feature(feature):
 
 
 def load_phone_data(dir):
-    phone_data = pd.read_csv(os.path.join(dir, 'phoneData', 'segments.tsv'), sep='\t')
+    phone_data = pd.read_csv(os.path.join(dir, 'phoneData', 'segments.tsv'), sep='\t', **FILE_READER_DEFAULTS)
 
     # Dictionary of basic phones with their phonetic features
     phone_features = {phone_data['segment'][i]:{feature:binary_feature(phone_data[feature][i])
@@ -34,7 +39,7 @@ def load_phone_data(dir):
     features = set(feature for sound in phone_features for feature in phone_features[sound])
 
     # Load phone classes by manner and place of articulation, e.g. plosive, fricative, velar, palatal
-    phone_classes = pd.read_csv(os.path.join(dir, 'phoneData/phone_classes.tsv'))
+    phone_classes = pd.read_csv(os.path.join(dir, 'phoneData/phone_classes.csv'), **FILE_READER_DEFAULTS)
     phone_classes = {phone_classes['Group'][i]:set(phone_classes['Phones'][i].split())
                     for i in range(len(phone_classes))}
     
@@ -42,7 +47,7 @@ def load_phone_data(dir):
 
 
 def load_diacritics_data(dir):
-    diacritics_data = pd.read_csv(os.path.join(dir, 'phoneData', 'diacritics.tsv'), sep='\t')
+    diacritics_data = pd.read_csv(os.path.join(dir, 'phoneData', 'diacritics.tsv'), sep='\t', **FILE_READER_DEFAULTS)
 
     # Create dictionary of diacritic characters with affected features and values
     diacritics_effects = defaultdict(lambda:[])
@@ -95,7 +100,7 @@ def load_diacritics_data(dir):
 def load_feature_geometry(dir):
     # Feature geometry weight calculated as ln(n_distinctions) / (tier**2)
     # where n_distinctions = (n_sisters+1) + (n_descendants)
-    feature_geometry = pd.read_csv(os.path.join(dir, 'phoneData/feature_geometry.tsv'), sep='\t')
+    feature_geometry = pd.read_csv(os.path.join(dir, 'phoneData/feature_geometry.tsv'), sep='\t', **FILE_READER_DEFAULTS)
     feature_geometry['Tier'] = feature_geometry['Path'].apply(lambda x: len(x.split(' | ')))
     feature_geometry['Parent'] = feature_geometry['Path'].apply(lambda x: x.split(' | ')[-1])
     feature_geometry['N_Sisters'] = feature_geometry['Parent'].apply(lambda x: feature_geometry['Parent'].to_list().count(x))
@@ -115,7 +120,7 @@ def load_feature_geometry(dir):
 def load_ipa_norm_map(dir):
     map_file = os.path.join(dir, 'phoneData', 'ipa_normalization.map')
     ipa_norm_map = {}
-    with open(map_file, 'r', encoding='utf-8') as map_f:
+    with open(map_file, 'r', **FILE_READER_DEFAULTS) as map_f:
         for line in map_f.readlines():
             if not re.match(r'\s*#', line) and line.strip() != '':
                 ch, repl = line.strip().split('\t')
@@ -180,7 +185,7 @@ diacritic_regex = re.compile(rf'[{diacritic_str}]')
 diphthong_regex = re.compile(fr'([{vowel_str}][{diacritic_str}]*̯[{diacritic_str}]*[{vowel_str}])|([{vowel_str}][{diacritic_str}]*[{vowel_str}][{diacritic_str}]*̯)')
 affricate_regex = re.compile(rf'[{plosive_str}].*͡.*[{fricative_str}]')
 geminate_regex = re.compile(rf'([{pre_diacritics}]*)([{consonants}])([{post_diacritics}]*)\1?\2\3?([{post_diacritics}]*)')
-nasal_regex = re.compile(r'[̃mɱnɳɲŋɴ]')
+nasal_regex = re.compile(r'[̃mɱnɳɲŋɴᵐᶬⁿᵑ]')
 rhotic_regex = re.compile(r'[rɹɺɻɽɾᴅʀʁɚɝ]|(.+˞)')
 front_vowel_regex = re.compile(r'[iyɪʏeøɛœæaɶ]')
 central_vowel_regex = re.compile(r'[ɨʉɘɵəɚɜɝɞɐ]')

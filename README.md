@@ -1,4 +1,4 @@
-# phonSim: Phonetic Similarity
+# phonUtils: a library for working with IPA transcriptions and phonological features
 
 
 ## Table of Contents
