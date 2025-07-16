@@ -664,7 +664,7 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
         verify_charset(word)
     
     # Remove spaces and other specified characters/diacritics (e.g. stress, linking ties for phonological words)
-    remove_ch += '\s‿'
+    remove_ch += r'\s‿'
     word = re.sub(f"[{remove_ch}]", '', word)
 
     # Split by inter-diacritics, which don't seem to match properly in regex
