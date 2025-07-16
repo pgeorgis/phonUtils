@@ -154,7 +154,7 @@ def relative_post_sonority(seg: Segment, next_seg: Segment) -> str:
 def relative_sonority(seg: Segment,
                       prev_seg: Segment | None = None,
                       next_seg: Segment | None = None,
-                      ) -> str:
+                      ) -> tuple[str, str]:
     assert prev_seg is not None or next_seg is not None
     if prev_seg is None:
         prev_son = None
@@ -328,7 +328,7 @@ class PhonEnv:
     def is_gappy(self, seg):
         return isinstance(seg, str) and (seg == self.gap_ch or BOUNDARY_TOKEN in seg)
 
-    def relative_sonority(self, prev_seg=None, next_seg=None):
+    def relative_sonority(self, prev_seg=None, next_seg=None) -> tuple[str, str]:
         return relative_sonority(self.segment_i, prev_seg=prev_seg, next_seg=next_seg)
 
     def relative_prev_sonority(self, prev_seg):
@@ -343,7 +343,7 @@ class PhonEnv:
                 symbol: str,
                 regex: Optional[re.Pattern[str]] = None,
                 ch_list: Optional[set] = None,
-                phone_class: Optional[tuple] = None,
+                phone_class: Optional[tuple | list] = None,
                 features=None,
                 prefix=None,
                 suffix=None,
@@ -464,7 +464,7 @@ def list_phon_env_ngram_subcontexts(phonEnv, exclude_base=True):
     return list(ngrams)
 
 
-def custom_phon_env_map(active_envs: list) -> dict:
+def custom_phon_env_map(active_envs: list | set) -> dict:
     """Adjust the default phoneEnv map to activate only the specified environments."""
     phon_env_map = PHON_ENV_MAP.copy()
     for env in phon_env_map:
