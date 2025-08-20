@@ -156,12 +156,14 @@ class PhonEnv:
         self.phon_env_map = phon_env_map
         self.gap_ch = gap_ch
         if self.gap_ch:
+            assert isinstance(self.gap_ch, str)
             i, segments = self.preprocess_aligned_sequence(segments, i)
         self.index = i
         self.segment_i = None
         self.supra_segs = [_toSegment(s) if not self.is_gappy(s) else s for s in segments]
         self.segments, self.adjust_n = self.sep_segs_from_suprasegs(self.supra_segs, self.index)
         self.adjusted_index = self.index - self.adjust_n
+        self.gappy = self.is_gappy(self.segment_i)
         self.syllables = self.get_syllables()
         self.phon_env = self.get_phon_env(**kwargs)
 
@@ -169,6 +171,7 @@ class PhonEnv:
         """Drop gaps and boundaries and flatten complex ngrams."""
         minus_offset, plus_offset = 0, 0
         adj_segments = []
+        segments = [self.preprocess_ngram_segment(seg) for seg in segments]
         for segment in segments[:i]:
             if isinstance(segment, str) and BOUNDARY_TOKEN in segment:
                 minus_offset += 1
@@ -190,7 +193,11 @@ class PhonEnv:
         for segment in segments[i:][1:]:
             if not self.is_gappy(segment):
                 if isinstance(segment, tuple) and any(self.is_gappy(subseg) for subseg in segment):
-                    continue
+                    if BOUNDARY_TOKEN in segment[-1]:
+                        adj_segments.extend(segment[:-1])
+                    else:
+                        assert self.gap_ch in segment
+                        adj_segments.extend([subseg for subseg in segment if subseg != self.gap_ch])
                 elif isinstance(segment, tuple):
                     adj_segments.extend(segment)
                 else:
@@ -213,7 +220,14 @@ class PhonEnv:
 
     def get_syllables(self):
         """Return syllable dictionary with segment indices constituting syllable nuclei as keys and Syllable objects as values."""
-        return syllabify(''.join(s.segment for s in self.segments))
+        segments = []
+        for seg in self.segments:
+            if isinstance(seg, Segment):
+                segments.append(seg.segment)
+            else:
+                # skip gaps
+                assert self.is_gappy(seg)
+        return syllabify(''.join(segments))
 
     def get_phon_env(self):
         """Returns a string representing the phonological environment of a segment within a word"""
@@ -235,9 +249,10 @@ class PhonEnv:
             if next_segment:
                 env = BOUNDARY_TOKEN + env
 
-                # Add relative sonority environment
-                _, post_sonority = self.relative_sonority(next_seg=next_segment)
-                env += PHON_ENV_SEP + post_sonority
+                # Add relative sonority environment for non-gaps
+                if not self.gappy:
+                    _, post_sonority = self.relative_sonority(next_seg=next_segment)
+                    env += PHON_ENV_SEP + post_sonority
 
                 # Add feature environments
                 env = self.add_envs(env, next_segment, suffix=True)
@@ -262,9 +277,10 @@ class PhonEnv:
             prev_segment = self.segments[i-1]
             env += BOUNDARY_TOKEN
 
-            # Add relative sonority environment
-            pre_sonority, _ = self.relative_sonority(prev_seg=prev_segment)
-            env = PHON_ENV_SEP.join([pre_sonority, env])
+            # Add relative sonority environment for non-gaps
+            if not self.gappy:
+                pre_sonority, _ = self.relative_sonority(prev_seg=prev_segment)
+                env = PHON_ENV_SEP.join([pre_sonority, env])
 
             # Add feature environments
             env = self.add_envs(env, prev_segment, prefix=True)
@@ -281,9 +297,10 @@ class PhonEnv:
         else:
             prev_segment, next_segment = self.segments[i-1], self.segments[i+1]
 
-            # Add sonority environments
-            prev_sonority, post_sonority = self.relative_sonority(prev_seg=prev_segment, next_seg=next_segment)
-            env = PHON_ENV_SEP.join([prev_sonority, env, post_sonority])
+            # Add sonority environments for non-gaps
+            if not self.gappy:
+                prev_sonority, post_sonority = self.relative_sonority(prev_seg=prev_segment, next_seg=next_segment)
+                env = PHON_ENV_SEP.join([prev_sonority, env, post_sonority])
 
             # Add feature environments
             env = self.add_envs(env, prev_segment, prefix=True)
@@ -299,8 +316,23 @@ class PhonEnv:
             env = self.add_syllable_env(i, env)
 
             return env
+    
+    @staticmethod
+    def preprocess_ngram_segment(ngram_seg) -> str | tuple[str, ...]:
+        if isinstance(ngram_seg, tuple) and len(ngram_seg) == 1:
+            ngram_seg = ngram_seg[0]
+            assert isinstance(ngram_seg, str)
+        elif isinstance(ngram_seg, str):
+            pass
+        else:
+            assert isinstance(ngram_seg, tuple) and len(ngram_seg) > 1
+        return ngram_seg
 
     def is_gappy(self, seg):
+        if isinstance(seg, Segment):
+            # segments cannot be gappy
+            return False
+        seg = self.preprocess_ngram_segment(seg)
         return isinstance(seg, str) and (seg == self.gap_ch or BOUNDARY_TOKEN in seg)
 
     def relative_sonority(self, prev_seg=None, next_seg=None):
