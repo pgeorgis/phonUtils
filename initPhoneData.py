@@ -3,110 +3,158 @@ import re
 from collections import defaultdict
 from math import log
 
+import numpy as np
 import pandas as pd
 
-from .constants import FILE_READER_DEFAULTS
+from constants import FILE_READER_DEFAULTS
 
-def binary_feature(feature):
+
+def binary_feature(feature: str) -> int:
     """Converts features of type ['0', '-', '+'] to binary [0, 1]"""
-    if str(feature) == '+':
+    if feature == '+':
         return 1
     else:
         return 0
 
 
-def load_phone_data(dir):
-    phone_data = pd.read_csv(os.path.join(dir, 'phoneData', 'segments.tsv'), sep='\t', **FILE_READER_DEFAULTS)
+def load_phone_features(dir: str) -> tuple[set, dict]:
+    """Loads phonological distinctive feature set and their values per IPA segment."""
+    # Load segment features CSV
+    phone_data = pd.read_csv(
+        os.path.join(dir, 'phoneData', 'segments.tsv'),
+        sep='\t', **FILE_READER_DEFAULTS
+    )
 
-    # Dictionary of basic phones with their phonetic features
-    phone_features = {phone_data['segment'][i]:{feature:binary_feature(phone_data[feature][i])
-                                            for feature in phone_data.columns
-                                            if feature not in ['segment', 'sonority']
-                                            if not pd.isnull(phone_data[feature][i])}
-                    for i in range(len(phone_data))}
+    # Nested dictionary of basic phones with their phonetic features
+    phone_features = {
+        phone_data['segment'][i]: {
+            feature: binary_feature(phone_data[feature][i]) 
+            for feature in phone_data.columns
+            if feature not in {'segment', 'sonority'}
+            if not pd.isnull(phone_data[feature][i])
+        }
+        for i in range(len(phone_data))
+    }
 
+    # Get full feature set
     features = set(feature for sound in phone_features for feature in phone_features[sound])
-
-    # Load phone classes by manner and place of articulation, e.g. plosive, fricative, velar, palatal
-    phone_classes = pd.read_csv(os.path.join(dir, 'phoneData/phone_classes.csv'), **FILE_READER_DEFAULTS)
-    phone_classes = {phone_classes['Group'][i]:set(phone_classes['Phones'][i].split())
-                    for i in range(len(phone_classes))}
     
-    return features, phone_features, phone_classes
+    return features, phone_features
 
 
-def load_diacritics_data(dir):
-    diacritics_data = pd.read_csv(os.path.join(dir, 'phoneData', 'diacritics.tsv'), sep='\t', **FILE_READER_DEFAULTS)
+def load_phone_classes(dir: str) -> dict:
+    """Load dictionary of phone classes."""
+    # Load phone classes by manner and place of articulation, e.g. plosive, fricative, velar, palatal
+    phone_classes = pd.read_csv(
+        os.path.join(dir, 'phoneData', 'phone_classes.csv'),
+        **FILE_READER_DEFAULTS
+    )
+    # Get sets of base characters per class
+    phone_classes = {
+        row['class']: set(row['phones'].split())
+        for _, row in phone_classes.iterrows()
+    }
+    return phone_classes
+
+
+def load_diacritics_data(dir: str) -> dict:
+    # Load diacritics csv file
+    diacritics_data = pd.read_csv(
+        os.path.join(dir, 'phoneData', 'diacritics.tsv'),
+        sep='\t',
+        **FILE_READER_DEFAULTS
+    )
 
     # Create dictionary of diacritic characters with affected features and values
     diacritics_effects = defaultdict(lambda:[])
-    for i in range(len(diacritics_data)):
-        effect = (diacritics_data['Feature'][i], binary_feature(diacritics_data['Value'][i]))
+    for _, row in diacritics_data.iterrows():
+        effect = (row['feature'], binary_feature(row['value']))
         
         # Skip diacritics which have no effect on features
-        if type(effect[0]) != float:
-            
+        if pd.notna(effect[0]):
             # Add to dictionary, with diacritic as key
-            diacritics_effects[diacritics_data['Diacritic'][i]].append(effect)
+            diacritics_effects[row['diacritic']].append(effect)
 
     # Isolate suprasegmental diacritics
-    suprasegmental_diacritics = set(diacritics_data.Diacritic[i] 
-                                    for i in range(len(diacritics_data)) 
-                                    if diacritics_data.Type[i] in ('suprasegmental', 'voice quality'))
-    suprasegmental_diacritics.remove('ː') # don't include length as a suprasegmental
-    suprasegmental_diacritics.remove('̆') # don't include length as a suprasegmental
-
+    suprasegmental_diacritics = set(
+        row['diacritic']
+        for _, row in diacritics_data.iterrows()
+        if row['type'] in ('suprasegmental', 'voice quality')
+    )
+    # Remove length diacritics from suprasegmentals
+    suprasegmental_diacritics.remove('ː')
+    suprasegmental_diacritics.remove('̆')
 
     # Diacritics by position with respect to base segments
     inter_diacritics = '͜͡'
     pre_diacritics, post_diacritics = [], []
-    for i in range(len(diacritics_data)):
-        if diacritics_data['Position'][i] == 'pre':
-            pre_diacritics.append(diacritics_data['Diacritic'][i])
-        elif diacritics_data['Position'][i] == 'post':
-            post_diacritics.append(diacritics_data['Diacritic'][i])
+    for _, row in diacritics_data.iterrows():
+        if row['position'] == 'pre':
+            pre_diacritics.append(row['diacritic'])
+        elif row['position'] == 'post':
+            post_diacritics.append(row['diacritic'])
     pre_diacritics = ''.join(pre_diacritics)
     post_diacritics = ''.join(post_diacritics)
     prepost_diacritics = {'ʰ', 'ʱ', 'ⁿ'} # diacritics which can appear before or after
 
-    # List of all diacritic characters
+    # String list of all diacritic characters
     diacritics = ''.join([pre_diacritics, post_diacritics, inter_diacritics])
 
     # Assemble dictionary of relevant data to return
     diacritics_data = {
-        'diacritics':diacritics,
-        'diacritics_effects':diacritics_effects,
-        'suprasegmental_diacritics':suprasegmental_diacritics,
-        'inter_diacritics':inter_diacritics,
-        'pre_diacritics':pre_diacritics,
-        'post_diacritics':post_diacritics,
-        'prepost_diacritics':prepost_diacritics
+        'diacritics': diacritics,
+        'diacritics_effects': diacritics_effects,
+        'suprasegmental_diacritics': suprasegmental_diacritics,
+        'inter_diacritics': inter_diacritics,
+        'pre_diacritics': pre_diacritics,
+        'post_diacritics': post_diacritics,
+        'prepost_diacritics': prepost_diacritics
     }
 
     return diacritics_data
 
 
-def load_feature_geometry(dir):
+def load_feature_geometry(dir: str) -> dict:
+    """Load feature geometry and compute feature weights."""
+    # Load feature geometry data from CSV
+    feature_geometry = pd.read_csv(
+        os.path.join(dir, 'phoneData', 'feature_geometry.tsv'),
+        sep='\t',
+        **FILE_READER_DEFAULTS
+    )
+    # Preprocess feature geometry data
+    feature_geometry['tier'] = feature_geometry['path'].apply(lambda x: len(x.split(' | ')))
+    feature_geometry['parent'] = feature_geometry['path'].apply(lambda x: x.split(' | ')[-1])
+    feature_geometry['n_sisters'] = feature_geometry['parent'].apply(
+        lambda x: feature_geometry['parent'].to_list().count(x)
+    )
+    feature_geometry['n_descendants'] = feature_geometry['feature'].apply(
+        lambda x: len([
+            i for i, row in feature_geometry.iterrows()
+            if x in row['path'].split(' | ')
+        ])
+    )
+
     # Feature geometry weight calculated as ln(n_distinctions) / (tier**2)
     # where n_distinctions = (n_sisters+1) + (n_descendants)
-    feature_geometry = pd.read_csv(os.path.join(dir, 'phoneData/feature_geometry.tsv'), sep='\t', **FILE_READER_DEFAULTS)
-    feature_geometry['Tier'] = feature_geometry['Path'].apply(lambda x: len(x.split(' | ')))
-    feature_geometry['Parent'] = feature_geometry['Path'].apply(lambda x: x.split(' | ')[-1])
-    feature_geometry['N_Sisters'] = feature_geometry['Parent'].apply(lambda x: feature_geometry['Parent'].to_list().count(x))
-    feature_geometry['N_Descendants'] = feature_geometry['Feature'].apply(lambda x: len([i for i in range(len(feature_geometry)) 
-                                                                                        if x in feature_geometry['Path'].to_list()[i].split(' | ')]))
-    feature_geometry['N_Distinctions'] = (feature_geometry['N_Sisters'] + 1) + (feature_geometry['N_Descendants'])
-    weights = [log(row['N_Distinctions']) / (row['Tier']**2) for index, row in feature_geometry.iterrows()]
-    total_weights = sum(weights)
-    normalized_weights = [w/total_weights for w in weights]
-    feature_geometry['Weight'] = normalized_weights
-    feature_weights = {feature_geometry.Feature.to_list()[i]:feature_geometry.Weight.to_list()[i]
-                    for i in range(len(feature_geometry))}
-    
+    feature_geometry['n_distinctions'] = (feature_geometry['n_sisters'] + 1) + (feature_geometry['n_descendants'])
+    weights = np.array([
+        log(row['n_distinctions']) / (row['tier']**2)
+        for _, row in feature_geometry.iterrows()
+    ])
+    total_weights = np.sum(weights)
+    normalized_weights = weights / total_weights
+    feature_geometry['weight'] = normalized_weights
+    feature_weights = {
+        row['feature']: row['weight']
+        for _, row in feature_geometry.iterrows()
+    }
+
     return feature_weights
 
 
-def load_ipa_norm_map(dir):
+def load_ipa_norm_map(dir: str) -> dict:
+    """Load IPA normalization map."""
     map_file = os.path.join(dir, 'phoneData', 'ipa_normalization.map')
     ipa_norm_map = {}
     with open(map_file, 'r', **FILE_READER_DEFAULTS) as map_f:
@@ -114,7 +162,6 @@ def load_ipa_norm_map(dir):
             if not re.match(r'\s*#', line) and line.strip() != '':
                 ch, repl = line.strip().split('\t')
                 ipa_norm_map[ch] = repl
-
     return ipa_norm_map
 
 
@@ -133,11 +180,12 @@ def get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacriti
 
 
 # INITIALIZE ALL CONSTANTS
-dir = os.path.dirname(__file__)
-features, phone_features, phone_classes = load_phone_data(dir)
-diacritics_data = load_diacritics_data(dir)
-ipa_norm_map = load_ipa_norm_map(dir)
-feature_weights = load_feature_geometry(dir)
+script_directory = os.path.dirname(__file__)
+features, phone_features = load_phone_features(script_directory)
+phone_classes = load_phone_classes(script_directory)
+diacritics_data = load_diacritics_data(script_directory)
+ipa_norm_map = load_ipa_norm_map(script_directory)
+feature_weights = load_feature_geometry(script_directory)
 
 # Set contents of phone class and diacritics data dictionaries as global variables
 globals().update(phone_classes)

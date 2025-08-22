@@ -1,4 +1,5 @@
 more-itertools==9.0.0
+numpy>=2.3.2
 pandas==1.5.2
 pytest==7.2.0
 scipy>=1.7.3
