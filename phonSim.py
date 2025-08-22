@@ -10,8 +10,7 @@ from scipy.spatial.distance import cosine
 from sklearn.metrics import jaccard_score
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.initPhoneData import (consonants, feature_weights, tonemes,
-                                     vowels)
+from phonUtils.constants import FEATURE_WEIGHTS, IPA_SEGMENTS
 from phonUtils.segment import _toSegment
 
 
@@ -44,7 +43,7 @@ def dice_sim(vec1, vec2):
     return (2*jaccard) / (1+jaccard)
 
 
-def weighted_hamming(vec1, vec2, weights=feature_weights):
+def weighted_hamming(vec1, vec2, weights=FEATURE_WEIGHTS):
     diffs = 0
     for feature in vec1:
         if vec1[feature] != vec2[feature]:
@@ -52,7 +51,7 @@ def weighted_hamming(vec1, vec2, weights=feature_weights):
     return diffs/len(vec1)
 
 
-def weighted_jaccard(vec1, vec2, weights=feature_weights):
+def weighted_jaccard(vec1, vec2, weights=FEATURE_WEIGHTS):
     union, intersection = 0, 0
     for feature in vec1:
         if ((vec1[feature] == 1) and (vec2[feature] == 1)):
@@ -62,7 +61,7 @@ def weighted_jaccard(vec1, vec2, weights=feature_weights):
     return intersection/union
             
 
-def weighted_dice(vec1, vec2, weights=feature_weights):
+def weighted_dice(vec1, vec2, weights=FEATURE_WEIGHTS):
     w_jaccard = weighted_jaccard(vec1, vec2, weights)
     return (2*w_jaccard) / (1+w_jaccard)
 
@@ -95,7 +94,7 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
         phone1_values = [phone_id1[feature] for feature in compare_features]
         phone2_values = [phone_id2[feature] for feature in compare_features]
         if similarity == 'weighted_cosine':
-            weights = [feature_weights[feature] for feature in compare_features]
+            weights = [FEATURE_WEIGHTS[feature] for feature in compare_features]
             # Subtract from 1: cosine() returns a distance
             score = 1 - cosine(phone1_values, phone2_values, w=weights)
         else:
@@ -121,7 +120,7 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
 
 
 # Helper functions for identifying phones with particular features
-def lookup_segments(features, values, segment_list=consonants.union(vowels).union(tonemes)):
+def lookup_segments(features, values, segment_list=IPA_SEGMENTS):
     """Returns a list of segments whose feature values match the search criteria"""
     matches = []
     for segment in segment_list:
@@ -135,7 +134,7 @@ def lookup_segments(features, values, segment_list=consonants.union(vowels).unio
     return set(matches)
 
 
-def common_features(segment_list, start_features=feature_weights.keys()):
+def common_features(segment_list, start_features=FEATURE_WEIGHTS.keys()):
     """Returns the features/values shared by all segments in the list"""
     features = set(start_features)
     feature_values = defaultdict(lambda:[])

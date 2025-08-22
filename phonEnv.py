@@ -4,16 +4,14 @@ import sys
 from functools import lru_cache
 from itertools import combinations
 
-# Add the project's root directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Load phonological constants initialized in initPhoneData.py
-from phonUtils.initPhoneData import (alveolar, alveolopalatal, bilabial,
-                                     dental, epiglottal, front_vowel_regex,
-                                     glottal, labiodental, lateral, liquids,
-                                     nasal_regex, palatal, pharyngeal,
-                                     postalveolar, retroflex, rhotic_regex,
-                                     uvular, velar)
+from phonUtils.constants import (ALVEOLARS, ALVEOLOPALATALS, BILABIALS,
+                                 DENTALS, EPIGLOTTALS, FRONT_VOWEL_REGEX,
+                                 GLOTTALS, LABIODENTALS, LATERALS, LIQUIDS,
+                                 NASAL_REGEX, PALATALS, PHARYNGEALS,
+                                 POSTALVEOLARS, RETROFLEXES, RHOTIC_REGEX,
+                                 UVULARS, VELARS)
 from phonUtils.segment import Segment, _toSegment
 from phonUtils.syllables import syllabify
 
@@ -38,48 +36,48 @@ PHON_ENV_WITH_AFFIX_REGEXES = [
 PHON_ENV_MAP = {
     "FRONT": {
         "symbol": "F",
-        "regex": front_vowel_regex,
+        "regex": FRONT_VOWEL_REGEX,
         "ch_list": {'j', 'ɥ'},
     },
     "NASAL": {
         "symbol": "N",
-        "regex": nasal_regex,
+        "regex": NASAL_REGEX,
     },
     "RHOTIC": {
         "symbol": "R",
-        "regex": rhotic_regex,
+        "regex": RHOTIC_REGEX,
     },
     "LATERAL": {
         "symbol": "L",
-        "regex": re.compile(f"[{''.join(lateral)}ˡ]"),
+        "regex": re.compile(f"[{''.join(LATERALS)}ˡ]"),
     },
     "LIQUID": {
         "symbol": "RL",
-        "regex": re.compile(f"[{''.join(liquids)}]"),
+        "regex": re.compile(f"[{''.join(LIQUIDS)}]"),
     },
     "LABIAL": {
         "symbol": "B",
-        "regex": re.compile(f"[{''.join(bilabial.union(labiodental))}ʷᵝ]"),
+        "regex": re.compile(f"[{''.join(BILABIALS.union(LABIODENTALS))}ʷᵝ]"),
     },
     "DENTAL/ALVEOLAR": {
         "symbol": "D",
-        "regex": re.compile(f"[{''.join(dental.union(alveolar))}]"),
+        "regex": re.compile(f"[{''.join(DENTALS.union(ALVEOLARS))}]"),
     },
     "POST-ALVEOLAR": {
         "symbol": "Š",
-        "regex": re.compile(f"[{''.join(postalveolar.union(retroflex))}]"),
+        "regex": re.compile(f"[{''.join(POSTALVEOLARS.union(RETROFLEXES))}]"),
     },
     "PALATAL": {
         "symbol": "P",
-        "regex": re.compile(f"[{''.join(palatal.union(alveolopalatal))}]"),
+        "regex": re.compile(f"[{''.join(PALATALS.union(ALVEOLOPALATALS))}]"),
     },
     "VELAR/UVULAR": {
         "symbol": "K",
-        "regex": re.compile(f"[{''.join(velar.union(uvular))}ˠ]"),
+        "regex": re.compile(f"[{''.join(VELARS.union(UVULARS))}ˠ]"),
     },
     "PHARYNGEAL/(EPI)GLOTTAL": {
         "symbol": "H",
-        "regex": re.compile(f"[{''.join(glottal.union(epiglottal).union(pharyngeal))}ˤˀ]"),
+        "regex": re.compile(f"[{''.join(GLOTTALS.union(EPIGLOTTALS).union(PHARYNGEALS))}ˤˀ]"),
     },
     "VOICELESS": {
         "symbol": "-Voice",
@@ -412,13 +410,13 @@ class PhonEnv:
         return env
 
     def add_front_env(self, env, ch, **kwargs):
-        return self.add_env(env, ch, symbol='F', regex=front_vowel_regex, ch_list={'j', 'ɥ'}, **kwargs)
+        return self.add_env(env, ch, symbol='F', regex=FRONT_VOWEL_REGEX, ch_list={'j', 'ɥ'}, **kwargs)
 
     def add_nasal_env(self, env, ch, **kwargs):
-        return self.add_env(env, ch, symbol='N', regex=nasal_regex, **kwargs)
+        return self.add_env(env, ch, symbol='N', regex=NASAL_REGEX, **kwargs)
 
     def add_rhotic_env(self, env, ch, **kwargs):
-        return self.add_env(env, ch, symbol='R', regex=rhotic_regex, **kwargs)
+        return self.add_env(env, ch, symbol='R', regex=RHOTIC_REGEX, **kwargs)
 
     def add_accented_env(self, env, seg, **kwargs):
         return self.add_env(env, seg, symbol='A', phone_class=('TONEME', 'SUPRASEGMENTAL'), **kwargs)

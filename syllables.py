@@ -7,7 +7,7 @@ from more_itertools import consecutive_groups
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import phonTransforms
-from phonUtils.initPhoneData import affricates, vowels
+from phonUtils.constants import AFFRICATES, VOWELS
 from phonUtils.segment import _is_vowel, _toSegment, segment_ipa
 
 
@@ -30,7 +30,7 @@ def countMorae(form, codaMora=False, **kwargs):
     codaMora: if True, the length of the syllable coda is counted toward the number of morae"""
     syls = syllabify(form, **kwargs)
     morae = 0
-    vowel_str = ''.join(vowels)
+    vowel_str = ''.join(VOWELS)
     for syl in syls:
         if syls[syl].nucleus:
             nucleus = syls[syl].nucleus[0]
@@ -312,7 +312,7 @@ def scoreSyl(syl,
     else:
         onset_length = len(onset)
         # Affricates in onset count as if they were two consonants
-        onset_length += sum([1 for o in onset if o in affricates])
+        onset_length += sum([1 for o in onset if o in AFFRICATES])
         # COMPLEX ONSET PENALTY = default 1 * additional onset length
         if onset_length > 1:
             penalty += (onset_length * complex_onset_penalty) - 1

@@ -4,12 +4,12 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import syllables
-from phonUtils.initPhoneData import (consonants, fricatives, geminate_regex,
-                                     plosives)
+from phonUtils.constants import (CONSONANTS, FRICATIVES, GEMINATE_REGEX,
+                                 PLOSIVES)
 from phonUtils.segment import _toSegment, segment_ipa
 
-VOICELESS_CONSONANTS = ''.join([phone for phone in consonants if _toSegment(phone).voiceless])
-VOICED_CONSONANTS = ''.join([phone for phone in consonants if _toSegment(phone).voiced])
+VOICELESS_CONSONANTS = ''.join([phone for phone in CONSONANTS if _toSegment(phone).voiceless])
+VOICED_CONSONANTS = ''.join([phone for phone in CONSONANTS if _toSegment(phone).voiced])
 
 #General phonological transformation functions
 devoice_dict = {
@@ -76,7 +76,7 @@ def degeminate(word, phones):
     return word
 
 def normalize_geminates(word):
-    return geminate_regex.sub(r'\1\2\3\4ː', word)
+    return GEMINATE_REGEX.sub(r'\1\2\3\4ː', word)
 
 def split_affricates(word):
     affricate_map = {
@@ -88,7 +88,7 @@ def split_affricates(word):
         'ʥ':'dʑ',
     }
     matched = {}
-    for match in re.findall(rf'([{plosives}][͜͡][{fricatives}])', word):
+    for match in re.findall(rf'([{PLOSIVES}][͜͡][{FRICATIVES}])', word):
         split_affr = re.sub('[͜͡]', '', match)
         word = re.sub(match, split_affr, word)
         matched[match] = split_affr

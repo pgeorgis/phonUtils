@@ -5,21 +5,21 @@ import sys
 from collections import defaultdict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.initPhoneData import (
+from phonUtils.constants import (
     # Top-level phone sets
-    vowels, glides, consonants, tonemes,
+    VOWELS, GLIDES, CONSONANTS, TONEMES,
     # Phone classes by manner of articulation
-    plosives, implosives, nasals, affricates, fricatives, trills, taps_flaps, approximants, glides, clicks,
+    PLOSIVES, IMPLOSIVES, NASALS, AFFRICATES, FRICATIVES, TRILLS, TAPS_AND_FLAPS, APPROXIMANTS, CLICKS,
     # Phone classes by place of articulation
-    bilabial, alveolar, lateral, postalveolar, alveolopalatal, retroflex, palatal, velar, uvular, pharyngeal, epiglottal, glottal,
+    BILABIALS, ALVEOLARS, LATERALS, POSTALVEOLARS, ALVEOLOPALATALS, RETROFLEXES, PALATALS, VELARS, UVULARS, PHARYNGEALS, EPIGLOTTALS, GLOTTALS,
     # Diacritics and associated features
-    diacritics_effects,
+    DIACRITICS_EFFECTS,
     # Phonological features and feature geometry weights 
-    phone_features, tone_levels,
+    PHONE_FEATURES, TONE_LEVELS,
     # IPA regexes and constants
-    segment_regex, preaspiration_regex, diphthong_regex, suprasegmental_diacritics, toneme_regex,
-    front_vowel_regex, central_vowel_regex, back_vowel_regex, 
-    close_vowel_regex, close_mid_vowel_regex, open_vowel_regex, open_mid_vowel_regex,
+    SEGMENT_REGEX, PREASPIRATION_REGEX, DIPHTHONG_REGEX, TONEME_REGEX,
+    FRONT_VOWEL_REGEX, CENTRAL_VOWEL_REGEX, BACK_VOWEL_REGEX, 
+    CLOSE_VOWEL_REGEX, CLOSE_MID_VOWEL_REGEX, OPEN_VOWEL_REGEX, OPEN_MID_VOWEL_REGEX,
     # Helper functions
     _is_affricate
 )
@@ -90,17 +90,17 @@ class Segment:
 
 
     def get_phone_class(self):
-        if diphthong_regex.search(self.segment):
+        if DIPHTHONG_REGEX.search(self.segment):
             return 'DIPHTHONG'
-        elif self.base in glides:
+        elif self.base in GLIDES:
             return 'GLIDE'
-        elif self.base in vowels:
+        elif self.base in VOWELS:
             return 'VOWEL'
-        elif self.base in consonants:
+        elif self.base in CONSONANTS:
             return 'CONSONANT'
-        elif self.base in tonemes or self.base in tone_diacritics_map:
+        elif self.base in TONEMES or self.base in tone_diacritics_map:
             return 'TONEME'
-        elif all([ch in diacritics_effects for ch in self.base]):
+        elif all([ch in DIACRITICS_EFFECTS for ch in self.base]):
             return 'SUPRASEGMENTAL'
         else:
             raise ValueError(f'Could not determine phone class of {self.segment}')
@@ -114,7 +114,7 @@ class Segment:
             return Segment.segments[segment].features
 
         # Generate an empty phone feature dictionary with default values of 0
-        feature_dict = dict.fromkeys(phone_features[next(iter(phone_features))], 0)
+        feature_dict = dict.fromkeys(PHONE_FEATURES[next(iter(PHONE_FEATURES))], 0)
 
         # Split segment into component parts, if relevant
         parts = segment.split('͡') if '͡' in segment else segment.split('͜')
@@ -133,16 +133,16 @@ class Segment:
 
                 # If the length of the base > 1, the segment is a diphthong (e.g. /e̯a/) or complex toneme (e.g. /˥˩/)
                 # Filter out tonemes to handle diphthongs first
-                if (len(base) > 1) and (base[0] not in tonemes):
+                if (len(base) > 1) and (base[0] not in TONEMES):
                     return self.get_diphthong_features(segment)
 
                 # Handle tonemes
-                elif base[0] in tonemes:
+                elif base[0] in TONEMES:
                     return self.get_tonal_features(segment)
 
                 # Otherwise, retrieve the base phone's features
                 else:
-                    base_id = phone_features[base]
+                    base_id = PHONE_FEATURES[base]
                     modifiers = set(part) - set(base)
                     if modifiers:
                         part_id = self.apply_diacritics(base, base_id, modifiers)
@@ -156,7 +156,7 @@ class Segment:
 
         # Ensure that affricates are +DELAYED RELEASE and -CONTINUANT
         if len(parts) > 1:
-            if bases[0] in plosives and bases[-1] in fricatives:
+            if bases[0] in PLOSIVES and bases[-1] in FRICATIVES:
                 feature_dict['delayedRelease'] = 1
                 feature_dict['continuant'] = 0
 
@@ -178,11 +178,11 @@ class Segment:
 
         # Apply diacritic effects to feature dictionary
         for modifier in diacritics:
-            for feature, value in diacritics_effects[modifier]:
+            for feature, value in DIACRITICS_EFFECTS[modifier]:
                 modified_features[feature] = value
                 
             if modifier == '̞': # lowered diacritic: turns fricatives into approximants
-                if base[0] in fricatives:
+                if base[0] in FRICATIVES:
                     modified_features['approximant'] = 1
                     modified_features['consonantal'] = 0
                     modified_features['delayedRelease'] = 0
@@ -190,11 +190,11 @@ class Segment:
             
             elif modifier == '̝': # raised diacritic
                 # turn approximants/trills into fricativized approximants
-                if base[0] in approximants.union(trills):
+                if base[0] in APPROXIMANTS.union(TRILLS):
                     modified_features['delayedRelease'] = 1
                     
                 # turn fricatives into plosives
-                elif base[0] in fricatives:
+                elif base[0] in FRICATIVES:
                     modified_features['continuant'] = 0
                     modified_features['delayedRelease'] = 0
         
@@ -234,11 +234,11 @@ class Segment:
         
         # Create copy of original feature dictionary, or else it modifies the source
         toneme_id = defaultdict(lambda:0)
-        for feature in phone_features[base]:
-            toneme_id[feature] = phone_features[base][feature]
+        for feature in PHONE_FEATURES[base]:
+            toneme_id[feature] = PHONE_FEATURES[base][feature]
         
         # Get the tone level of each tonal component of the toneme
-        toneme_levels = [tone_levels[t] for t in toneme if t in tonemes]
+        toneme_levels = [TONE_LEVELS[t] for t in toneme if t in TONEMES]
         
         # Compute the complex tone features if not just a level tone
         if len(set(toneme_levels)) > 1:
@@ -297,38 +297,38 @@ class Segment:
         else:
             features = defaultdict(lambda:0)
             for s in supraseg:
-                for feature, value in diacritics_effects[s]:
+                for feature, value in DIACRITICS_EFFECTS[s]:
                     features[feature] = max(value, features[feature])
             return features
 
 
     def get_manner(self):
         if self.phone_class in ('CONSONANT', 'GLIDE'):
-            if self.base in affricates or _is_affricate(self.segment):
+            if self.base in AFFRICATES or _is_affricate(self.segment):
                 manner = 'AFFRICATE'
-            elif self.base in plosives:
+            elif self.base in PLOSIVES:
                 manner = 'PLOSIVE'
-            elif self.base in nasals:
+            elif self.base in NASALS:
                 manner = 'NASAL'
-            elif self.base in fricatives and '̞' in self.segment: # lowered diacritic turns fricatives into approximants
+            elif self.base in FRICATIVES and '̞' in self.segment: # lowered diacritic turns fricatives into approximants
                 manner = 'APPROXIMANT'
             elif re.search('[ɬɮ]', self.base):
                 manner = 'LATERAL FRICATIVE'
-            elif self.base in fricatives:
+            elif self.base in FRICATIVES:
                 manner = 'FRICATIVE'
-            elif self.base in trills and '̝' in self.segment:
+            elif self.base in TRILLS and '̝' in self.segment:
                 manner = 'FRICATIVE TRILL'
-            elif self.base in trills:
+            elif self.base in TRILLS:
                 manner = 'TRILL'
-            elif self.base in taps_flaps:
+            elif self.base in TAPS_AND_FLAPS:
                 manner = 'TAP/FLAP'
             elif self.features['lateral'] == 1 and self.features['approximant'] == 1:
                 manner = 'LATERAL APPROXIMANT'
-            elif self.base in approximants:
+            elif self.base in APPROXIMANTS:
                 manner = 'APPROXIMANT'
-            elif self.base in implosives:
+            elif self.base in IMPLOSIVES:
                 manner = 'IMPLOSIVE'
-            elif self.base in clicks:
+            elif self.base in CLICKS:
                 manner = 'CLICK'
             else:
                 raise ValueError(f'Could not determine manner of articulation for {self.segment}')
@@ -401,62 +401,62 @@ class Segment:
                 return 'LABIAL-VELAR'
             elif re.search('̼', self.segment):
                 return 'LINGUO-LABIAL'
-            elif self.base in bilabial:
+            elif self.base in BILABIALS:
                 return 'BILABIAL'
             elif self.features['labiodental'] == 1:
                 return 'LABIODENTAL'
             elif re.search(r'[θðǀ̪]', self.segment):
                 return 'DENTAL'
-            elif re.search('̺', self.segment) and self.base in alveolar:
+            elif re.search('̺', self.segment) and self.base in ALVEOLARS:
                 return 'APICO-ALVEOLAR'
-            elif re.search('̻', self.segment) and self.base in alveolar:
+            elif re.search('̻', self.segment) and self.base in ALVEOLARS:
                 return 'LAMINAL ALVEOLAR'
-            elif self.base in alveolar:
+            elif self.base in ALVEOLARS:
                 return 'ALVEOLAR'
-            elif self.base in lateral:
+            elif self.base in LATERALS:
                 return 'LATERAL'
-            elif self.base in postalveolar:
+            elif self.base in POSTALVEOLARS:
                 return 'POSTALVEOLAR'
-            elif self.base in alveolopalatal:
+            elif self.base in ALVEOLOPALATALS:
                 return 'ALVEOLOPALATAL'
-            elif self.base in retroflex:
+            elif self.base in RETROFLEXES:
                 return 'RETROFLEX'
-            elif self.base in palatal:
+            elif self.base in PALATALS:
                 return 'PALATAL'
-            elif self.base in velar:
+            elif self.base in VELARS:
                 return 'VELAR'
-            elif self.base in uvular:
+            elif self.base in UVULARS:
                 return 'UVULAR'
-            elif self.base in pharyngeal:
+            elif self.base in PHARYNGEALS:
                 return 'PHARYNGEAL'
-            elif self.base in epiglottal:
+            elif self.base in EPIGLOTTALS:
                 return 'EPIGLOTTAL'
-            elif self.base in glottal:
+            elif self.base in GLOTTALS:
                 return 'GLOTTAL'
             else:
                 raise val_err
             
         elif self.phone_class == 'VOWEL':
             # Height / Openness
-            if close_vowel_regex.search(self.base):
+            if CLOSE_VOWEL_REGEX.search(self.base):
                 height = 'CLOSE'
-            elif close_mid_vowel_regex.search(self.base):
+            elif CLOSE_MID_VOWEL_REGEX.search(self.base):
                 height = 'CLOSE-MID'
             elif self.base in {'ə', 'ɚ'}:
                 height = 'MID'
-            elif open_mid_vowel_regex.search(self.base):
+            elif OPEN_MID_VOWEL_REGEX.search(self.base):
                 height = 'OPEN-MID'
-            elif open_vowel_regex.search(self.base):
+            elif OPEN_VOWEL_REGEX.search(self.base):
                 height = 'OPEN'
             else:
                 raise val_err
             
             # Frontness / Backness
-            if front_vowel_regex.search(self.base):
+            if FRONT_VOWEL_REGEX.search(self.base):
                 frontness = 'FRONT'
-            elif central_vowel_regex.search(self.base):
+            elif CENTRAL_VOWEL_REGEX.search(self.base):
                 frontness = 'CENTRAL'
-            elif back_vowel_regex.search(self.base):
+            elif BACK_VOWEL_REGEX.search(self.base):
                 frontness = 'BACK'
             else:
                 raise val_err
@@ -676,7 +676,7 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
     # Then segment the parts and re-combine with tie character, as necessary
     segments = []
     for part in parts:
-        segmented = segment_regex.findall(part)
+        segmented = SEGMENT_REGEX.findall(part)
         if len(segments) > 0:
             segments[-1] = ''.join([segments[-1], '͡', segmented[0]])
             segments.extend(segmented[1:])
@@ -688,8 +688,8 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
     # e.g. 'jɐn⁵⁵' -> ['j', 'ɐ', 'n', '⁵', '⁵'] rather than ['j', 'ɐ', 'n', '⁵⁵']
     # Combine these back together
     # TODO add pytests to confirm that this segmentation works
-    if toneme_regex.search(word):
-        toneme_i = [i for i, seg in enumerate(segments) if toneme_regex.search(seg)]
+    if TONEME_REGEX.search(word):
+        toneme_i = [i for i, seg in enumerate(segments) if TONEME_REGEX.search(seg)]
         if len(toneme_i) > 1:
             toneme_i.reverse()
             for i, index in enumerate(toneme_i):
@@ -705,7 +705,7 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
     # Can't easily be distinguished in regex since the same symbol is usually a post-diacritic for post-aspiration
     if preaspiration:
         for i, seg in enumerate(segments):
-            preasp = preaspiration_regex.search(seg)
+            preasp = PREASPIRATION_REGEX.search(seg)
             if preasp:
                 try:
                     match = preasp.group()
@@ -783,5 +783,5 @@ def _is_ch(ch, l):
 
 
 def _is_vowel(ch):
-    return _is_ch(ch, vowels)
+    return _is_ch(ch, VOWELS)
 
