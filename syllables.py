@@ -12,8 +12,9 @@ from phonUtils.segment import Segment, _is_vowel, segment_ipa
 
 
 # Functions related to syllable types
-def isSyllabic(segment):
-    segment = Segment(segment)
+def isSyllabic(segment: Segment | str) -> bool:
+    if not isinstance(segment, Segment):
+        segment = Segment(segment)
     if segment.features['syllabic'] > 0:
         return True
     else:
