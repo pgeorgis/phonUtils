@@ -10,6 +10,7 @@ def test_segmentation():
         ('ðˤaːd͡ʒaχ', ['ðˤ', 'aː', 'd͡ʒ', 'a', 'χ']),
         ('ⁿdomˈates̠', ['ⁿd', 'o', 'm', 'ˈa', 't', 'e', 's̠']),
         ('fuːkʰalˈɔ̃jɕib̥ø̰', ['f', 'uː', 'kʰ', 'a', 'l', 'ˈɔ̃', 'j', 'ɕ', 'i', 'b̥', 'ø̰']),
+        ('ˈɑːʰttɑ', ['ˈɑː', 'ʰt', 't', 'ɑ']),
     ]:
         assert segment_ipa(ipa) == segments
 
