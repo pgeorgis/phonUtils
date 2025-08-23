@@ -50,7 +50,38 @@ def test_autonomous_diacritic_segmentation():
         [ref1b, ref2b, ref3b, ref4b, ref5b],
     ):
         assert segment_ipa(string_i, autonomous_diacritics=None) == ref_i
+
+
+def test_combine_diphthongs_segmentation():
+    string1 = 'drɐ̌ʊ̯ɡɐs'
+    ref1a = ['d', 'r', 'ɐ̌ʊ̯', 'ɡ', 'ɐ', 's']
+    ref1b = ['d', 'r', 'ɐ̌', 'ʊ̯', 'ɡ', 'ɐ', 's']
+    
+    string2 = 'zˈɛi̯də'
+    ref2a = ['z', 'ˈɛi̯', 'd', 'ə']
+    ref2b = ['z', 'ˈɛ', 'i̯', 'd', 'ə']
+    
+    string3 = 'ʃnˈaɪ̯'
+    ref3a = ['ʃ', 'n', 'ˈaɪ̯']
+    ref3b = ['ʃ', 'n', 'ˈa', 'ɪ̯']
+    
+    string4 = 'ou̯ɡɑ'
+    ref4a = ['ou̯', 'ɡ', 'ɑ']
+    ref4b = ['o', 'u̯', 'ɡ', 'ɑ']
  
+    # Test with combine_diphthongs=True
+    for string_i, ref_i in zip(
+        [string1, string2, string3, string4],
+        [ref1a, ref2a, ref3a, ref4a],
+    ):
+        assert segment_ipa(string_i, combine_diphthongs=True) == ref_i
+    # Test with combine_diphthongs=False
+    for string_i, ref_i in zip(
+        [string1, string2, string3, string4],
+        [ref1b, ref2b, ref3b, ref4b],
+    ):
+        assert segment_ipa(string_i, combine_diphthongs=False) == ref_i
+
 
 def test_phone_sim_symmetrical():
     """Test that phone_sim(x, y) == phone_sim(y, x)."""
