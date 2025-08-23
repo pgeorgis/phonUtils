@@ -1,7 +1,30 @@
 from constants import IPA_SEGMENTS
+from ipaTools import strip_diacritics
 from phonSim import phone_sim
 from segment import segment_ipa
 
+def test_strip_diacritics():
+    string1 = 'dʲǐə̯vɐs'
+    ref1 = 'diəvɐs'
+
+    string2 = 'bérˀzʲas'
+    ref2 = 'berzas'
+
+    string3 = 'zʲwai̯zdáːˀ'
+    ref3 = 'zwaizda'
+
+    for string_i, ref_i in zip(
+        [string1, string2, string3],
+        [ref1, ref2, ref3],
+    ):
+        assert strip_diacritics(string_i) == ref_i
+    
+    # Test diacritics removal with exception of stress
+    string4 = 'zˈuɔ̯b̥s'
+    ref4a = 'zuɔbs'
+    ref4b = 'zˈuɔbs'
+    assert strip_diacritics(string4) == ref4a
+    assert strip_diacritics(string4, excepted={'ˈ'}) == ref4b
 
 def test_segmentation():
     for ipa, segments in [
@@ -31,7 +54,7 @@ def test_autonomous_diacritic_segmentation():
     ref3b = ['ʥ', 'ˈɛ', 'ɕ', 'ɛ', 'ɲ', 'ʨ']
 
     string4 = 'ɡalˀwáːˀ'
-    ref4a = ['ɡ', 'a', 'l', 'ˀ', 'w', 'aː', '́ˀ']
+    ref4a = ['ɡ', 'a', 'l', 'ˀ', 'w', 'aː', '́ˀ'] # TODO unsure if this is should be the default segmentation
     ref4b = ['ɡ', 'a', 'lˀ', 'w', 'áːˀ']
 
     string5 = 'ʧˤɑːv'
