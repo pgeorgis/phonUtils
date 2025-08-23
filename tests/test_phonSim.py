@@ -16,9 +16,17 @@ def test_segmentation():
 
 def test_phone_sim_symmetrical():
     """Test that phone_sim(x, y) == phone_sim(y, x)."""
-    for x in IPA_SEGMENTS:
-        for y in IPA_SEGMENTS:
-            assert phone_sim(x, y) == phone_sim(y, x)
+    for measure in [
+        'cosine',
+        'hamming',
+        'jaccard',
+        'weighted_dice',
+        'weighted_hamming',
+        'weighted_jaccard',
+    ]:
+        for x in IPA_SEGMENTS:
+            for y in IPA_SEGMENTS:
+                assert phone_sim(x, y, similarity=measure) == phone_sim(y, x, similarity=measure)
 
 
 """
