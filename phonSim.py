@@ -50,19 +50,23 @@ def weighted_hamming(vec1, vec2, weights=FEATURE_WEIGHTS):
     return diffs/len(vec1)
 
 
-def weighted_jaccard(vec1, vec2, weights=FEATURE_WEIGHTS):
+def weighted_jaccard(vec1, vec2, weights=FEATURE_WEIGHTS) -> float:
     union, intersection = 0, 0
     for feature in vec1:
         if ((vec1[feature] == 1) and (vec2[feature] == 1)):
             intersection += weights[feature]
         if ((vec1[feature] == 1) or (vec2[feature] == 1)):
             union += weights[feature]
-    return intersection/union
+    if union == 0:
+        return 0.0
+    return intersection / union
             
 
-def weighted_dice(vec1, vec2, weights=FEATURE_WEIGHTS):
+def weighted_dice(vec1, vec2, weights=FEATURE_WEIGHTS) -> float:
     w_jaccard = weighted_jaccard(vec1, vec2, weights)
-    return (2*w_jaccard) / (1+w_jaccard)
+    if w_jaccard == 0:
+        return 0.0
+    return (2 * w_jaccard) / (1 + w_jaccard)
 
 
 # PHONE COMPARISON
