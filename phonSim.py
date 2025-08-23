@@ -1,5 +1,4 @@
 # PHONETIC SEGMENT ANALYSIS AND PHONETIC SIMILARITY/DISTANCE
-# Code developed by Philip Georgis (Last updated: August 2023)
 
 import os
 import sys
