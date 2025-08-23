@@ -59,7 +59,7 @@ class Segment:
             # Create a new Segment instance if not cached
             instance = super().__new__(cls)
             instance.normalized = segment
-            cls._cache[segment] = instance
+
         return instance
 
     def __init__(self, segment, normalize=False):
@@ -92,8 +92,9 @@ class Segment:
         # Get sonority
         self.sonority = self.get_sonority()
 
-        # Mark segment as initialized
+        # Mark segment as initialized and add to cache
         self._initialized = True
+        Segment._cache[self.segment] = self
 
     @staticmethod
     @lru_cache(maxsize=None)
