@@ -52,6 +52,26 @@ def test_autonomous_diacritic_segmentation():
         assert segment_ipa(string_i, autonomous_diacritics=None) == ref_i
 
 
+def test_remove_ch_segmentation():
+    string1 = ' lala '
+    ref1 = ['l', 'a', 'l', 'a']
+    
+    string2 = 'lez‿ami'
+    ref2 = ['l', 'e', 'z', 'a', 'm', 'i']
+    
+    # Test default remove_ch
+    for string_i, ref_i in zip(
+        [string1, string2],
+        [ref1, ref2,],
+    ):
+        assert segment_ipa(string_i, remove_ch=None) == ref_i
+        
+    # Remove stress
+    string3 = 'sulˈɛʎ'
+    ref3 = ['s', 'u', 'l', 'ɛ', 'ʎ']
+    assert segment_ipa(string3, remove_ch={'ˈ'}) == ref3
+
+
 def test_combine_diphthongs_segmentation():
     string1 = 'drɐ̌ʊ̯ɡɐs'
     ref1a = ['d', 'r', 'ɐ̌ʊ̯', 'ɡ', 'ɐ', 's']

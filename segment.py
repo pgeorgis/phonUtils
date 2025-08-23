@@ -666,7 +666,12 @@ class Segment:
         
 
 # IPA STRING SEGMENTATION
-def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True, autonomous_diacritics=None):
+def segment_ipa(word,
+                remove_ch: set = None,
+                combine_diphthongs: bool = True,
+                preaspiration: bool = True,
+                autonomous_diacritics: set = None
+                ):
     """Returns a list of segmented phones from the word"""
 
     # Assert that all characters in string are recognized IPA characters
@@ -677,8 +682,10 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
         verify_charset(word)
     
     # Remove spaces and other specified characters/diacritics (e.g. stress, linking ties for phonological words)
-    remove_ch += '\s‿'
-    word = re.sub(f"[{remove_ch}]", '', word)
+    if remove_ch is None:
+        remove_ch = set()
+    remove_ch.update('‿')  # liaison tie
+    word = re.sub(fr"[{remove_ch}\s]", '', word)
 
     # Split by inter-diacritics, which don't seem to match properly in regex
     parts = re.split('͡|͜', word)
