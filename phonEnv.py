@@ -12,7 +12,7 @@ from phonUtils.constants import (ALVEOLARS, ALVEOLOPALATALS, BILABIALS,
                                  NASAL_REGEX, PALATALS, PHARYNGEALS,
                                  POSTALVEOLARS, RETROFLEXES, RHOTIC_REGEX,
                                  UVULARS, VELARS)
-from phonUtils.segment import Segment, _toSegment
+from phonUtils.segment import Segment
 from phonUtils.syllables import syllabify
 
 # CONSTANTS
@@ -158,7 +158,7 @@ class PhonEnv:
             i, segments = self.preprocess_aligned_sequence(segments, i)
         self.index = i
         self.segment_i = None
-        self.supra_segs = [_toSegment(s) if not self.is_gappy(s) else s for s in segments]
+        self.supra_segs = [Segment(s) if not self.is_gappy(s) else s for s in segments]
         self.segments, self.adjust_n = self.sep_segs_from_suprasegs(self.supra_segs, self.index)
         self.adjusted_index = self.index - self.adjust_n
         self.gappy = self.is_gappy(self.segment_i)

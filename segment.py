@@ -2,7 +2,9 @@
 import os
 import re
 import sys
+import threading
 from collections import defaultdict
+from functools import lru_cache
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils.constants import (
@@ -41,13 +43,32 @@ tone_diacritics_map = {
 
 
 class Segment:
-    segments = {}
+    _cache = {}
+    _lock = threading.Lock()
+    
+    def __new__(cls, segment, normalize=False):
+        # Optionally normalize IPA string input and check for non-IPA characters
+        if normalize:
+            segment = cls.normalize(segment)
+
+        # Check for existing cached Segment instance from input
+        with cls._lock:
+            if segment in cls._cache:
+                return cls._cache[segment]
+        
+            # Create a new Segment instance if not cached
+            instance = super().__new__(cls)
+            instance.normalized = segment
+            cls._cache[segment] = instance
+        return instance
 
     def __init__(self, segment, normalize=False):
-        # Normalize IPA string input and check for non-IPA characters
-        self.segment = segment
-        if normalize:
-            self.normalize()
+        # Prevent re-initializing cached objects
+        if getattr(self, "_initialized", False) is True:
+            return
+
+        # Get optionally normalized IPA string
+        self.segment = getattr(self, "normalized", segment)
 
         # Base segment: no diacritics; first element of diphthongs, affricates, or complex consonants
         self.stripped, self.base = self.get_base_ch()
@@ -71,14 +92,15 @@ class Segment:
         # Get sonority
         self.sonority = self.get_sonority()
 
-        # Add Segment instance to Segment class attribute dictionary
-        Segment.segments[self.segment] = self
+        # Mark segment as initialized
+        self._initialized = True
 
-
-    def normalize(self):
-        self.segment = normalize_ipa_ch(self.segment)
-        verify_charset(self.segment)
-
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def normalize(segment):
+        segment = normalize_ipa_ch(segment)
+        verify_charset(segment)
+        return segment
 
     def get_base_ch(self):
         no_diacritics = strip_diacritics(self.segment)
@@ -87,7 +109,6 @@ class Segment:
             return '', self.segment
         else:
             return no_diacritics, no_diacritics[0]
-
 
     def get_phone_class(self):
         if DIPHTHONG_REGEX.search(self.segment):
@@ -105,13 +126,12 @@ class Segment:
         else:
             raise ValueError(f'Could not determine phone class of {self.segment}')
 
-
     def get_phone_features(self, segment):
         """Returns a dictionary of distinctive phonological feature values for the segment"""
         
-        # Retrieve saved feature dictionary if already generated for this segment
-        if segment in Segment.segments:
-            return Segment.segments[segment].features
+        # Retrieve saved feature dictionary if already cached for this segment
+        if segment in Segment._cache:
+            return Segment._cache[segment].features
 
         # Generate an empty phone feature dictionary with default values of 0
         feature_dict = dict.fromkeys(PHONE_FEATURES[next(iter(PHONE_FEATURES))], 0)
@@ -162,8 +182,6 @@ class Segment:
 
         return feature_dict
 
-
-
     def apply_diacritics(self, base:str, base_features:dict, diacritics:set):
         """Applies feature values of diacritics to base segments
 
@@ -200,7 +218,6 @@ class Segment:
         
         return modified_features
 
-
     def get_diphthong_features(self, diphthong):
         """Returns dictionary of features for diphthongal segment"""
         components = segment_ipa(diphthong, combine_diphthongs=False)
@@ -224,7 +241,6 @@ class Segment:
             diphth_dict['long'] = 1
             
         return diphth_dict
-
 
     def get_tonal_features(self, toneme):
         """Computes complex tonal features"""
@@ -289,7 +305,6 @@ class Segment:
         
         return toneme_id
 
-
     def get_suprasegmental_features(self, supraseg):
         if all([s in tone_diacritics_map for s in supraseg]):
             tone_eq = ''.join([tone_diacritics_map[s] for s in supraseg])
@@ -300,7 +315,6 @@ class Segment:
                 for feature, value in DIACRITICS_EFFECTS[s]:
                     features[feature] = max(value, features[feature])
             return features
-
 
     def get_manner(self):
         if self.phone_class in ('CONSONANT', 'GLIDE'):
@@ -392,7 +406,6 @@ class Segment:
             manner = 'NON-SYLLABIC ' + manner
 
         return manner
-        
 
     def get_poa(self):
         val_err = ValueError(f'Could not determine place of articulation for {self.segment}')
@@ -468,7 +481,6 @@ class Segment:
         elif self.phone_class == 'DIPHTHONG': # TODO add better description for diphthongs
             return ''
 
-
         elif self.phone_class == 'TONEME':
             # Level tones
             if self.features['tone_contour'] == 0:
@@ -494,7 +506,6 @@ class Segment:
                 
                 else:
                     raise val_err
-
 
             # Contour tones
             else:
@@ -524,7 +535,6 @@ class Segment:
         else:
             raise val_err
 
-
     def get_sonority(self):
         """Returns the sonority level of a phone according to Parker's (2002) 
         universal sonority hierarchy
@@ -541,7 +551,7 @@ class Segment:
             # Check if diphthong
             if self.phone_class == 'DIPHTHONG':
                 # Diphthong: calculate sonority as maximum sonority of component parts
-                diphthong_components = [_toSegment(seg) for seg in segment_ipa(self.segment, combine_diphthongs=False)]
+                diphthong_components = [Segment(seg) for seg in segment_ipa(self.segment, combine_diphthongs=False)]
                 return max([seg.get_sonority() for seg in diphthong_components])
 
             # Treat as glide if non-syllabic
@@ -626,7 +636,6 @@ class Segment:
         # Other sounds: raise error message
         else:
             raise ValueError(f'Error: the sonority of phone "{self.segment}" cannot be determined!')
-
 
     def __str__(self):
         """Print the segment and its class, manner, place of articulation, sonority, and/or other relevant features."""
@@ -768,10 +777,6 @@ def segment_ipa(word, remove_ch='', combine_diphthongs=True, preaspiration=True,
 
 
 # AUXILIARY FUNCTIONS
-def _toSegment(ch):
-    return Segment.segments.get(ch, Segment(ch))      
-
-
 def _is_ch(ch, l):
     try:
         if strip_diacritics(ch)[0] in l:
@@ -784,4 +789,3 @@ def _is_ch(ch, l):
 
 def _is_vowel(ch):
     return _is_ch(ch, VOWELS)
-

@@ -6,10 +6,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import syllables
 from phonUtils.constants import (CONSONANTS, FRICATIVES, GEMINATE_REGEX,
                                  PLOSIVES)
-from phonUtils.segment import _toSegment, segment_ipa
+from phonUtils.segment import Segment, segment_ipa
 
-VOICELESS_CONSONANTS = ''.join([phone for phone in CONSONANTS if _toSegment(phone).voiceless])
-VOICED_CONSONANTS = ''.join([phone for phone in CONSONANTS if _toSegment(phone).voiced])
+VOICELESS_CONSONANTS = ''.join([phone for phone in CONSONANTS if Segment(phone).voiceless])
+VOICED_CONSONANTS = ''.join([phone for phone in CONSONANTS if Segment(phone).voiced])
 
 #General phonological transformation functions
 devoice_dict = {

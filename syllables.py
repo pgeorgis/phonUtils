@@ -8,12 +8,12 @@ from more_itertools import consecutive_groups
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import phonTransforms
 from phonUtils.constants import AFFRICATES, VOWELS
-from phonUtils.segment import _is_vowel, _toSegment, segment_ipa
+from phonUtils.segment import Segment, _is_vowel, segment_ipa
 
 
 # Functions related to syllable types
 def isSyllabic(segment):
-    segment = _toSegment(segment)
+    segment = Segment(segment)
     if segment.features['syllabic'] > 0:
         return True
     else:
@@ -79,7 +79,7 @@ def sylType(syl, g_open=True):
 
         else:
             if g_open:
-                finalSeg = _toSegment(finalSeg)
+                finalSeg = Segment(finalSeg)
                 if finalSeg.phone_class == 'GLIDE':
                     return 'OPEN'
                 else:
@@ -335,7 +335,7 @@ def scoreSyl(syl,
         # Sonority should increase from the left edge of the syllable toward the nucleus
         # Also penalize clusters of equal sonority in onset
         if onset_length > 1:
-            onset_son = [_toSegment(o).get_sonority() for o in onset]
+            onset_son = [Segment(o).sonority for o in onset]
             for i in range(1, len(onset_son)):
                 if onset_son[i] <= onset_son[i-1]:
                     penalty += sonority_violation_penalty
@@ -363,7 +363,7 @@ def scoreSyl(syl,
 
         # SONORITY HIERARCHY VIOLATION PENALTY (default = 5)
         # Sonority should decrease toward the right edge of a syllable
-        coda_son = [_toSegment(c).get_sonority() for c in coda]
+        coda_son = [Segment(c).sonority for c in coda]
         if sorted(coda_son, reverse=True) != coda_son:
             penalty += sonority_violation_penalty
 

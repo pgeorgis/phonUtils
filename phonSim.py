@@ -11,7 +11,7 @@ from sklearn.metrics import jaccard_score
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils.constants import FEATURE_WEIGHTS, IPA_SEGMENTS
-from phonUtils.segment import _toSegment
+from phonUtils.segment import Segment
 
 
 # SIMILARITY / DISTANCE MEASURES
@@ -78,7 +78,7 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
         exclude_features = set()
 
     # Convert IPA strings to Segment objects
-    phone1, phone2 = map(_toSegment, [phone1, phone2])
+    phone1, phone2 = map(Segment, [phone1, phone2])
 
     # Get feature dictionaries for each phone
     phone_id1, phone_id2 = phone1.features.copy(), phone2.features.copy()
@@ -124,7 +124,7 @@ def lookup_segments(features, values, segment_list=IPA_SEGMENTS):
     """Returns a list of segments whose feature values match the search criteria"""
     matches = []
     for segment in segment_list:
-        segment = _toSegment(segment)
+        segment = Segment(segment)
         match_tallies = 0
         for feature, value in zip(features, values):
             if segment.features[feature] == value:
@@ -139,7 +139,7 @@ def common_features(segment_list, start_features=FEATURE_WEIGHTS.keys()):
     features = set(start_features)
     feature_values = defaultdict(lambda:[])
     for segment in segment_list:
-        segment = _toSegment(segment)
+        segment = Segment(segment)
         for feature in features:
             value = segment.features[feature]
             if value not in feature_values[feature]:
