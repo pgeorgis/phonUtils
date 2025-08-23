@@ -1,7 +1,3 @@
-import os
-import sys
-
-sys.path.insert(0, '/'.join(os.path.abspath(os.path.dirname(__file__)).split('/')[:-1]))
 from segment import segment_ipa
 
 
