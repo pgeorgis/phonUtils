@@ -28,7 +28,7 @@ from phonUtils.constants import (
 from phonUtils.ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
 
 # TODO make toneme-tone diacritic map file
-tone_diacritics_map = {
+TONE_DIACRITICS_MAP = {
             '̏':'˩',
             '̀':'˨',
             '̄':'˧',
@@ -40,6 +40,43 @@ tone_diacritics_map = {
             '᷄':'˦˥',
             '᷈':'˧˦˧',
             }
+
+
+SONORITY_LEVELS = {
+    "SUPRASEGMENTAL": 17,
+    "TONEME": 17,
+    # Vowels
+    "OPEN VOWELS": 16,
+    "NEAR-OPEN VOWELS": 16,
+    "OPEN-MID VOWELS": 15,
+    "MID VOWELS": 15,
+    "CLOSE-MID VOWELS": 15,
+    "NEAR-CLOSE VOWELS": 14,
+    "CLOSE VOWELS": 14,
+    "/ə/": 13,
+    "/ɨ/": 12,
+    # Sonorant consonants
+    "GLIDES": 11,
+    "GENERAL APPROXIMANTS": 10,
+    "LATERAL APPROXIMANTS": 9,
+    "TAPS": 8,
+    "FLAPS": 8,
+    "TRILLS": 7,
+    "NASALS": 6,
+    # Fricatives
+    "/h/": 5,
+    "VOICED FRICATIVES": 4,
+    "VOICELESS FRICATIVES": 3,
+    # Affricates, plosives, implosives, clicks
+    "VOICED PLOSIVES": 2,
+    "VOICED AFFRICATES": 2,
+    "VOICED IMPLOSIVES": 2,
+    "VOICED CLICKS": 2,
+    "VOICELESS PLOSIVES": 1,
+    "VOICELESS AFFRICATES": 1,
+    "VOICELESS IMPLOSIVES": 1,
+    "VOICELESS CLICKS": 1,
+}
 
 
 class Segment:
@@ -120,7 +157,7 @@ class Segment:
             return 'VOWEL'
         elif self.base in CONSONANTS:
             return 'CONSONANT'
-        elif self.base in TONEMES or self.base in tone_diacritics_map:
+        elif self.base in TONEMES or self.base in TONE_DIACRITICS_MAP:
             return 'TONEME'
         elif all([ch in DIACRITICS_EFFECTS for ch in self.base]):
             return 'SUPRASEGMENTAL'
@@ -307,8 +344,8 @@ class Segment:
         return toneme_id
 
     def get_suprasegmental_features(self, supraseg):
-        if all([s in tone_diacritics_map for s in supraseg]):
-            tone_eq = ''.join([tone_diacritics_map[s] for s in supraseg])
+        if all([s in TONE_DIACRITICS_MAP for s in supraseg]):
+            tone_eq = ''.join([TONE_DIACRITICS_MAP[s] for s in supraseg])
             return self.get_tonal_features(tone_eq)
         else:
             features = defaultdict(lambda:0)
@@ -546,8 +583,8 @@ class Segment:
         # Determine appropriate sonority level by checking membership in sound 
         # groups (manner/place of articulation) and/or relevant features     
 
-        # Vowels
-        if self.phone_class in ('VOWEL', 'DIPHTHONG', 'GLIDE'):
+        # Vowels and diphthongs
+        if self.phone_class in ('VOWEL', 'DIPHTHONG'):
 
             # Check if diphthong
             if self.phone_class == 'DIPHTHONG':
@@ -557,82 +594,82 @@ class Segment:
 
             # Treat as glide if non-syllabic
             if self.features['syllabic'] == 0:
-                return 11
+                return SONORITY_LEVELS["GLIDES"]
             
             # Schwa /ə/ and /ɨ/ have special sonority
             elif self.base == 'ə':
-                return 13
+                return SONORITY_LEVELS["/ə/"]
             elif self.base == 'ɨ':
-                return 12
+                return SONORITY_LEVELS["/ɨ/"]
             
             # Open and near-open vowels
             elif ((self.features['high'] == 0) and (self.features['low'] == 1)): 
-                return 16
+                return SONORITY_LEVELS["OPEN VOWELS"]
             
             # Open-mid, mid, close-mid vowels other than schwa /ə/
             elif self.features['high'] == 0:  
-                return 15
+                return SONORITY_LEVELS["MID VOWELS"]
             
             # Near-close and close vowels other than /ɨ/
             elif self.features['high'] == 1:
-                return 14
-
+                return SONORITY_LEVELS["CLOSE VOWELS"]
+        
         # Glides
         elif self.phone_class == 'GLIDE':
-            return 11
-        
+            return SONORITY_LEVELS["GLIDES"]
+
         # Consonants
         elif self.phone_class == 'CONSONANT':
             
             # Non-glide, non-lateral, non-tap/flap/trill approximants: /ʋ, ɹ, ɻ, R/
             if self.features['approximant'] == 1 and self.features['lateral'] == 0 and self.features['trill'] == 0 and self.features['tap'] == 0:
-                return 10
+                return SONORITY_LEVELS["GENERAL APPROXIMANTS"]
             
             # Lateral approximants
             elif self.manner == 'LATERAL APPROXIMANT':
-                return 9
+                return SONORITY_LEVELS["LATERAL APPROXIMANTS"]
             
             # Taps/flaps
             elif self.manner == 'TAP/FLAP':
-                return 8
+                return SONORITY_LEVELS["TAPS"]
             
             # Trills
             elif self.manner == 'TRILL':
-                return 7
+                return SONORITY_LEVELS["TRILLS"]
             
             # Nasals
             elif self.manner == 'NASAL':
-                return 6
+                return SONORITY_LEVELS["NASALS"]
             
             # /h/
             elif self.base == 'h':
-                return 5
+                return SONORITY_LEVELS["/h/"]
             
             # Fricatives
             elif re.search('FRICATIVE', self.manner):
                 
                 # Voiced fricatives
                 if self.features['periodicGlottalSource'] == 1:
-                    return 4
+                    return SONORITY_LEVELS["VOICED FRICATIVES"]
                 
                 # Voiceless fricatives
                 else:
-                    return 3
+                    return SONORITY_LEVELS["VOICELESS FRICATIVES"]
             
             # Affricates, plosives, implosives, clicks
             else:
             
                 # Voiced
                 if self.features['periodicGlottalSource'] == 1:
-                    return 2
+                    return SONORITY_LEVELS["VOICED PLOSIVES"]
                     
                 # Voiceless 
                 else:
-                    return 1
+                    return SONORITY_LEVELS["VOICELESS PLOSIVES"]
         
         # Tonemes and other suprasegmentals
         elif self.phone_class in ('TONEME', 'SUPRASEGMENTAL'):
-            return 17 # Highest sonority
+            return SONORITY_LEVELS["TONEME"] # Highest sonority
         
         # Other sounds: raise error message
         else:

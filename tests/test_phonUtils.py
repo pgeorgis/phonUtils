@@ -1,7 +1,35 @@
-from constants import IPA_SEGMENTS
+from itertools import product
+
+from constants import (AFFRICATES, APPROXIMANTS, CLICKS, FRICATIVES, GLIDES,
+                       IMPLOSIVES, IPA_SEGMENTS, NASALS, PLOSIVES,
+                       TAPS_AND_FLAPS, TRILLS, VOWELS)
 from ipaTools import strip_diacritics
 from phonSim import phone_sim
-from segment import segment_ipa
+from segment import SONORITY_LEVELS, Segment, segment_ipa
+
+
+def test_strip_diacritics():
+    string1 = 'dʲǐə̯vɐs'
+    ref1 = 'diəvɐs'
+
+    string2 = 'bérˀzʲas'
+    ref2 = 'berzas'
+
+    string3 = 'zʲwai̯zdáːˀ'
+    ref3 = 'zwaizda'
+
+    for string_i, ref_i in zip(
+        [string1, string2, string3],
+        [ref1, ref2, ref3],
+    ):
+        assert strip_diacritics(string_i) == ref_i
+    
+    # Test diacritics removal with exception of stress
+    string4 = 'zˈuɔ̯b̥s'
+    ref4a = 'zuɔbs'
+    ref4b = 'zˈuɔbs'
+    assert strip_diacritics(string4) == ref4a
+    assert strip_diacritics(string4, excepted={'ˈ'}) == ref4b
 
 def test_strip_diacritics():
     string1 = 'dʲǐə̯vɐs'
@@ -124,6 +152,97 @@ def test_combine_diphthongs_segmentation():
         [ref1b, ref2b, ref3b, ref4b],
     ):
         assert segment_ipa(string_i, combine_diphthongs=False) == ref_i
+
+
+def test_sonority():
+    # Plosives, affricates, implosives, clicks
+    plosive_like = PLOSIVES.union(IMPLOSIVES).union(CLICKS).union(AFFRICATES)
+    assert SONORITY_LEVELS["VOICED PLOSIVES"] == SONORITY_LEVELS["VOICED CLICKS"] == SONORITY_LEVELS["VOICED CLICKS"] == SONORITY_LEVELS["VOICED AFFRICATES"]
+    for plosive in plosive_like:
+        plosive = Segment(plosive)
+        if plosive.voiced:
+            assert plosive.sonority == SONORITY_LEVELS["VOICED PLOSIVES"]
+        else:
+            assert plosive.sonority == SONORITY_LEVELS["VOICELESS PLOSIVES"]
+
+    # Fricatives
+    for fricative in FRICATIVES:
+        if fricative != "h":
+            fricative = Segment(fricative)
+            if fricative.voiced:
+                assert fricative.sonority == SONORITY_LEVELS["VOICED FRICATIVES"]
+            else:
+                assert fricative.sonority == SONORITY_LEVELS["VOICELESS FRICATIVES"]
+        else:
+            assert Segment(fricative).sonority == SONORITY_LEVELS["/h/"]
+
+    # Nasals
+    for nasal in NASALS:
+        nasal = Segment(nasal)
+        assert nasal.sonority == SONORITY_LEVELS["NASALS"]
+
+    # Trills
+    for trill in TRILLS:
+        trill = Segment(trill)
+        assert trill.sonority == SONORITY_LEVELS["TRILLS"]
+
+    # Taps and flaps
+    for tap_or_flap in TAPS_AND_FLAPS:
+        tap_or_flap = Segment(tap_or_flap)
+        assert tap_or_flap.sonority == SONORITY_LEVELS["TAPS"] == SONORITY_LEVELS["FLAPS"]
+
+    # Approximants
+    for approximant in APPROXIMANTS:
+        if approximant in GLIDES:
+            continue
+        approximant = Segment(approximant)
+        if approximant.features['lateral'] == 1:
+            assert approximant.sonority == SONORITY_LEVELS["LATERAL APPROXIMANTS"]
+        else:
+            assert approximant.sonority == SONORITY_LEVELS["GENERAL APPROXIMANTS"]
+
+    # Glides
+    for glide in GLIDES:
+        glide = Segment(glide)
+        assert glide.sonority == SONORITY_LEVELS["GLIDES"]
+
+    # Vowels
+    assert SONORITY_LEVELS["OPEN VOWELS"] == SONORITY_LEVELS["NEAR-OPEN VOWELS"]
+    assert SONORITY_LEVELS["MID VOWELS"] == SONORITY_LEVELS["OPEN-MID VOWELS"] == SONORITY_LEVELS["CLOSE-MID VOWELS"]
+    assert SONORITY_LEVELS["CLOSE VOWELS"] == SONORITY_LEVELS["NEAR-CLOSE VOWELS"]
+    for vowel in VOWELS:
+        if vowel == 'ə':
+            assert Segment(vowel).sonority == SONORITY_LEVELS["/ə/"]
+        elif vowel == 'ɨ':
+            assert Segment(vowel).sonority == SONORITY_LEVELS["/ɨ/"]
+        else:
+            vowel = Segment(vowel)
+            # Open and near-open vowels
+            if ((vowel.features['high'] == 0) and (vowel.features['low'] == 1)):
+                assert vowel.sonority == SONORITY_LEVELS["OPEN VOWELS"]
+            # Open-mid, mid, close-mid vowels other than schwa /ə/
+            elif vowel.features['high'] == 0:
+                assert vowel.sonority == SONORITY_LEVELS["MID VOWELS"]
+            # Near-close and close vowels other than /ɨ/
+            elif vowel.features['high'] == 1:
+                assert vowel.sonority == SONORITY_LEVELS["CLOSE VOWELS"]
+            else:
+                raise ValueError(f"Couldn't test vowel /{vowel.segment}/")
+
+    # Diphthongs
+    vowel_combinations = product(VOWELS, VOWELS)
+    all_possible_diphthongs = {}
+    for vowel_i, vowel_j in vowel_combinations:
+        all_possible_diphthongs[f"{vowel_i}̯{vowel_j}"] = vowel_j
+        all_possible_diphthongs[f"{vowel_i}{vowel_j}̯"] = vowel_i
+    for diphthong, syllabic_component in all_possible_diphthongs.items():
+        assert Segment(diphthong).sonority == Segment(syllabic_component).sonority
+
+    # Special cases
+    # Fricativized trill, e.g. Czech <ř> /r̝/
+    assert Segment('r̝').sonority == SONORITY_LEVELS["VOICED FRICATIVES"]
+    # Fricative lowered to approximant, e.g. Spanish /β̞/
+    assert Segment('β̞').sonority == SONORITY_LEVELS["GENERAL APPROXIMANTS"]
 
 
 def test_phone_sim_symmetrical():
