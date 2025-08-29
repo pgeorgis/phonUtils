@@ -77,3 +77,29 @@ def test_split_affricates():
     for str, ref in test_ref_pairs.items():
         split_affr, _ = split_affricates(str)
         assert split_affr == ref
+
+
+def test_shiftStress():
+    test_ref_pairs = {
+        ("ʧokolˈada", 0): "ʧˈokolada",
+        ("ʧokolˈada", 1): "ʧokˈolada",
+        ("ʧokolˈada", -1): "ʧokoladˈa",
+        ("ʧokolˈada", -2): "ʧokolˈada",
+    }
+
+    for (str, syln), ref in test_ref_pairs.items():
+        assert shiftStress(str, n_syl=syln) == ref
+
+    # Test secondary stress shift
+    assert shiftStress("ʧokolˈada", n_syl=0, type='SECONDARY') == "ʧˌokolˈada"
+
+
+def test_shiftAccent():
+    test_ref_pairs = {
+        ("rjeːkǎ", "̌", 0): "rjěːka",
+        ("móri", "́", -1): "morí",
+        ("lâbeno", "̂", -2): "labêno",
+    }
+
+    for (str, ch, syln), ref in test_ref_pairs.items():
+        assert shiftAccent(str, n_syl=syln, accent_ch=ch) == ref

@@ -129,8 +129,8 @@ def shiftStress(word, n_syl, type='PRIMARY'):
 
 def shiftAccent(word, n_syl, accent_ch='ˈ'):
     """Shifts or adds accent (pitch accent or stress) to the nth syllable"""
-    nostress = re.sub('[ˈˌ]','', word)
-    syls = syllables.syllabify(nostress)
+    no_accent = re.sub(accent_ch, '', word)
+    syls = syllables.syllabify(no_accent)
     syls = [syls[i].syl for i in syls]
     n_syl = min(n_syl, len(syls)-1)
     n_syl = max(n_syl, -len(syls))
