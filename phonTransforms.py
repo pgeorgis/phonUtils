@@ -1,18 +1,19 @@
 import os
 import re
 import sys
+from typing import Iterable
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import syllables
 from phonUtils.constants import (CONSONANTS, FRICATIVES, GEMINATE_REGEX,
-                                 PLOSIVES)
+                                 PLOSIVES, POST_DIACRITICS)
 from phonUtils.segment import Segment, segment_ipa
 
 VOICELESS_CONSONANTS = ''.join([phone for phone in CONSONANTS if Segment(phone).voiceless])
 VOICED_CONSONANTS = ''.join([phone for phone in CONSONANTS if Segment(phone).voiced])
 
-#General phonological transformation functions
-devoice_dict = {
+
+DEFAULT_DEVOICE_DICT = {
     'b':'p',
     'd':'t',
     'ɟ':'c',
@@ -30,14 +31,21 @@ devoice_dict = {
     'ɦ':'h',
     }
 
-def finalDevoicing(word, phones, devoice_dict=devoice_dict):
+
+def finalDevoicing(ipa_string: str,
+                   phones: Iterable = None,
+                   devoice_dict: dict = DEFAULT_DEVOICE_DICT,
+                   ):
+    if phones is None:
+        phones = devoice_dict.keys()
     for phone in phones:
         devoiced = devoice_dict.get(phone, f'{phone}̥')
-        word = re.sub(f'(?<!^){phone}(?![̥̊])(ʲ)?$', fr'{devoiced}\1', word)
-    return word
+        ipa_string = re.sub(f'(?<!^){phone}(?![̥̊])(ʲ)?$', fr'{devoiced}\1', ipa_string)
+    return ipa_string
+
 
 def regressiveVoicingAssimilation(form,
-                                  devoice_dict=devoice_dict,
+                                  devoice_dict=DEFAULT_DEVOICE_DICT,
                                   voicing_dict=None,
                                   to_voiceless=True,
                                   to_voiced=True,
@@ -69,16 +77,22 @@ def regressiveVoicingAssimilation(form,
 
     return form
 
-def degeminate(word, phones):
+
+def degeminate(ipa_string: str,
+               phones: Iterable = CONSONANTS,
+               ):
     for phone in phones:
-        word = re.sub(f'{phone}{phone}(?!̩)', phone, word)
-        word = re.sub(f'{phone}ː', phone, word)
-    return word
+        ipa_string = re.sub(fr'({phone}){phone}(?!̩)([{POST_DIACRITICS}]*)',  r'\1\2', ipa_string)
+        ipa_string = re.sub(fr'({phone})ː([{POST_DIACRITICS}]*)', r'\1\2', ipa_string)
+        ipa_string = re.sub(fr'({phone})([{POST_DIACRITICS}]*)ː', r'\1\2', ipa_string)
+    return ipa_string
 
-def normalize_geminates(word):
-    return GEMINATE_REGEX.sub(r'\1\2\3\4ː', word)
 
-def split_affricates(word):
+def normalize_geminates(ipa_string: str):
+    return GEMINATE_REGEX.sub(r'\1\2\3\4ː', ipa_string)
+
+
+def split_affricates(ipa_string: str):
     affricate_map = {
         'ʦ':'ts',
         'ʣ':'dz',
@@ -88,17 +102,18 @@ def split_affricates(word):
         'ʥ':'dʑ',
     }
     matched = {}
-    for match in re.findall(rf'([{PLOSIVES}][͜͡][{FRICATIVES}])', word):
+    for match in re.findall(rf'([{PLOSIVES}][͜͡][{FRICATIVES}])', ipa_string):
         split_affr = re.sub('[͜͡]', '', match)
-        word = re.sub(match, split_affr, word)
+        ipa_string = re.sub(match, split_affr, ipa_string)
         matched[match] = split_affr
 
     for ligature, digraph in affricate_map.items():
-        if ligature in word:
-            word = re.sub(ligature, digraph, word)
+        if ligature in ipa_string:
+            ipa_string = re.sub(ligature, digraph, ipa_string)
             matched[ligature] = digraph
 
-    return word, matched
+    return ipa_string, matched
+
 
 def shiftStress(word, n_syl, type='PRIMARY'):
     """Shifts or adds stress to the nth syllable"""
@@ -110,6 +125,7 @@ def shiftStress(word, n_syl, type='PRIMARY'):
     else:
         raise ValueError(f'Error: unrecognized type "{type}". Must be one of "PRIMARY", "SECONDARY"')
     return shiftAccent(word, n_syl, ch)
+
 
 def shiftAccent(word, n_syl, accent_ch='ˈ'):
     """Shifts or adds accent (pitch accent or stress) to the nth syllable"""
@@ -133,6 +149,7 @@ def shiftAccent(word, n_syl, accent_ch='ˈ'):
         pass
 
     return ''.join(syls)
+
 
 def unstressedVowelReduction(word, vowels, reduced='ə'):
     # vowels as dict, reduced as None
