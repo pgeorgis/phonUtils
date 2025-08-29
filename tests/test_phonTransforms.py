@@ -62,4 +62,18 @@ def test_finalDevoicing():
     }
     for str, ref in test_ref_pairs.items():
         assert finalDevoicing(str, devoice_dict=devoice_dict) == ref
-    
+
+
+def test_split_affricates():
+    test_ref_pairs = {
+        'kaʦə': 'katsə',
+        'ʣel': 'dzel',
+        'ʧokolada': 'tʃokolada',
+        'aʤʤo': 'adʒdʒo',
+        'bɨʨ': 'bɨtɕ',
+        'muʥna': 'mudʑna'
+    }
+
+    for str, ref in test_ref_pairs.items():
+        split_affr, _ = split_affricates(str)
+        assert split_affr == ref
