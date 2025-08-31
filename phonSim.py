@@ -4,12 +4,13 @@ import os
 import sys
 from collections import defaultdict
 from functools import lru_cache
+from typing import Iterable
 
 from scipy.spatial.distance import cosine
 from sklearn.metrics import jaccard_score
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from phonUtils.constants import FEATURE_WEIGHTS, IPA_SEGMENTS
+from phonUtils.constants import FEATURE_SET, FEATURE_WEIGHTS, IPA_SEGMENTS
 from phonUtils.segment import Segment
 
 
@@ -137,7 +138,8 @@ def lookup_segments(features, values, segment_list=IPA_SEGMENTS):
     return set(matches)
 
 
-def common_features(segment_list, start_features=FEATURE_WEIGHTS.keys()):
+def common_features(segment_list: Iterable,
+                    start_features: Iterable = FEATURE_SET):
     """Returns the features/values shared by all segments in the list"""
     features = set(start_features)
     feature_values = defaultdict(lambda:[])
