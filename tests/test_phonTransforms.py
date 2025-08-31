@@ -103,3 +103,54 @@ def test_shiftAccent():
 
     for (str, ch, syln), ref in test_ref_pairs.items():
         assert shiftAccent(str, n_syl=syln, accent_ch=ch) == ref
+
+
+def test_unstressedVowelReduction():
+    test_ref_pairs = {
+        "plˈante": "plˈantə",
+        "katalˈa": "kətəlˈa",
+        "molokˈo": "mələkˈo",
+        "mˈøy̯zi": "mˈøə̯zə",
+    }
+    for string, ref in test_ref_pairs.items():
+        assert unstressedVowelReduction(string) == ref
+    
+    # Disable diphthong reduction
+    assert unstressedVowelReduction("mˈøy̯zi", reduce_diphthongs=False) == "mˈøy̯zə"
+
+    # Reduce only specific vowels
+    test_ref_pairs = {
+        "plˈante": "plˈante",
+        "katalˈa": "kətəlˈa",
+        "molokˈo": "molokˈo",
+        "mˈøy̯zi": "mˈøy̯zi",
+    }
+    for string, ref in test_ref_pairs.items():
+        assert unstressedVowelReduction(string, vowels={'a'}) == ref
+    
+    # Specify different reduction target
+    test_ref_pairs = {
+        "plˈante": "plˈante",
+        "katalˈa": "kɐtɐlˈa",
+        "molokˈo": "molokˈo",
+        "mˈøy̯zi": "mˈøy̯zi",
+    }
+    for string, ref in test_ref_pairs.items():
+        assert unstressedVowelReduction(string, vowels={'a'}, reduced='ɐ') == ref
+    
+    # Custom vowel reduction mapping
+    reduction_dict = {
+        'a': 'ɐ',
+        'o': 'u',
+        'e': 'ə',
+        'i': 'e',
+    }
+    test_ref_pairs = {
+        "plˈante": "plˈantə",
+        "katalˈa": "kɐtɐlˈa",
+        "molokˈo": "mulukˈo",
+        "mˈøy̯zi": "mˈøy̯ze",
+    }
+    for string, ref in test_ref_pairs.items():
+        assert unstressedVowelReduction(string, reduction_dict=reduction_dict) == ref
+    

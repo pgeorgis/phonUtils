@@ -6,7 +6,7 @@ from typing import Iterable
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import syllables
 from phonUtils.constants import (CONSONANTS, FRICATIVES, GEMINATE_REGEX,
-                                 PLOSIVES, POST_DIACRITICS)
+                                 PLOSIVES, POST_DIACRITICS, VOWELS)
 from phonUtils.segment import Segment, segment_ipa
 
 VOICELESS_CONSONANTS = ''.join([phone for phone in CONSONANTS if Segment(phone).voiceless])
@@ -151,33 +151,45 @@ def shiftAccent(word, n_syl, accent_ch='ˈ'):
     return ''.join(syls)
 
 
-def unstressedVowelReduction(word, vowels, reduced='ə'):
+def unstressedVowelReduction(ipa_string,
+                             vowels: str | Iterable = VOWELS,
+                             reduced: str | Iterable = 'ə',
+                             reduction_dict: dict = None,
+                             reduce_diphthongs: bool = True,
+                             ):
+    # use specified reduction dict
+    if reduction_dict is not None:
+        pass
+
     # vowels as dict, reduced as None
-    if reduced is None:
+    elif reduced is None:
         if isinstance(vowels, dict):
-            reduced_dict = vowels
+            reduction_dict = vowels
         else:
             raise TypeError
 
     # reduced as str
     elif isinstance(reduced, str):
         if isinstance(vowels, str):
-            reduced_dict = {vowels:reduced}
-        elif isinstance(vowels, (list, tuple, set)):
+            reduction_dict = {vowels:reduced}
+        elif isinstance(vowels, Iterable):
             reduced = [reduced]*len(vowels)
-            reduced_dict = {vowel:reduced_vowel for vowel, reduced_vowel in zip(vowels, reduced)}
+            reduction_dict = {vowel:reduced_vowel for vowel, reduced_vowel in zip(vowels, reduced)}
         else:
             raise TypeError
 
     # reduced as iterable
-    elif isinstance(reduced, (list, tuple, set)):
+    elif isinstance(reduced, Iterable):
         assert len(vowels) == len(reduced)
-        reduced_dict = {vowel:reduced_vowel for vowel, reduced_vowel in zip(vowels, reduced)}
+        reduction_dict = {vowel:reduced_vowel for vowel, reduced_vowel in zip(vowels, reduced)}
 
     else:
         raise TypeError
 
-    for vowel, reduced_vowel in reduced_dict.items():
-        word = re.sub(fr'(?<![ˈˌ]){vowel}', reduced_vowel, word)
+    for vowel, reduced_vowel in reduction_dict.items():
+        if reduce_diphthongs:
+            ipa_string = re.sub(fr'(?<![ˈˌ]){vowel}', reduced_vowel, ipa_string)
+        else:
+            ipa_string = re.sub(fr'(?<![ˈˌ]){vowel}(?![{POST_DIACRITICS}]*̯)', reduced_vowel, ipa_string)
 
-    return word
+    return ipa_string
