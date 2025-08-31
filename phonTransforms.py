@@ -44,13 +44,14 @@ def finalDevoicing(ipa_string: str,
     return ipa_string
 
 
-def regressiveVoicingAssimilation(form,
-                                  devoice_dict=DEFAULT_DEVOICE_DICT,
-                                  voicing_dict=None,
-                                  to_voiceless=True,
-                                  to_voiced=True,
-                                  exception=[]):
-    original = form[:]
+def regressiveVoicingAssimilation(ipa_string: str,
+                                  devoice_dict: dict = DEFAULT_DEVOICE_DICT,
+                                  voicing_dict: dict = None,
+                                  to_voiceless: bool = True,
+                                  to_voiced: bool = True,
+                                  exception: Iterable = [],
+                                  ):
+    original = ipa_string[:]
     if voicing_dict is None:
         voicing_dict = {devoice_dict[p]:p for p in devoice_dict}
     voiced_str = '|'.join(devoice_dict.keys())
@@ -59,23 +60,23 @@ def regressiveVoicingAssimilation(form,
     # Voiced C1, voiceless C2
     if to_voiceless:
         for voiced, voiceless in devoice_dict.items():
-            form = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?([{VOICELESS_CONSONANTS}]|{voiceless_str}|.[̥̊]))', voiceless, form)
+            ipa_string = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?([{VOICELESS_CONSONANTS}]|{voiceless_str}|.[̥̊]))', voiceless, ipa_string)
 
     # Voiceless C1, voiced C2
     if to_voiced:
         for voiceless, voiced in voicing_dict.items():
-            form = re.sub(rf'{voiceless}(?=ʲ?(({voiced_str}|[{VOICED_CONSONANTS}])(?![̥̊])|.̬))', voiced, form)
+            ipa_string = re.sub(rf'{voiceless}(?=ʲ?(({voiced_str}|[{VOICED_CONSONANTS}])(?![̥̊])|.̬))', voiced, ipa_string)
 
     # Postprocess any misplaced diacritics
-    form = re.sub(r'ʲ([̥̊])', r'\1ʲ', form)
+    ipa_string = re.sub(r'ʲ([̥̊])', r'\1ʲ', ipa_string)
 
     # Cancel the assimilation if it results in an illegal sequence
     for exc in exception:
-        if re.search(exc, form):
+        if re.search(exc, ipa_string):
             if not re.search(exc, original):
                 return original
 
-    return form
+    return ipa_string
 
 
 def degeminate(ipa_string: str,

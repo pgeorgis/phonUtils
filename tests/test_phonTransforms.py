@@ -1,6 +1,6 @@
-from phonTransforms import (degeminate, finalDevoicing, normalize_geminates,
-                            regressiveVoicingAssimilation, shiftAccent,
-                            shiftStress, split_affricates,
+from phonTransforms import (VOICED_CONSONANTS, degeminate, finalDevoicing,
+                            normalize_geminates, regressiveVoicingAssimilation,
+                            shiftAccent, shiftStress, split_affricates,
                             unstressedVowelReduction)
 
 
@@ -14,12 +14,12 @@ def test_degeminate():
         "mukʰː": "mukʰ",
         "mississippi": "misisipi",
     }
-    
-    # Default degemination of all consonants 
+
+    # Default degemination of all consonants
     for str, ref in test_ref_pairs.items():
         assert degeminate(str) == ref
-    
-    # Degemination of only specific consonants 
+
+    # Degemination of only specific consonants
     assert degeminate("mississippi", phones={"s"}) == "misisippi"
 
 
@@ -114,7 +114,7 @@ def test_unstressedVowelReduction():
     }
     for string, ref in test_ref_pairs.items():
         assert unstressedVowelReduction(string) == ref
-    
+
     # Disable diphthong reduction
     assert unstressedVowelReduction("mˈøy̯zi", reduce_diphthongs=False) == "mˈøy̯zə"
 
@@ -127,7 +127,7 @@ def test_unstressedVowelReduction():
     }
     for string, ref in test_ref_pairs.items():
         assert unstressedVowelReduction(string, vowels={'a'}) == ref
-    
+
     # Specify different reduction target
     test_ref_pairs = {
         "plˈante": "plˈante",
@@ -137,7 +137,7 @@ def test_unstressedVowelReduction():
     }
     for string, ref in test_ref_pairs.items():
         assert unstressedVowelReduction(string, vowels={'a'}, reduced='ɐ') == ref
-    
+
     # Custom vowel reduction mapping
     reduction_dict = {
         'a': 'ɐ',
@@ -153,4 +153,57 @@ def test_unstressedVowelReduction():
     }
     for string, ref in test_ref_pairs.items():
         assert unstressedVowelReduction(string, reduction_dict=reduction_dict) == ref
-    
+
+
+def test_regressiveVoicingAssimilation():
+    test_ref_pairs = {
+        "kdo": "ɡdo",
+        "hau̯bt": "hau̯pt",
+        "vezds": "vests",
+        "laʃpmi": "laʒbmi",
+        "ʤupro": "ʤubro",
+        "saxla": "saɣla",
+        "sofna": "sovna",
+    }
+    for string, ref in test_ref_pairs.items():
+        assert regressiveVoicingAssimilation(string) == ref
+
+    # only voiced -> voiceless
+    test_ref_pairs = {
+        "kdo": "kdo",
+        "hau̯bt": "hau̯pt",
+        "vezds": "vests",
+        "laʃpmi": "laʃpmi",
+        "ʤupro": "ʤupro",
+        "saxla": "saxla",
+        "sofna": "sofna"
+    }
+    for string, ref in test_ref_pairs.items():
+        assert regressiveVoicingAssimilation(string, to_voiced=False) == ref
+
+    # only voiceless -> voiced
+    test_ref_pairs = {
+        "kdo": "ɡdo",
+        "hau̯bt": "hau̯bt",
+        "vezds": "vezds",
+        "laʃpmi": "laʒbmi",
+        "ʤupro": "ʤubro",
+        "saxla": "saɣla",
+        "sofna": "sovna",
+    }
+    for string, ref in test_ref_pairs.items():
+        assert regressiveVoicingAssimilation(string, to_voiceless=False) == ref
+
+    # test with exception
+    # e.g. no assimilation triggered by /r, l, m, n/
+    test_ref_pairs = {
+        "kdo": "ɡdo",
+        "hau̯bt": "hau̯pt",
+        "vezds": "vests",
+        "laʃpmi": "laʃpmi",
+        "ʤupro": "ʤupro",
+        "saxla": "saxla",
+        "sofna": "sofna",
+    }
+    for string, ref in test_ref_pairs.items():
+        assert regressiveVoicingAssimilation(string, exception=[rf'[{VOICED_CONSONANTS}][rlmn]']) == ref
