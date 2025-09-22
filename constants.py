@@ -259,6 +259,19 @@ TONE_LEVELS = {
     '˥': 5, '⁵': 5,
     '↓': 0, '⁰': 0,
 }
+# Create mapping of tone diacritics to tone characters
+TONE_DIACRITICS_MAP = {
+    '̏':'˩',
+    '̀':'˨',
+    '̄':'˧',
+    '́':'˦',
+    '̋':'˥',
+    '̂':'˥˩',
+    '̌':'˩˥',
+    '᷅':'˩˨',
+    '᷄':'˦˥',
+    '᷈':'˧˦˧',
+}
 
 # IPA regexes
 # "Pre-preaspiration": characters which can occur before preaspiration characters <ʰʱ>, to distinguish from post-aspiration during segmentation

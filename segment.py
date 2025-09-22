@@ -17,7 +17,7 @@ from phonUtils.constants import (
     # Diacritics and associated features
     DIACRITICS_EFFECTS,
     # Phonological features and feature geometry weights 
-    PHONE_FEATURES, TONE_LEVELS,
+    PHONE_FEATURES, TONE_DIACRITICS_MAP, TONE_LEVELS,
     # IPA regexes and constants
     SEGMENT_REGEX, PREASPIRATION_REGEX, DIPHTHONG_REGEX, TONEME_REGEX,
     FRONT_VOWEL_REGEX, CENTRAL_VOWEL_REGEX, BACK_VOWEL_REGEX, 
@@ -26,20 +26,6 @@ from phonUtils.constants import (
     _is_affricate
 )
 from phonUtils.ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
-
-# TODO make toneme-tone diacritic map file
-TONE_DIACRITICS_MAP = {
-            '̏':'˩',
-            '̀':'˨',
-            '̄':'˧',
-            '́':'˦',
-            '̋':'˥',
-            '̂':'˥˩',
-            '̌':'˩˥',
-            '᷅':'˩˨',
-            '᷄':'˦˥',
-            '᷈':'˧˦˧',
-            }
 
 
 class Segment:
