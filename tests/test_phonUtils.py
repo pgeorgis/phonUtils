@@ -3,7 +3,7 @@ from itertools import product
 from constants import (AFFRICATES, APPROXIMANTS, CLICKS, FRICATIVES, GLIDES,
                        IMPLOSIVES, IPA_NORM_MAP, IPA_SEGMENTS, NASALS,
                        PLOSIVES, TAPS_AND_FLAPS, TRILLS, VOWELS)
-from ipaTools import normalize_ipa_ch, strip_diacritics
+from ipaTools import invalid_ch, normalize_ipa_ch, strip_diacritics
 from phonSim import phone_sim
 from segment import SONORITY_LEVELS, Segment, segment_ipa
 
@@ -36,6 +36,12 @@ def test_normalize_ipa_ch():
     assert len(IPA_NORM_MAP) > 80  # make sure IPA_NORM_MAP is filled
     for invalid_ipa_ch, valid_ipa_ch in IPA_NORM_MAP.items():
         assert normalize_ipa_ch(invalid_ipa_ch) == valid_ipa_ch
+
+
+def test_invalid_ch():
+    assert invalid_ch("aɡu") == {}
+    assert invalid_ch("agu") == {"g"}
+    assert sorted(invalid_ch("INVALID123")) == ['1', '2', '3', 'A', 'D', 'I', 'L', 'N', 'V']
 
 
 def test_segmentation():
