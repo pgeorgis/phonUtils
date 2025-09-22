@@ -1,9 +1,9 @@
 from itertools import product
 
 from constants import (AFFRICATES, APPROXIMANTS, CLICKS, FRICATIVES, GLIDES,
-                       IMPLOSIVES, IPA_SEGMENTS, NASALS, PLOSIVES,
-                       TAPS_AND_FLAPS, TRILLS, VOWELS)
-from ipaTools import strip_diacritics
+                       IMPLOSIVES, IPA_NORM_MAP, IPA_SEGMENTS, NASALS,
+                       PLOSIVES, TAPS_AND_FLAPS, TRILLS, VOWELS)
+from ipaTools import normalize_ipa_ch, strip_diacritics
 from phonSim import phone_sim
 from segment import SONORITY_LEVELS, Segment, segment_ipa
 
@@ -30,6 +30,12 @@ def test_strip_diacritics():
     ref4b = 'zˈuɔbs'
     assert strip_diacritics(string4) == ref4a
     assert strip_diacritics(string4, excepted={'ˈ'}) == ref4b
+
+
+def test_normalize_ipa_ch():
+    assert len(IPA_NORM_MAP) > 80  # make sure IPA_NORM_MAP is filled
+    for invalid_ipa_ch, valid_ipa_ch in IPA_NORM_MAP.items():
+        assert normalize_ipa_ch(invalid_ipa_ch) == valid_ipa_ch
 
 
 def test_segmentation():
