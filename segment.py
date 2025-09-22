@@ -42,43 +42,6 @@ TONE_DIACRITICS_MAP = {
             }
 
 
-SONORITY_LEVELS = {
-    "SUPRASEGMENTAL": 17,
-    "TONEME": 17,
-    # Vowels
-    "OPEN VOWELS": 16,
-    "NEAR-OPEN VOWELS": 16,
-    "OPEN-MID VOWELS": 15,
-    "MID VOWELS": 15,
-    "CLOSE-MID VOWELS": 15,
-    "NEAR-CLOSE VOWELS": 14,
-    "CLOSE VOWELS": 14,
-    "/ə/": 13,
-    "/ɨ/": 12,
-    # Sonorant consonants
-    "GLIDES": 11,
-    "GENERAL APPROXIMANTS": 10,
-    "LATERAL APPROXIMANTS": 9,
-    "TAPS": 8,
-    "FLAPS": 8,
-    "TRILLS": 7,
-    "NASALS": 6,
-    # Fricatives
-    "/h/": 5,
-    "VOICED FRICATIVES": 4,
-    "VOICELESS FRICATIVES": 3,
-    # Affricates, plosives, implosives, clicks
-    "VOICED PLOSIVES": 2,
-    "VOICED AFFRICATES": 2,
-    "VOICED IMPLOSIVES": 2,
-    "VOICED CLICKS": 2,
-    "VOICELESS PLOSIVES": 1,
-    "VOICELESS AFFRICATES": 1,
-    "VOICELESS IMPLOSIVES": 1,
-    "VOICELESS CLICKS": 1,
-}
-
-
 class Segment:
     _cache = {}
     _lock = threading.Lock()
@@ -573,16 +536,12 @@ class Segment:
         else:
             raise val_err
 
-    def get_sonority(self):
-        """Returns the sonority level of a phone according to Parker's (2002) 
-        universal sonority hierarchy
-        
-        adapted from:
-        https://www.researchgate.net/publication/336652515/figure/fig1/AS:815405140561923@1571419143959/Adapted-version-of-Parkers-2002-sonority-hierarchy.ppm
+    def get_sonority(self) -> int:
         """
-        # Determine appropriate sonority level by checking membership in sound 
-        # groups (manner/place of articulation) and/or relevant features     
-
+        Returns the sonority level of a segment according to Parker's (2002) universal sonority hierarchy.
+        Determines appropriate sonority level for a segment by checking membership in phonological classes and/or relevant features.
+        """
+        from phonUtils.sonority import SONORITY_LEVELS
         # Vowels and diphthongs
         if self.phone_class in ('VOWEL', 'DIPHTHONG'):
 

@@ -5,7 +5,8 @@ from constants import (AFFRICATES, APPROXIMANTS, CLICKS, FRICATIVES, GLIDES,
                        PLOSIVES, TAPS_AND_FLAPS, TRILLS, VOWELS)
 from ipaTools import invalid_ch, normalize_ipa_ch, strip_diacritics
 from phonSim import phone_sim
-from segment import SONORITY_LEVELS, Segment, segment_ipa
+from segment import Segment, segment_ipa
+from sonority import SONORITY_LEVELS
 
 
 def test_strip_diacritics():

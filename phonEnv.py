@@ -14,6 +14,7 @@ from phonUtils.constants import (ALVEOLARS, ALVEOLOPALATALS, BILABIALS,
                                  POSTALVEOLARS, RETROFLEXES, RHOTIC_REGEX,
                                  UVULARS, VELARS)
 from phonUtils.segment import Segment
+from phonUtils.sonority import relative_sonority
 from phonUtils.syllables import syllabify
 
 # CONSTANTS
@@ -104,40 +105,6 @@ PHON_ENV_MAP = {
 ALL_PHON_ENVS = list(PHON_ENV_MAP.keys())
 
 
-# Relative sonority functions
-def relative_prev_sonority(seg, prev_seg):
-    if prev_seg == seg.sonority:
-        return 'S'
-    elif prev_seg.sonority == seg.sonority:
-        return '='
-    elif prev_seg.sonority < seg.sonority:
-        return '<'
-    else: # prev_sonority > sonority_i
-        return '>'
-
-def relative_post_sonority(seg, next_seg):
-    if next_seg.segment == seg.segment:
-            return 'S'
-    elif next_seg.sonority == seg.sonority:
-        return '='
-    elif next_seg.sonority < seg.sonority:
-        return '>'
-    else: # sonority_i > next_seg
-        return '<'
-
-def relative_sonority(seg, prev_seg=None, next_seg=None):
-    assert prev_seg is not None or next_seg is not None
-    if prev_seg is None:
-        prev_son = None
-    else:
-        prev_son = relative_prev_sonority(seg, prev_seg)
-    if next_seg is None:
-        post_son = None
-    else:
-        post_son = relative_post_sonority(seg, next_seg)
-    return prev_son, post_son
-
-# PHONOLOGICAL ENVIRONMENT
 class PhonEnv:
     def __init__(self, segments, i, gap_ch=None, phon_env_map=PHON_ENV_MAP, **kwargs):
         self.phon_env_map = phon_env_map
@@ -324,12 +291,6 @@ class PhonEnv:
 
     def relative_sonority(self, prev_seg=None, next_seg=None):
         return relative_sonority(self.segment_i, prev_seg=prev_seg, next_seg=next_seg)
-
-    def relative_prev_sonority(self, prev_seg):
-        return relative_prev_sonority(self.segment_i, prev_seg)
-
-    def relative_post_sonority(self, next_seg):
-        return relative_post_sonority(self.segment_i, next_seg)
 
     @staticmethod
     def env_matches(segment: Segment,
