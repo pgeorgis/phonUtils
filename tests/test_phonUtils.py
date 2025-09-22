@@ -39,7 +39,7 @@ def test_normalize_ipa_ch():
 
 
 def test_invalid_ch():
-    assert invalid_ch("aɡu") == {}
+    assert invalid_ch("aɡu") == set()
     assert invalid_ch("agu") == {"g"}
     assert sorted(invalid_ch("INVALID123")) == ['1', '2', '3', 'A', 'D', 'I', 'L', 'N', 'V']
 
