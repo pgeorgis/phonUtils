@@ -3,6 +3,7 @@ import re
 import sys
 from functools import lru_cache
 from itertools import combinations
+from typing import Iterable
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -102,20 +103,6 @@ PHON_ENV_MAP = {
 }
 ALL_PHON_ENVS = list(PHON_ENV_MAP.keys())
 
-
-# HELPER FUNCTIONS
-def _is_env(segment: Segment,
-            regex: re.Pattern = None,
-            match_chs=None, features=None):
-    if features:
-        if all(segment.features.get(feature) == feature_val for feature, feature_val in features.items()):
-            return True
-        return False
-    if regex and regex.search(segment.segment):
-        return True
-    if match_chs and segment.base in match_chs:
-        return True
-    return False
 
 # Relative sonority functions
 def relative_prev_sonority(seg, prev_seg):
@@ -344,6 +331,22 @@ class PhonEnv:
     def relative_post_sonority(self, next_seg):
         return relative_post_sonority(self.segment_i, next_seg)
 
+    @staticmethod
+    def env_matches(segment: Segment,
+                    regex: re.Pattern = None,
+                    match_chs: Iterable = None,
+                    features: dict = None
+                    ) -> bool:
+        if features:
+            if all(segment.features.get(feature) == feature_val for feature, feature_val in features.items()):
+                return True
+            return False
+        if regex and regex.search(segment.segment):
+            return True
+        if match_chs and segment.base in match_chs:
+            return True
+        return False
+
     def add_env(self,
                 env,
                 segment,
@@ -357,9 +360,9 @@ class PhonEnv:
                 sep=PHON_ENV_SEP):
         assert prefix is not None or suffix is not None
         if phone_class and segment.phone_class in phone_class:
-            env_match = True
-        elif _is_env(segment=segment, features=features, regex=regex, match_chs=match_chs):
-            env_match = True
+            pass
+        elif self.env_matches(segment=segment, features=features, regex=regex, match_chs=match_chs):
+            pass
         else:
             return env
         if prefix:
