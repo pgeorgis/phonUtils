@@ -37,7 +37,7 @@ PHON_ENV_MAP = {
     "FRONT": {
         "symbol": "F",
         "regex": FRONT_VOWEL_REGEX,
-        "ch_list": {'j', 'ɥ'},
+        "match_chs": {'j', 'ɥ'},
     },
     "NASAL": {
         "symbol": "N",
@@ -104,14 +104,16 @@ ALL_PHON_ENVS = list(PHON_ENV_MAP.keys())
 
 
 # HELPER FUNCTIONS
-def _is_env(segment: Segment, regex=None, ch_list=None, features=None):
+def _is_env(segment: Segment,
+            regex: re.Pattern = None,
+            match_chs=None, features=None):
     if features:
         if all(segment.features.get(feature) == feature_val for feature, feature_val in features.items()):
             return True
         return False
     if regex and regex.search(segment.segment):
         return True
-    if ch_list and segment.base in ch_list:
+    if match_chs and segment.base in match_chs:
         return True
     return False
 
@@ -347,7 +349,7 @@ class PhonEnv:
                 segment,
                 symbol,
                 regex=None,
-                ch_list=None,
+                match_chs=None,
                 phone_class=None,
                 features=None,
                 prefix=None,
@@ -356,7 +358,7 @@ class PhonEnv:
         assert prefix is not None or suffix is not None
         if phone_class and segment.phone_class in phone_class:
             env_match = True
-        elif _is_env(segment=segment, features=features, regex=regex, ch_list=ch_list):
+        elif _is_env(segment=segment, features=features, regex=regex, match_chs=match_chs):
             env_match = True
         else:
             return env
@@ -371,7 +373,7 @@ class PhonEnv:
                 continue
             symbol = encoding_map["symbol"]
             regex = encoding_map.get("regex", None)
-            ch_list = encoding_map.get("ch_list", None)
+            match_chs = encoding_map.get("match_chs", None)
             phone_class = encoding_map.get("phone_class", None)
             features = encoding_map.get("features", None)
             env = self.add_env(
@@ -379,12 +381,12 @@ class PhonEnv:
                 segment,
                 symbol=symbol,
                 regex=regex,
-                ch_list=ch_list,
+                match_chs=match_chs,
                 phone_class=phone_class,
                 features=features,
                 **kwargs
             )
-        return env
+        return env 
 
     def add_syllable_env(self, i, env):
         """Add 'OPEN' or 'CLOSED' to syllable nuclei, 'ONSET' or 'CODA' to other segments within a syllable."""
@@ -408,18 +410,6 @@ class PhonEnv:
         else:
             env += PHON_ENV_SEP + syllable_env
         return env
-
-    def add_front_env(self, env, ch, **kwargs):
-        return self.add_env(env, ch, symbol='F', regex=FRONT_VOWEL_REGEX, ch_list={'j', 'ɥ'}, **kwargs)
-
-    def add_nasal_env(self, env, ch, **kwargs):
-        return self.add_env(env, ch, symbol='N', regex=NASAL_REGEX, **kwargs)
-
-    def add_rhotic_env(self, env, ch, **kwargs):
-        return self.add_env(env, ch, symbol='R', regex=RHOTIC_REGEX, **kwargs)
-
-    def add_accented_env(self, env, seg, **kwargs):
-        return self.add_env(env, seg, symbol='A', phone_class=('TONEME', 'SUPRASEGMENTAL'), **kwargs)
 
     def ngrams(self, exclude=set()):
         """Returns set of phonological environment strings of equal and lower order,
