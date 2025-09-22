@@ -1,3 +1,4 @@
+# Functions for IPA string manipulation and normalization
 
 import os
 import re
@@ -8,8 +9,7 @@ from phonUtils.constants import (DIACRITIC_REGEX, IPA_DIACRITICS, IPA_NORM_MAP,
                                  VALID_CHARACTERS)
 
 
-# FUNCTIONS FOR IPA STRING MANIPULATION AND NORMALIZATION
-def strip_diacritics(string, excepted=[]):
+def strip_diacritics(string: str, excepted: list = []):
     """Removes diacritic characters from an IPA string
     By default removes all diacritics; in order to keep certain diacritics,
     these should be passed as a list to the "excepted" parameter"""
@@ -20,7 +20,7 @@ def strip_diacritics(string, excepted=[]):
         return DIACRITIC_REGEX.sub('', string)
 
 
-def normalize_ipa_ch(string, ipa_norm_map=IPA_NORM_MAP):
+def normalize_ipa_ch(string: str, ipa_norm_map: dict = IPA_NORM_MAP) -> str:
     """Normalizes some commonly mistyped IPA characters according to a pre-loaded normalization mapping dictionary"""
 
     def replace_callback(match):
@@ -32,12 +32,12 @@ def normalize_ipa_ch(string, ipa_norm_map=IPA_NORM_MAP):
     return string
 
 
-def invalid_ch(string, valid_ch=VALID_CHARACTERS):
+def invalid_ch(string: str, valid_ch: str = VALID_CHARACTERS) -> set:
     """Returns set of unrecognized (non-IPA) characters in phonetic string"""
     return set(re.findall(fr'[^{valid_ch}]', string))
 
 
-def verify_charset(string):
+def verify_charset(string: str) -> None:
     """Verifies that all characters are valid IPA characters or diacritics, otherwise raises error"""
     unk_ch = invalid_ch(string)
     if len(unk_ch) > 0:
