@@ -128,7 +128,6 @@ class PhonEnv:
         """Drop gaps and boundaries and flatten complex ngrams."""
         minus_offset, plus_offset = 0, 0
         adj_segments = []
-        segments = [self.preprocess_ngram_segment(seg) for seg in segments]
         for segment in segments[:i]:
             if isinstance(segment, str) and BOUNDARY_TOKEN in segment:
                 minus_offset += 1
@@ -273,23 +272,11 @@ class PhonEnv:
             env = self.add_syllable_env(i, env)
 
             return env
-    
-    @staticmethod
-    def preprocess_ngram_segment(ngram_seg) -> str | tuple[str, ...]:
-        if isinstance(ngram_seg, tuple) and len(ngram_seg) == 1:
-            ngram_seg = ngram_seg[0]
-            assert isinstance(ngram_seg, str)
-        elif isinstance(ngram_seg, str):
-            pass
-        else:
-            assert isinstance(ngram_seg, tuple) and len(ngram_seg) > 1
-        return ngram_seg
 
     def is_gappy(self, seg) -> bool:
         if isinstance(seg, Segment):
             # segments cannot be gappy
             return False
-        seg = self.preprocess_ngram_segment(seg)
         return isinstance(seg, str) and (seg == self.gap_ch or BOUNDARY_TOKEN in seg)
 
     def relative_sonority(self,
