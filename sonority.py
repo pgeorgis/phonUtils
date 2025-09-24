@@ -2,7 +2,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from segment import Segment
+from phonUtils.segment import Segment
 
 IDENTICAL_SEGMENT_CH = "S"
 IDENTICAL_SONORITY_CH = "="
