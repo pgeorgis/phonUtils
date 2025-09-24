@@ -91,15 +91,15 @@ PHON_ENV_MAP = {
     },
     "VOWEL": {
         "symbol": "V",
-        "phone_class": ['VOWEL', 'DIPHTHONG'],
+        "phone_classes": {'VOWEL', 'DIPHTHONG'},
     },
     "CONSONANT": {
         "symbol": "C",
-        "phone_class": ['CONSONANT', 'GLIDE'],
+        "phone_classes": {'CONSONANT', 'GLIDE'},
     },
     "ACCENTED": {
         "symbol": "A",
-        "phone_class": ['TONEME', 'SUPRASEGMENTAL'],
+        "phone_classes": {'TONEME', 'SUPRASEGMENTAL'},
     },
 }
 ALL_PHON_ENVS = list(PHON_ENV_MAP.keys())
@@ -115,13 +115,16 @@ class PhonEnv:
         self.index = i
         self.segment_i = None
         self.supra_segs = [Segment(s) if not self.is_gappy(s) else s for s in segments]
-        self.segments, self.adjust_n = self.sep_segs_from_suprasegs(self.supra_segs, self.index)
+        self.segments, self.adjust_n = self.separate_segments_from_suprasegmentals()
         self.adjusted_index = self.index - self.adjust_n
         self.gappy = self.is_gappy(self.segment_i)
         self.syllables = self.get_syllables()
         self.phon_env = self.get_phon_env(**kwargs)
 
-    def preprocess_aligned_sequence(self, segments, i):
+    def preprocess_aligned_sequence(self,
+                                    segments: Iterable,
+                                    i: int,
+                                    ) -> tuple[int, list]:
         """Drop gaps and boundaries and flatten complex ngrams."""
         minus_offset, plus_offset = 0, 0
         adj_segments = []
@@ -158,21 +161,21 @@ class PhonEnv:
                     adj_segments.append(segment)
         return adjusted_i, adj_segments
 
-    def sep_segs_from_suprasegs(self, segments, i):
+    def separate_segments_from_suprasegmentals(self) -> tuple[list, int]:
         adjust_n = 0
         segs = []
-        for j, seg in enumerate(segments):
+        for j, seg in enumerate(self.supra_segs):
             if isinstance(seg, Segment) and seg.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
                 segs.append(seg)
             elif isinstance(seg, str): # str: gap or boundary
                 segs.append(seg)
-            elif j < i:
+            elif j < self.index:
                 adjust_n += 1
-            if j == i:
+            if j == self.index:
                 self.segment_i = seg
         return segs, adjust_n
 
-    def get_syllables(self):
+    def get_syllables(self) -> dict:
         """Return syllable dictionary with segment indices constituting syllable nuclei as keys and Syllable objects as values."""
         segments = []
         for seg in self.segments:
@@ -183,7 +186,7 @@ class PhonEnv:
                 assert self.is_gappy(seg)
         return syllabify(''.join(segments))
 
-    def get_phon_env(self):
+    def get_phon_env(self) -> str:
         """Returns a string representing the phonological environment of a segment within a word"""
 
         # Tonemes/suprasegmentals
@@ -282,21 +285,25 @@ class PhonEnv:
             assert isinstance(ngram_seg, tuple) and len(ngram_seg) > 1
         return ngram_seg
 
-    def is_gappy(self, seg):
+    def is_gappy(self, seg) -> bool:
         if isinstance(seg, Segment):
             # segments cannot be gappy
             return False
         seg = self.preprocess_ngram_segment(seg)
         return isinstance(seg, str) and (seg == self.gap_ch or BOUNDARY_TOKEN in seg)
 
-    def relative_sonority(self, prev_seg=None, next_seg=None):
+    def relative_sonority(self,
+                          prev_seg: Segment = None,
+                          next_seg: Segment = None
+                          ) -> tuple[str, str]:
         return relative_sonority(self.segment_i, prev_seg=prev_seg, next_seg=next_seg)
 
     @staticmethod
     def env_matches(segment: Segment,
                     regex: re.Pattern = None,
                     match_chs: Iterable = None,
-                    features: dict = None
+                    features: dict = None,
+                    phone_classes: set = None,
                     ) -> bool:
         if features:
             if all(segment.features.get(feature) == feature_val for feature, feature_val in features.items()):
@@ -306,39 +313,44 @@ class PhonEnv:
             return True
         if match_chs and segment.base in match_chs:
             return True
+        if phone_classes and segment.phone_class in phone_classes:
+            return True
         return False
 
     def add_env(self,
-                env,
-                segment,
-                symbol,
-                regex=None,
-                match_chs=None,
-                phone_class=None,
-                features=None,
-                prefix=None,
-                suffix=None,
-                sep=PHON_ENV_SEP):
+                env: str,
+                segment: Segment,
+                symbol: str,
+                regex: re.Pattern = None,
+                match_chs: set = None,
+                phone_classes: set = None,
+                features: dict = None,
+                prefix: bool = None,
+                suffix: bool = None,
+                sep: str = PHON_ENV_SEP
+                ) -> str:
         assert prefix is not None or suffix is not None
-        if phone_class and segment.phone_class in phone_class:
-            pass
-        elif self.env_matches(segment=segment, features=features, regex=regex, match_chs=match_chs):
-            pass
-        else:
+        if not self.env_matches(
+            segment=segment,
+            features=features,
+            regex=regex,
+            match_chs=match_chs,
+            phone_classes=phone_classes
+            ):
             return env
         if prefix:
             return symbol + sep + env
         else: # suffix
             return env + sep + symbol
 
-    def add_envs(self, env, segment, **kwargs):
+    def add_envs(self, env: str, segment: Segment, **kwargs) -> str:
         for _, encoding_map in self.phon_env_map.items():
             if encoding_map.get("active", True) is False:
                 continue
             symbol = encoding_map["symbol"]
             regex = encoding_map.get("regex", None)
             match_chs = encoding_map.get("match_chs", None)
-            phone_class = encoding_map.get("phone_class", None)
+            phone_classes = encoding_map.get("phone_classes", None)
             features = encoding_map.get("features", None)
             env = self.add_env(
                 env,
@@ -346,13 +358,13 @@ class PhonEnv:
                 symbol=symbol,
                 regex=regex,
                 match_chs=match_chs,
-                phone_class=phone_class,
+                phone_classes=phone_classes,
                 features=features,
                 **kwargs
             )
         return env 
 
-    def add_syllable_env(self, i, env):
+    def add_syllable_env(self, i: int, env: str) -> str:
         """Add 'OPEN' or 'CLOSED' to syllable nuclei, 'ONSET' or 'CODA' to other segments within a syllable."""
         if i in self.syllables:
             syllable_type = self.syllables[i].type
@@ -375,21 +387,12 @@ class PhonEnv:
             env += PHON_ENV_SEP + syllable_env
         return env
 
-    def ngrams(self, exclude=set()):
-        """Returns set of phonological environment strings of equal and lower order,
-        e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
-
-        Returns:
-            set: possible equal and lower order phonological environment strings
-        """
-        return list_phon_env_ngram_subcontexts(self.phon_env, exclude=exclude)
-
-    def __str__(self):
+    def __str__(self) -> str:
         return self.phon_env
 
 
 @lru_cache
-def list_phon_env_ngram_subcontexts(phonEnv, exclude_base=True):
+def list_phon_env_ngram_subcontexts(phonEnv: str, exclude_base=True) -> set:
     """Returns set of phonological environment strings of equal and lower order,
     e.g. ">|S|#" -> ">|S", "S|#", ">|S|#"
 
@@ -416,10 +419,12 @@ def list_phon_env_ngram_subcontexts(phonEnv, exclude_base=True):
                 ngrams.add(f'{prefix}{PHON_ENV_SPLIT_CH}{SEGMENT_CH}{PHON_ENV_SPLIT_CH}{suffix}')
     else:
         assert phonEnv in (BASE_TONEME_ENV, BASE_SEGMENT_ENV)
-        ngrams = [phonEnv]
+        ngrams = {phonEnv}
 
     if exclude_base:
-        return [ngram for ngram in ngrams if ngram != f'{PHON_ENV_SPLIT_CH}{SEGMENT_CH}{PHON_ENV_SPLIT_CH}']
+        base_ngram = f'{PHON_ENV_SPLIT_CH}{SEGMENT_CH}{PHON_ENV_SPLIT_CH}'
+        if base_ngram in ngrams:
+            ngrams.remove(base_ngram)
     return ngrams
 
 
@@ -435,7 +440,15 @@ def custom_phon_env_map(active_envs: list) -> dict:
     return phon_env_map
 
 
-def get_phon_env(segments, i, active_envs=ALL_PHON_ENVS, **kwargs):
+def get_phon_env(segments: list,
+                 segment_idx: int,
+                 active_envs: Iterable = ALL_PHON_ENVS,
+                 **kwargs) -> str:
     phon_env_map = custom_phon_env_map(active_envs)
-    phon_env = PhonEnv(segments, i, phon_env_map=phon_env_map, **kwargs)
+    phon_env = PhonEnv(
+        segments,
+        segment_idx,
+        phon_env_map=phon_env_map,
+        **kwargs
+    )
     return phon_env.phon_env
