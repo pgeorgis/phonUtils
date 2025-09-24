@@ -3,9 +3,9 @@ import re
 
 from more_itertools import consecutive_groups
 
-from phonUtils import phonTransforms
-from phonUtils.constants import AFFRICATES, VOWELS
-from phonUtils.segment import Segment, _is_vowel, segment_ipa
+from . import phonTransforms
+from .constants import AFFRICATES, VOWELS
+from .segment import Segment, _is_vowel, segment_ipa
 
 
 # Functions related to syllable types

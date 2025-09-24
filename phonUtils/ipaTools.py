@@ -2,8 +2,8 @@
 
 import re
 
-from phonUtils.constants import (DIACRITIC_REGEX, IPA_DIACRITICS, IPA_NORM_MAP,
-                                 VALID_CHARACTERS)
+from .constants import (DIACRITIC_REGEX, IPA_DIACRITICS, IPA_NORM_MAP,
+                        VALID_CHARACTERS)
 
 
 def strip_diacritics(string: str, excepted: list = []):

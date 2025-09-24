@@ -7,8 +7,8 @@ from typing import Iterable
 from scipy.spatial.distance import cosine
 from sklearn.metrics import jaccard_score
 
-from phonUtils.constants import FEATURE_SET, FEATURE_WEIGHTS, IPA_SEGMENTS
-from phonUtils.segment import Segment
+from .constants import FEATURE_SET, FEATURE_WEIGHTS, IPA_SEGMENTS
+from .segment import Segment
 
 
 # SIMILARITY / DISTANCE MEASURES
