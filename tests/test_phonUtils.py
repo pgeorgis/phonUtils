@@ -1,12 +1,13 @@
 from itertools import product
 
-from constants import (AFFRICATES, APPROXIMANTS, CLICKS, FRICATIVES, GLIDES,
-                       IMPLOSIVES, IPA_NORM_MAP, IPA_SEGMENTS, NASALS,
-                       PLOSIVES, TAPS_AND_FLAPS, TRILLS, VOWELS)
-from ipaTools import invalid_ch, normalize_ipa_ch, strip_diacritics
-from phonSim import phone_sim
-from segment import Segment, segment_ipa
-from sonority import SONORITY_LEVELS
+from phonUtils.constants import (AFFRICATES, APPROXIMANTS, CLICKS, FRICATIVES,
+                                 GLIDES, IMPLOSIVES, IPA_NORM_MAP,
+                                 IPA_SEGMENTS, NASALS, PLOSIVES,
+                                 TAPS_AND_FLAPS, TRILLS, VOWELS)
+from phonUtils.ipaTools import invalid_ch, normalize_ipa_ch, strip_diacritics
+from phonUtils.phonSim import phone_sim
+from phonUtils.segment import Segment, segment_ipa
+from phonUtils.sonority import SONORITY_LEVELS
 
 
 def test_strip_diacritics():

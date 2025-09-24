@@ -1,7 +1,9 @@
-from phonTransforms import (VOICED_CONSONANTS, degeminate, finalDevoicing,
-                            normalize_geminates, regressiveVoicingAssimilation,
-                            shiftAccent, shiftStress, split_affricates,
-                            unstressedVowelReduction)
+from phonUtils.phonTransforms import (VOICED_CONSONANTS, degeminate,
+                                      finalDevoicing, normalize_geminates,
+                                      regressiveVoicingAssimilation,
+                                      shiftAccent, shiftStress,
+                                      split_affricates,
+                                      unstressedVowelReduction)
 
 
 def test_degeminate():

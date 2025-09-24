@@ -1,12 +1,8 @@
-
-import os
 import re
-import sys
 import threading
 from collections import defaultdict
 from functools import lru_cache
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils.constants import (
     # Top-level phone sets
     VOWELS, GLIDES, CONSONANTS, TONEMES,

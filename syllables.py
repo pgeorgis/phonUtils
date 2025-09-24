@@ -1,11 +1,8 @@
-import os
 import random
 import re
-import sys
 
 from more_itertools import consecutive_groups
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils import phonTransforms
 from phonUtils.constants import AFFRICATES, VOWELS
 from phonUtils.segment import Segment, _is_vowel, segment_ipa

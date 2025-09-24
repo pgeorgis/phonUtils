@@ -1,10 +1,7 @@
 # Functions for IPA string manipulation and normalization
 
-import os
 import re
-import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from phonUtils.constants import (DIACRITIC_REGEX, IPA_DIACRITICS, IPA_NORM_MAP,
                                  VALID_CHARACTERS)
 
