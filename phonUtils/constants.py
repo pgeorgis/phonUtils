@@ -2,10 +2,10 @@ import os
 import re
 from collections import defaultdict
 from math import log
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 
 FILE_READER_DEFAULTS = {
     'encoding': 'utf-8',
@@ -182,12 +182,13 @@ def get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacriti
 
 
 # INITIALIZE ALL CONSTANTS
-SCRIPT_DIR = os.path.dirname(__file__)
-FEATURE_SET, PHONE_FEATURES = load_phone_features(SCRIPT_DIR)
-PHONE_CLASSES = load_phone_classes(SCRIPT_DIR)
-DIACRITICS_DATA = load_diacritics_data(SCRIPT_DIR)
-IPA_NORM_MAP = load_ipa_norm_map(SCRIPT_DIR)
-FEATURE_WEIGHTS = load_feature_geometry(SCRIPT_DIR)
+SCRIPT_DIR = Path(__file__).parent
+ROOT_DIR = SCRIPT_DIR.parent
+FEATURE_SET, PHONE_FEATURES = load_phone_features(ROOT_DIR)
+PHONE_CLASSES = load_phone_classes(ROOT_DIR)
+DIACRITICS_DATA = load_diacritics_data(ROOT_DIR)
+IPA_NORM_MAP = load_ipa_norm_map(ROOT_DIR)
+FEATURE_WEIGHTS = load_feature_geometry(ROOT_DIR)
 
 # Set phone classes as constants
 # Place of articulation
