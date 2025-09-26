@@ -42,6 +42,7 @@ SONORITY_LEVELS = {
     "VOICELESS IMPLOSIVES": 1,
     "VOICELESS CLICKS": 1,
 }
+MAX_SONORITY = max(SONORITY_LEVELS.values())
 
 
 def relative_prev_sonority(seg: Segment,
