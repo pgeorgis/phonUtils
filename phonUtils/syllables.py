@@ -366,14 +366,3 @@ def scoreSyl(syl,
             penalty += sonority_violation_penalty
 
     return penalty
-
-
-def openSyl(syl):
-    return sylType(syl) == 'OPEN'
-
-
-def closedSyl(syl):
-    if sylType(syl) == 'CLOSED':
-        return True
-    else:
-        return False
