@@ -16,13 +16,12 @@ from .constants import (
     # Phonological features and feature geometry weights 
     PHONE_FEATURES, TONE_DIACRITICS_MAP, TONE_LEVELS,
     # IPA regexes and constants
-    IPA_SEGMENTS, SEGMENT_REGEX, PREASPIRATION_REGEX, DIPHTHONG_REGEX, TONEME_REGEX,
+    IPA_SEGMENTS, SEGMENT_REGEX,
+    PREASPIRATION_REGEX, DIPHTHONG_REGEX, TONEME_REGEX, AFFRICATE_REGEX,
     FRONT_VOWEL_REGEX, CENTRAL_VOWEL_REGEX, BACK_VOWEL_REGEX, 
     CLOSE_VOWEL_REGEX, CLOSE_MID_VOWEL_REGEX, OPEN_VOWEL_REGEX, OPEN_MID_VOWEL_REGEX,
     # Phone features
     FEATURE_SET,
-    # Helper functions
-    _is_affricate
 )
 from .ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
 
@@ -39,6 +38,15 @@ def segment_in_group(ipa_str: str, group: Iterable):
 def segment_is_vowel(segment: str) -> bool:
     """Returns True if segment is a vowel."""
     return segment_in_group(segment, VOWELS)
+
+
+def segment_is_affricate(phone: str) -> bool:
+    if '͡' in phone:
+        if AFFRICATE_REGEX.search(phone):
+            return True
+    elif phone in AFFRICATES:
+        return True
+    return False
 
 
 class Segment:
@@ -318,7 +326,7 @@ class Segment:
 
     def get_manner(self) -> str:
         if self.phone_class in ('CONSONANT', 'GLIDE'):
-            if self.base in AFFRICATES or _is_affricate(self.segment):
+            if self.base in AFFRICATES or segment_is_affricate(self.segment):
                 manner = 'AFFRICATE'
             elif self.base in PLOSIVES:
                 manner = 'PLOSIVE'

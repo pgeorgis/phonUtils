@@ -293,12 +293,3 @@ CLOSE_MID_VOWEL_REGEX = re.compile(r'[ɪʏʊeøɘɵɤo]')
 OPEN_MID_VOWEL_REGEX = re.compile(r'[ɛœɜɞɝʌɔæɐ]')
 OPEN_VOWEL_REGEX = re.compile(r'[aɶɑɒ]')
 TONEME_REGEX = re.compile(rf'[{TONEMES}]')
-
-
-def _is_affricate(phone):
-    if '͡' in phone:
-        if AFFRICATE_REGEX.search(phone):
-            return True
-    elif phone in AFFRICATES:
-        return True
-    return False
