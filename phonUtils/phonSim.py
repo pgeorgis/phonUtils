@@ -91,7 +91,7 @@ def weighted_dice(vec1: dict,
 @lru_cache(maxsize=None)
 def phone_sim(phone1: str,
               phone2: str,
-              measure: str = 'weighted dice',
+              measure: str = 'weightedDice',
               exclude_features: set = None
               ):
     """Returns the similarity of the features of the two phones according to
