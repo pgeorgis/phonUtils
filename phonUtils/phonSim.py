@@ -127,7 +127,7 @@ def phone_sim(phone1: str,
         else:
             score = 1 - cosine(phone1_values, phone2_values)
     else:
-        measure = {
+        measure_func = {
             'dice': dice_sim,
             'hamming': hamming_distance,
             'jaccard': jaccard_sim,
@@ -135,7 +135,7 @@ def phone_sim(phone1: str,
             'weightedHamming': weighted_hamming,
             'weightedJaccard': weighted_jaccard
         }.get(measure)
-        score = measure(phone_id1, phone_id2)
+        score = measure_func(phone_id1, phone_id2)
 
     # If method is Hamming, convert distance to similarity
     if measure in ['hamming', 'weightedHamming']:
