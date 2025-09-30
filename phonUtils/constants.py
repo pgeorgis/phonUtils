@@ -167,9 +167,11 @@ def load_ipa_norm_map(dir: str) -> dict:
     return ipa_norm_map
 
 
-def get_segmentation_regex(all_phones, consonants, pre_diacritics, post_diacritics, pre_preaspiration):
-    consonants = ''.join(consonants)
-    pre_preaspiration = ''.join(pre_preaspiration)
+def get_segmentation_regex(all_phones: str,
+                           consonants: str,
+                           pre_diacritics: str,
+                           post_diacritics: str,
+                           pre_preaspiration: str):
     segment_regexes = [
         fr'(?<=[{pre_preaspiration}])[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
         fr'(?<=^)[{pre_diacritics}]*[ʰʱ][{pre_diacritics}]*[{consonants}][{post_diacritics}]*',
@@ -278,7 +280,13 @@ TONE_DIACRITICS_MAP = {
 # "Pre-preaspiration": characters which can occur before preaspiration characters <ʰʱ>, to distinguish from post-aspiration during segmentation
 PRE_PREASPIRATION_CH = VOWELS.union(GLIDES).union(TONEMES).union(SUPRASEGMENTAL_DIACRITICS).union({'̯', 'ː', 'ˑ', '̆', '̃', '̟', '̠'})
 PREASPIRATION_REGEX = re.compile(rf'(?<=[{PRE_PREASPIRATION_CH}])[ʰʱ]$')
-SEGMENT_REGEX = get_segmentation_regex(IPA_SEGMENTS, CONSONANTS, PRE_DIACRITICS, POST_DIACRITICS, PRE_PREASPIRATION_CH)
+SEGMENT_REGEX = get_segmentation_regex(
+    ''.join(IPA_SEGMENTS),
+    ''.join(CONSONANTS),
+    PRE_DIACRITICS,
+    POST_DIACRITICS,
+    ''.join(PRE_PREASPIRATION_CH)
+)
 DIACRITIC_REGEX = re.compile(rf'[{IPA_DIACRITICS}]')
 DIPHTHONG_REGEX = re.compile(fr'([{VOWELS}][{IPA_DIACRITICS}]*̯[{IPA_DIACRITICS}]*[{VOWELS}])|([{VOWELS}][{IPA_DIACRITICS}]*[{VOWELS}][{IPA_DIACRITICS}]*̯)')
 AFFRICATE_REGEX = re.compile(rf'[{PLOSIVES}].*͡.*[{FRICATIVES}]')
