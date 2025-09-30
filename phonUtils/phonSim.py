@@ -118,35 +118,3 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
         score = 1 - score
 
     return score
-
-
-# Helper functions for identifying phones with particular features
-def lookup_segments(feature_values: dict,
-                    segment_list: Iterable = IPA_SEGMENTS
-                    ) -> set:
-    """Returns a list of segments whose feature values match the search criteria"""
-    matches = []
-    for segment in segment_list:
-        segment = Segment(segment)
-        match_tallies = 0
-        for feature, value in feature_values.items():
-            if segment.features[feature] == value:
-                match_tallies += 1
-        if match_tallies == len(feature_values):
-            matches.append(segment.segment)
-    return set(matches)
-
-
-def common_features(segment_list: Iterable,
-                    start_features: Iterable = FEATURE_SET):
-    """Returns the features/values shared by all segments in the list"""
-    features = set(start_features)
-    feature_values = defaultdict(lambda:[])
-    for segment in segment_list:
-        segment = Segment(segment)
-        for feature in features:
-            value = segment.features[feature]
-            if value not in feature_values[feature]:
-                feature_values[feature].append(value)
-    common = [(feature, feature_values[feature][0]) for feature in feature_values if len(feature_values[feature]) == 1]
-    return common
