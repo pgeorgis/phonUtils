@@ -113,19 +113,18 @@ def split_affricates(ipa_string: str):
     return ipa_string, matched
 
 
-def shiftStress(word, n_syl, type='PRIMARY'):
+def shiftStress(word: str, n_syl: int, type: str = 'PRIMARY'):
     """Shifts or adds stress to the nth syllable"""
-
     if type == 'PRIMARY':
-        ch = 'ˈ'
+        accent_ch = 'ˈ'
     elif type == 'SECONDARY':
-        ch = 'ˌ'
+        accent_ch = 'ˌ'
     else:
         raise ValueError(f'Error: unrecognized type "{type}". Must be one of "PRIMARY", "SECONDARY"')
-    return shiftAccent(word, n_syl, ch)
+    return shiftAccent(word, n_syl, accent_ch)
 
 
-def shiftAccent(word, n_syl, accent_ch='ˈ'):
+def shiftAccent(word: str, n_syl: int, accent_ch: str = 'ˈ'):
     """Shifts or adds accent (pitch accent or stress) to the nth syllable"""
     no_accent = re.sub(accent_ch, '', word)
     syls = syllables.syllabify(no_accent)
@@ -149,7 +148,7 @@ def shiftAccent(word, n_syl, accent_ch='ˈ'):
     return ''.join(syls)
 
 
-def unstressedVowelReduction(ipa_string,
+def unstressedVowelReduction(ipa_string: str,
                              vowels: str | Iterable = VOWELS,
                              reduced: str | Iterable = 'ə',
                              reduction_dict: dict = None,
