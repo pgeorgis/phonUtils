@@ -6,7 +6,7 @@ from more_itertools import consecutive_groups
 
 from . import phonTransforms
 from .constants import AFFRICATES, VOWELS
-from .segment import Segment, _is_vowel, segment_ipa
+from .segment import Segment, segment_is_vowel, segment_ipa
 
 
 def isSyllabic(segment: Segment | str) -> bool:
@@ -76,7 +76,7 @@ def sylType(syl: Iterable, coda_glide_as_open: bool = True):
 
         finalSeg = syl[-1]
 
-        if _is_vowel(finalSeg):
+        if segment_is_vowel(finalSeg):
             return 'OPEN'
 
         else:

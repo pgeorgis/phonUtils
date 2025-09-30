@@ -2,6 +2,7 @@ import re
 import threading
 from collections import defaultdict
 from functools import lru_cache
+from typing import Iterable
 
 from .constants import (
     # Top-level phone sets
@@ -24,6 +25,20 @@ from .constants import (
 from .ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
 
 
+def segment_in_group(ipa_str: str, group: Iterable):
+    """Checks if a base IPA character is a member of a list or set."""
+    assert isinstance(ipa_str, str)
+    if strip_diacritics(ipa_str)[0] in group:
+        return True
+    else:
+        return False
+
+
+def segment_is_vowel(segment: str) -> bool:
+    """Returns True if segment is a vowel."""
+    return segment_in_group(segment, VOWELS)
+
+
 class Segment:
     _cache = {}
     _lock = threading.Lock()
@@ -44,7 +59,7 @@ class Segment:
 
         return instance
 
-    def __init__(self, segment, normalize=False):
+    def __init__(self, segment):
         # Prevent re-initializing cached objects
         if getattr(self, "_initialized", False) is True:
             return
@@ -80,12 +95,12 @@ class Segment:
 
     @staticmethod
     @lru_cache(maxsize=None)
-    def normalize(segment):
+    def normalize(segment: str) -> str:
         segment = normalize_ipa_ch(segment)
         verify_charset(segment)
         return segment
 
-    def get_base_ch(self):
+    def get_base_ch(self) -> tuple[str, str]:
         no_diacritics = strip_diacritics(self.segment)
         if len(no_diacritics) < 1:
             #raise ValueError(f'Error: invalid segment <{self.segment}>, no base IPA character found!')
@@ -93,7 +108,7 @@ class Segment:
         else:
             return no_diacritics, no_diacritics[0]
 
-    def get_phone_class(self):
+    def get_phone_class(self) -> str:
         if DIPHTHONG_REGEX.search(self.segment):
             return 'DIPHTHONG'
         elif self.base in GLIDES:
@@ -109,7 +124,7 @@ class Segment:
         else:
             raise ValueError(f'Could not determine phone class of {self.segment}')
 
-    def get_phone_features(self, segment):
+    def get_phone_features(self, segment: str) -> dict:
         """Returns a dictionary of distinctive phonological feature values for the segment"""
         
         # Retrieve saved feature dictionary if already cached for this segment
@@ -165,7 +180,7 @@ class Segment:
 
         return feature_dict
 
-    def apply_diacritics(self, base:str, base_features:dict, diacritics:set):
+    def apply_diacritics(self, base: str, base_features: dict, diacritics: set) -> dict:
         """Applies feature values of diacritics to base segments
 
         Args:
@@ -201,7 +216,7 @@ class Segment:
         
         return modified_features
 
-    def get_diphthong_features(self, diphthong):
+    def get_diphthong_features(self, diphthong: str) -> defaultdict:
         """Returns dictionary of features for diphthongal segment"""
         components = segment_ipa(diphthong, combine_diphthongs=False)
 
@@ -225,7 +240,7 @@ class Segment:
             
         return diphth_dict
 
-    def get_tonal_features(self, toneme):
+    def get_tonal_features(self, toneme: str) -> defaultdict:
         """Computes complex tonal features"""
         
         # Set the base as the first component of the toneme
@@ -288,7 +303,7 @@ class Segment:
         
         return toneme_id
 
-    def get_suprasegmental_features(self, supraseg):
+    def get_suprasegmental_features(self, supraseg: str) -> defaultdict:
         if all([s in TONE_DIACRITICS_MAP for s in supraseg]):
             tone_eq = ''.join([TONE_DIACRITICS_MAP[s] for s in supraseg])
             return self.get_tonal_features(tone_eq)
@@ -299,7 +314,7 @@ class Segment:
                     features[feature] = max(value, features[feature])
             return features
 
-    def get_manner(self):
+    def get_manner(self) -> str:
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if self.base in AFFRICATES or _is_affricate(self.segment):
                 manner = 'AFFRICATE'
@@ -390,7 +405,7 @@ class Segment:
 
         return manner
 
-    def get_poa(self):
+    def get_poa(self) -> str:
         val_err = ValueError(f'Could not determine place of articulation for {self.segment}')
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if re.search(r'([wʍ])|([kɡ].*͡[pb])', self.segment):
@@ -617,7 +632,7 @@ class Segment:
         else:
             raise ValueError(f'Error: the sonority of phone "{self.segment}" cannot be determined!')
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Print the segment and its class, manner, place of articulation, sonority, and/or other relevant features."""
         info = [
             f'/{self.segment}/',
@@ -717,15 +732,15 @@ def segment_ipa(word,
         while i < len(segments):
         #for i, seg in enumerate(segments):
             seg = segments[i]
-            if '̯' in seg and _is_vowel(seg):
+            if '̯' in seg and segment_is_vowel(seg):
                 if i > 0:
                     # First try to combine with preceding vowel
-                    if _is_vowel(updated_segments[-1]):
+                    if segment_is_vowel(updated_segments[-1]):
                         updated_segments[-1] += seg
                         i += 1
 
                     # If there is no suitable preceding vowel, try combining with following vowel instead
-                    elif _is_vowel(segments[i+1]):
+                    elif segment_is_vowel(segments[i+1]):
                         updated_segments.append(seg+segments[i+1])
                         i += 2
 
@@ -736,7 +751,7 @@ def segment_ipa(word,
 
                 # Combine an initial non-syllabic vowel onto a following vowel
                 else:
-                    if _is_vowel(segments[1]):
+                    if segment_is_vowel(segments[1]):
                         updated_segments.append(seg+segments[1])
                         i += 2
             else:
@@ -761,18 +776,3 @@ def segment_ipa(word,
         segments = updated_segments
 
     return segments
-
-
-# AUXILIARY FUNCTIONS
-def _is_ch(ch, l):
-    try:
-        if strip_diacritics(ch)[0] in l:
-            return True
-        else:
-            return False
-    except IndexError:
-        return False
-
-
-def _is_vowel(ch):
-    return _is_ch(ch, VOWELS)
