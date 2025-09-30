@@ -101,13 +101,18 @@ ALL_PHON_ENVS = list(PHON_ENV_MAP.keys())
 
 
 class PhonEnv:
-    def __init__(self, segments, i, gap_ch=None, phon_env_map=PHON_ENV_MAP, **kwargs):
+    def __init__(self,
+                 segments: Iterable,
+                 segment_idx: int,
+                 gap_ch: str = None,
+                 phon_env_map: dict = PHON_ENV_MAP,
+                 **kwargs):
         self.phon_env_map = phon_env_map
         self.gap_ch = gap_ch
         if self.gap_ch:
             assert isinstance(self.gap_ch, str)
-            i, segments = self.preprocess_aligned_sequence(segments, i)
-        self.index = i
+            segment_idx, segments = self.preprocess_aligned_sequence(segments, segment_idx)
+        self.index = segment_idx
         self.segment_i = None
         self.supra_segs = [Segment(s) if not self.is_gappy(s) else s for s in segments]
         self.segments, self.adjust_n = self.separate_segments_from_suprasegmentals()
@@ -118,12 +123,12 @@ class PhonEnv:
 
     def preprocess_aligned_sequence(self,
                                     segments: Iterable,
-                                    i: int,
+                                    segment_idx: int,
                                     ) -> tuple[int, list]:
         """Drop gaps and boundaries and flatten complex ngrams."""
         minus_offset, plus_offset = 0, 0
         adj_segments = []
-        for segment in segments[:i]:
+        for segment in segments[:segment_idx]:
             if isinstance(segment, str) and BOUNDARY_TOKEN in segment:
                 minus_offset += 1
                 continue
@@ -139,9 +144,9 @@ class PhonEnv:
                     plus_offset += len(segment) - 1
                 else:
                     adj_segments.append(segment)
-        adjusted_i = i - minus_offset + plus_offset
-        adj_segments.append(segments[i])
-        for segment in segments[i:][1:]:
+        adjusted_i = segment_idx - minus_offset + plus_offset
+        adj_segments.append(segments[segment_idx])
+        for segment in segments[segment_idx:][1:]:
             if not self.is_gappy(segment):
                 if isinstance(segment, tuple) and any(self.is_gappy(subseg) for subseg in segment):
                     if BOUNDARY_TOKEN in segment[-1]:
