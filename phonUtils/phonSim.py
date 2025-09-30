@@ -121,16 +121,18 @@ def phone_sim(phone1, phone2, similarity='weighted_dice', exclude_features=None)
 
 
 # Helper functions for identifying phones with particular features
-def lookup_segments(features, values, segment_list=IPA_SEGMENTS):
+def lookup_segments(feature_values: dict,
+                    segment_list: Iterable = IPA_SEGMENTS
+                    ) -> set:
     """Returns a list of segments whose feature values match the search criteria"""
     matches = []
     for segment in segment_list:
         segment = Segment(segment)
         match_tallies = 0
-        for feature, value in zip(features, values):
+        for feature, value in feature_values.items():
             if segment.features[feature] == value:
                 match_tallies += 1
-        if match_tallies == len(features):
+        if match_tallies == len(feature_values):
             matches.append(segment.segment)
     return set(matches)
 
