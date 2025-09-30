@@ -1,5 +1,6 @@
 import random
 import re
+from typing import Iterable
 
 from more_itertools import consecutive_groups
 
@@ -8,8 +9,8 @@ from .constants import AFFRICATES, VOWELS
 from .segment import Segment, _is_vowel, segment_ipa
 
 
-# Functions related to syllable types
 def isSyllabic(segment: Segment | str) -> bool:
+    """Returns True if the segment is a syllabic unit."""
     if not isinstance(segment, Segment):
         segment = Segment(segment)
     if segment.features['syllabic'] > 0:
@@ -18,14 +19,17 @@ def isSyllabic(segment: Segment | str) -> bool:
         return False
 
 
-def findSyllabic(segments):
-    """Returns indices of syllabic segments"""
-    return [i for i in range(len(segments)) if isSyllabic(segments[i])]
+def findSyllabicIndices(segments: Iterable) -> list[int]:
+    """Returns list of indices of syllabic segments."""
+    return [i for i, segment in enumerate(segments) if isSyllabic(segment)]
 
 
-def countMorae(form, codaMora=False, **kwargs):
-    """Returns the number of morae in an IPA string
-    codaMora: if True, the length of the syllable coda is counted toward the number of morae"""
+def countMorae(form: str,
+               codaMora: bool = False,
+               **kwargs
+               ) -> int:
+    """Returns the number of morae in an IPA string.
+    codaMora (bool): if True, the length of the syllable coda is counted toward the number of morae"""
     syls = syllabify(form, **kwargs)
     morae = 0
     vowel_str = ''.join(VOWELS)
@@ -39,9 +43,9 @@ def countMorae(form, codaMora=False, **kwargs):
     return morae
 
 
-def splitSyl(syl):
+def splitSyl(syl: Iterable) -> tuple[str, str, str]:
     """Splits a syllable into onset, nucleus, coda"""
-    nucleus = findSyllabic(syl)
+    nucleus = findSyllabicIndices(syl)
     n_syl = len(nucleus)
     try:
         assert n_syl == 1
@@ -63,10 +67,10 @@ def splitSyl(syl):
             raise AssertionError(f'Error: "{syl_str}" contains zero syllabic units!')
 
 
-def sylType(syl, g_open=True):
+def sylType(syl: Iterable, coda_glide_as_open: bool = True):
     """Returns either OPEN or CLOSED, according to whether the input segments constitute an open or closed syllable
-    g_open :: whether to consider syllables ending in glides open (default = True)"""
-    n_syl = len(findSyllabic(syl))
+    coda_glide_as_open :: whether to consider syllables ending in glides open (default = True)"""
+    n_syl = len(findSyllabicIndices(syl))
     try:
         assert n_syl == 1
 
@@ -76,7 +80,7 @@ def sylType(syl, g_open=True):
             return 'OPEN'
 
         else:
-            if g_open:
+            if coda_glide_as_open:
                 finalSeg = Segment(finalSeg)
                 if finalSeg.phone_class == 'GLIDE':
                     return 'OPEN'
@@ -94,8 +98,10 @@ def sylType(syl, g_open=True):
 
 
 class Syllable:
-    def __init__(self, syl, g_open=True):
-        self.g_open = g_open
+    def __init__(self,
+                 syl: str | list,
+                 coda_glide_as_open: bool = True):
+        self.coda_glide_as_open = coda_glide_as_open
         if type(syl) == str:
             self.syl = syl
             self.segments = segment_ipa(syl)
@@ -104,9 +110,9 @@ class Syllable:
             self.segments = syl
         else:
             raise ValueError
-        if len(findSyllabic(syl)) > 0:
+        if len(findSyllabicIndices(syl)) > 0:
             self.onset, self.nucleus, self.coda = splitSyl(self.segments)
-            self.type = sylType(syl, g_open=self.g_open)
+            self.type = sylType(syl, coda_glide_as_open=self.coda_glide_as_open)
         else: # No syllabic units found
             self.onset, self.nucleus, self.coda = self.segments, [], []
             self.type = "OTHER"
@@ -116,25 +122,24 @@ class Syllable:
         return self.syl
 
 
-def syllabify(word,
-              segments=None,
-              illegal_coda=[],
-              illegal_onset=[],
-              default_coda=True,
-              g_open=True,
-              split_affricate=False,
+def syllabify(word: str,
+              segments: list = None,
+              illegal_coda: list = [],
+              illegal_onset: list = [],
+              coda_glide_as_open: bool = True,
+              split_affricate: bool = False,
               **kwargs,
-              ):
+              ) -> dict:
     if segments is None:
         segments = segment_ipa(word)
-    syllabic_i = findSyllabic(segments)
+    syllabic_i = findSyllabicIndices(segments)
 
     # Split affricates across syllable boundaries (False by default)
     # Doesn't make any difference for monosyllabic words, so skip if <2 syllables
     if split_affricate and len(syllabic_i) > 1:
         word, matched_affricates = phonTransforms.split_affricates(word)
         segments = segment_ipa(word)
-        syllabic_i = findSyllabic(segments)
+        syllabic_i = findSyllabicIndices(segments)
 
     # try:
     #     assert len(syllabic_i) >= 1
@@ -142,7 +147,7 @@ def syllabify(word,
     #     raise AssertionError(f'Error: no syllabic segments found in "{word}"')
     # If no syllabic units are found, return the entire word as a single syllable
     if len(syllabic_i) == 0:
-        return {0:Syllable(segments, g_open=g_open)}
+        return {0:Syllable(segments, coda_glide_as_open=coda_glide_as_open)}
 
     syllables = {i:[segments[i]] for i in syllabic_i}
     onsets, codas = [], []
@@ -254,33 +259,30 @@ def syllabify(word,
                     syllables[index1] = [affr] + syl1[2:]
 
     # Initialize syllables as Syllable class objects
-    syllables = {i:Syllable(syllables[i], g_open=g_open) for i in syllables}
+    syllables = {
+        i: Syllable(syllables[i], coda_glide_as_open=coda_glide_as_open)
+        for i in syllables
+    }
 
     return syllables
 
 
-def sylTypes(word, **kwargs):
-    """Returns a dictionary of syllables in a word and their type (open/closed)"""
-    syllables = syllabify(word, **kwargs)
-    return {i:(syllables[i], syllables[i].type) for i in syllables}
-
-
 def scoreSyl(syl,
-             max_onset=2,
-             max_coda=2,
-             illegal_coda=[],
-             illegal_onset=[],
-             no_onset_penalty=5,
-             coda_penalty=2,
-             complex_onset_penalty=1, # per extra segment in onset
-             complex_coda_penalty=2,  # per extra segment in coda
-             geminate_onset_penalty=3,
-             exceeded_max_onset_penalty=5,
-             exceeded_max_coda_penalty=5,
-             sonority_violation_penalty=5,
-             illegal_onset_penalty=10,  # per illegal onset segment
-             illegal_coda_penalty=10,  # per illegal coda segment
-             ):
+             max_onset: int = 2,
+             max_coda: int = 2,
+             illegal_coda: list = [],
+             illegal_onset: list = [],
+             no_onset_penalty: int | float = 5,
+             coda_penalty: int | float = 2,
+             complex_onset_penalty: int | float = 1, # per extra segment in onset
+             complex_coda_penalty: int | float = 2,  # per extra segment in coda
+             geminate_onset_penalty: int | float = 3,
+             exceeded_max_onset_penalty: int | float = 5,
+             exceeded_max_coda_penalty: int | float = 5,
+             sonority_violation_penalty: int | float = 5,
+             illegal_onset_penalty: int | float = 10,  # per illegal onset segment
+             illegal_coda_penalty: int | float = 10,  # per illegal coda segment
+             ) -> int | float:
     """Evaluates the degree of ill-formedness of a syllable according to various criteria.
     Penalizes:
     - no onset
@@ -295,11 +297,11 @@ def scoreSyl(syl,
     # syl, matched_affricates = split_affricates(''.join(syl))
     # syl = segment_ipa(syl)
 
-    if type(syl) == list:
+    if isinstance(syl, list):
         onset, nucleus, coda = splitSyl(syl)
-    elif type(syl) == str:
+    elif isinstance(syl, str):
         onset, nucleus, coda = splitSyl(segment_ipa(syl))
-    elif type(syl) == Syllable:
+    elif isinstance(syl, Syllable):
         onset, nucleus, coda = syl.onset, syl.nucleus, syl.coda
     else:
         raise ValueError

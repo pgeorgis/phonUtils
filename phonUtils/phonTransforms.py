@@ -134,7 +134,7 @@ def shiftAccent(word, n_syl, accent_ch='ˈ'):
     n_syl = max(n_syl, -len(syls))
     target_syl = segment_ipa(syls[n_syl])
     try:
-        syllabic_i = syllables.findSyllabic(target_syl)[0]
+        syllabic_i = syllables.findSyllabicIndices(target_syl)[0]
         if accent_ch in {'ˈ', 'ˌ'}:
             target_syl.insert(syllabic_i, accent_ch)
         else:
