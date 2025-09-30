@@ -3,7 +3,7 @@ from itertools import product
 from phonUtils.constants import (AFFRICATES, APPROXIMANTS, CLICKS, FRICATIVES,
                                  GLIDES, IMPLOSIVES, IPA_NORM_MAP,
                                  IPA_SEGMENTS, NASALS, PLOSIVES,
-                                 TAPS_AND_FLAPS, TRILLS, VOWELS)
+                                 TAPS_AND_FLAPS, TONE_LEVELS, TRILLS, VOWELS)
 from phonUtils.ipaTools import invalid_ch, normalize_ipa_ch, strip_diacritics
 from phonUtils.phonSim import phone_sim
 from phonUtils.segment import Segment, segment_ipa
@@ -237,7 +237,7 @@ def test_sonority():
     assert Segment('β̞').sonority == SONORITY_LEVELS["GENERAL APPROXIMANTS"]
 
 
-def test_phone_sim_symmetrical():
+def test_phone_sim():
     """Test that phone_sim(x, y) == phone_sim(y, x)."""
     for measure in [
         'cosine',
@@ -251,7 +251,20 @@ def test_phone_sim_symmetrical():
     ]:
         for x in IPA_SEGMENTS:
             for y in IPA_SEGMENTS:
-                assert phone_sim(x, y, measure=measure) == phone_sim(y, x, measure=measure)
+                sim_xy = phone_sim(x, y, measure=measure)
+                sim_yx = phone_sim(y, x, measure=measure)
+                # Test symmetry: phone_sim(x, y) == phone_sim(y, x)
+                assert sim_xy == sim_yx
+                # Test positivity: phone_sim(x, y) >= 0
+                assert sim_xy >= 0
+                # Test maximum: phone_sim(x, y) <= 1
+                assert sim_xy <= 1
+                # Test that identical segments have maximum similarity = 1
+                if x == y:
+                    assert sim_xy == 1
+                elif x in TONE_LEVELS and y in TONE_LEVELS:
+                    if TONE_LEVELS[x] == TONE_LEVELS[y]:  # identical tonemes transcribed with different systems
+                        assert sim_xy == 1
 
 
 """
