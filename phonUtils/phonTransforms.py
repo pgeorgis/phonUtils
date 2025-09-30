@@ -86,11 +86,11 @@ def degeminate(ipa_string: str,
     return ipa_string
 
 
-def normalize_geminates(ipa_string: str):
+def normalizeGeminates(ipa_string: str):
     return GEMINATE_REGEX.sub(r'\1\2\3\4ː', ipa_string)
 
 
-def split_affricates(ipa_string: str):
+def splitAffricates(ipa_string: str):
     affricate_map = {
         'ʦ':'ts',
         'ʣ':'dz',

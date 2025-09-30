@@ -1,8 +1,8 @@
 from phonUtils.phonTransforms import (VOICED_CONSONANTS, degeminate,
-                                      finalDevoicing, normalize_geminates,
+                                      finalDevoicing, normalizeGeminates,
                                       regressiveVoicingAssimilation,
                                       shiftAccent, shiftStress,
-                                      split_affricates,
+                                      splitAffricates,
                                       unstressedVowelReduction)
 
 
@@ -25,7 +25,7 @@ def test_degeminate():
     assert degeminate("mississippi", phones={"s"}) == "misisippi"
 
 
-def test_normalize_geminates():
+def test_normalizeGeminates():
     test_ref_pairs = {
         "sˈappja": "sˈapːja",
         "sapːja": "sapːja",
@@ -37,7 +37,7 @@ def test_normalize_geminates():
         "ɑːʰttɑ": "ɑːʰtːɑ",
     }
     for str, ref in test_ref_pairs.items():
-        assert normalize_geminates(str) == ref
+        assert normalizeGeminates(str) == ref
 
 
 def test_finalDevoicing():
@@ -66,7 +66,7 @@ def test_finalDevoicing():
         assert finalDevoicing(str, devoice_dict=devoice_dict) == ref
 
 
-def test_split_affricates():
+def test_splitAffricates():
     test_ref_pairs = {
         'kaʦə': 'katsə',
         'ʣel': 'dzel',
@@ -77,7 +77,7 @@ def test_split_affricates():
     }
 
     for str, ref in test_ref_pairs.items():
-        split_affr, _ = split_affricates(str)
+        split_affr, _ = splitAffricates(str)
         assert split_affr == ref
 
 

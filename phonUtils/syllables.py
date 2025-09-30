@@ -137,7 +137,7 @@ def syllabify(word: str,
     # Split affricates across syllable boundaries (False by default)
     # Doesn't make any difference for monosyllabic words, so skip if <2 syllables
     if split_affricate and len(syllabic_i) > 1:
-        word, matched_affricates = phonTransforms.split_affricates(word)
+        word, matched_affricates = phonTransforms.splitAffricates(word)
         segments = segment_ipa(word)
         syllabic_i = findSyllabicIndices(segments)
 
