@@ -241,15 +241,17 @@ def test_phone_sim_symmetrical():
     """Test that phone_sim(x, y) == phone_sim(y, x)."""
     for measure in [
         'cosine',
+        'dice',
         'hamming',
         'jaccard',
-        'weighted_dice',
-        'weighted_hamming',
-        'weighted_jaccard',
+        'weightedCosine',
+        'weightedDice',
+        'weightedHamming',
+        'weightedJaccard',
     ]:
         for x in IPA_SEGMENTS:
             for y in IPA_SEGMENTS:
-                assert phone_sim(x, y, similarity=measure) == phone_sim(y, x, similarity=measure)
+                assert phone_sim(x, y, measure=measure) == phone_sim(y, x, measure=measure)
 
 
 """
