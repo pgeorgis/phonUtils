@@ -1,4 +1,4 @@
-Diacritic	Description	Type	Feature	Value	Position
+diacritic	description	type	feature	value	position
  ͡	ligature tie	connection			inter
  ͜	ligature tie	connection			inter
 ʼ	ejective	airstream mechanism	constrictedGlottis	+	post

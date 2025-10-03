@@ -1,4 +1,4 @@
-Group,Phones
+class,phones
 bilabial,p b ɓ m ʙ ɸ β w ʍ ʘ
 labiodental,ɱ f v ʋ ⱱ
 dental,θ ð ǀ
@@ -23,6 +23,6 @@ liquids,ɹ l ɫ ɻ ɭ ʎ ȴ ʟ r ʀ ɾ ᴅ ɽ ɺ
 rhotics,r ɹ ɺ ɻ ɽ ɾ ᴅ ʀ ʁ
 fricatives,ɸ β ʍ f v θ ð s z ɬ ɮ ʃ ʒ ʂ ʐ ɕ ʑ ç ʝ ɧ x ɣ χ ʁ ħ ʕ h ɦ
 approximants,w ʋ ɹ l ɫ ɻ ɭ j ɥ ʎ ɰ ʟ
-glides,j ɥ ɰ w ʍ
+glides,j ɥ ɰ w
 clicks,ʘ ǀ ǃ ‼ ǂ ǁ
 tonemes,˩ ˨ ˧ ˦ ˥ ⁰ ¹ ² ³ ⁴ ⁵ ↓
