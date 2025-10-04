@@ -421,7 +421,7 @@ def list_phon_env_ngram_subcontexts(phonEnv: str, exclude_base=True) -> set:
         base_ngram = f'{PHON_ENV_SPLIT_CH}{SEGMENT_CH}{PHON_ENV_SPLIT_CH}'
         if base_ngram in ngrams:
             ngrams.remove(base_ngram)
-    return list(ngrams)
+    return ngrams
 
 
 def custom_phon_env_map(active_envs: list | set) -> dict:
