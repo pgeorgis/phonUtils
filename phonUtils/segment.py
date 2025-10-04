@@ -1,11 +1,10 @@
 import re
-import os
 import threading
 from collections import defaultdict
 from functools import lru_cache
 from typing import Iterable
 
-from .constants import (
+from phonUtils.phonUtils.constants import (
     # Top-level phone sets
     VOWELS, GLIDES, CONSONANTS, TONEMES,
     # Phone classes by manner of articulation
@@ -24,7 +23,7 @@ from .constants import (
     # Phone features
     FEATURE_SET,
 )
-from .ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
+from phonUtils.phonUtils.ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
 
 
 def segment_in_group(ipa_str: str, group: Iterable):
@@ -549,7 +548,7 @@ class Segment:
         Returns the sonority level of a segment according to Parker's (2002) universal sonority hierarchy.
         Determines appropriate sonority level for a segment by checking membership in phonological classes and/or relevant features.
         """
-        from .sonority import SONORITY_LEVELS
+        from phonUtils.phonUtils.sonority import SONORITY_LEVELS
 
         # Vowels and diphthongs
         if self.phone_class in ('VOWEL', 'DIPHTHONG'):

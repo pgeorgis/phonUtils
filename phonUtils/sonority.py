@@ -1,4 +1,4 @@
-from .segment import Segment
+from phonUtils.phonUtils.segment import Segment
 
 IDENTICAL_SEGMENT_CH = "S"
 IDENTICAL_SONORITY_CH = "="

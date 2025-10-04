@@ -4,9 +4,9 @@ from typing import Iterable
 
 from more_itertools import consecutive_groups
 
-from . import phonTransforms
-from .constants import AFFRICATES, VOWELS
-from .segment import Segment, segment_is_vowel, segment_ipa
+from phonUtils.phonUtils import phonTransforms
+from phonUtils.phonUtils.constants import AFFRICATES, VOWELS
+from phonUtils.phonUtils.segment import Segment, segment_is_vowel, segment_ipa
 
 
 def isSyllabic(segment: Segment | str) -> bool:
