@@ -49,7 +49,7 @@ def relative_prev_sonority(seg: Segment,
                            prev_seg: Segment
                            ) -> str:
     """Retrieve the sonority of a segment relative to the preceding segment."""
-    if prev_seg == seg.sonority:
+    if prev_seg.segment == seg.segment:
         return IDENTICAL_SEGMENT_CH
     elif prev_seg.sonority == seg.sonority:
         return IDENTICAL_SONORITY_CH
