@@ -4,10 +4,10 @@ from itertools import combinations
 from typing import Iterable, Optional
 
 from .constants import (ALVEOLARS, ALVEOLOPALATALS, BILABIALS, DENTALS,
-                                           EPIGLOTTALS, FRONT_VOWEL_REGEX, GLOTTALS, LABIODENTALS,
-                                           LATERALS, LIQUIDS, NASAL_REGEX, PALATALS, PHARYNGEALS,
-                                           POSTALVEOLARS, RETROFLEXES, RHOTIC_REGEX, UVULARS,
-                                           VELARS)
+                        EPIGLOTTALS, FRONT_VOWEL_REGEX, GLOTTALS, LABIODENTALS,
+                        LATERALS, LIQUIDS, NASAL_REGEX, PALATALS, PHARYNGEALS,
+                        POSTALVEOLARS, RETROFLEXES, RHOTIC_REGEX, UVULARS,
+                        VELARS)
 from .segment import Segment
 from .sonority import relative_sonority
 from .syllables import syllabify

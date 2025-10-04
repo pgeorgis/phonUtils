@@ -69,9 +69,9 @@ def weighted_jaccard(vec1: dict,
                      ) -> float:
     union, intersection = 0, 0
     for feature in vec1:
-        if ((vec1[feature] == 1) and (vec2[feature] == 1)):
+        if (vec1.get(feature) == 1) and (vec2.get(feature) == 1):
             intersection += weights.get(feature, 0)
-        if ((vec1[feature] == 1) or (vec2[feature] == 1)):
+        if (vec1.get(feature) == 1) or (vec2.get(feature) == 1):
             union += weights.get(feature, 0)
     if union == 0:
         return 0.0
@@ -89,8 +89,8 @@ def weighted_dice(vec1: dict,
 
 
 @lru_cache(maxsize=None)
-def phone_sim(phone1: str,
-              phone2: str,
+def phone_sim(phone1_raw: str,
+              phone2_raw: str,
               measure: str = 'weightedDice',
               exclude_features: set = None
               ):
@@ -105,7 +105,7 @@ def phone_sim(phone1: str,
         exclude_features = set()
 
     # Convert IPA strings to Segment objects
-    phone1, phone2 = map(Segment, [phone1, phone2])
+    phone1, phone2 = map(Segment, [phone1_raw, phone2_raw])
 
     # Get feature dictionaries for each phone
     phone_id1, phone_id2 = phone1.features.copy(), phone2.features.copy()

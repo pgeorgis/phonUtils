@@ -3,7 +3,7 @@ from typing import Iterable
 
 from . import syllables
 from .constants import (CONSONANTS, FRICATIVES, GEMINATE_REGEX, PLOSIVES,
-                                           POST_DIACRITICS, VOWELS)
+                        POST_DIACRITICS, VOWELS)
 from .segment import Segment, segment_ipa
 
 VOICELESS_CONSONANTS = ''.join([phone for phone in CONSONANTS if Segment(phone).voiceless])

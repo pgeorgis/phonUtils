@@ -226,7 +226,7 @@ class Segment:
         
         return modified_features
 
-    def get_diphthong_features(self, diphthong: str) -> defaultdict:
+    def get_diphthong_features(self, diphthong: str) -> dict:
         """Returns dictionary of features for diphthongal segment"""
         components = segment_ipa(diphthong, combine_diphthongs=False)
 
@@ -248,9 +248,9 @@ class Segment:
         if diphth_dict['long'] > 0:
             diphth_dict['long'] = 1
             
-        return diphth_dict
+        return dict(diphth_dict)
 
-    def get_tonal_features(self, toneme: str) -> defaultdict:
+    def get_tonal_features(self, toneme: str) -> dict:
         """Computes complex tonal features"""
         
         # Set the base as the first component of the toneme
@@ -311,9 +311,9 @@ class Segment:
                 else:
                     contours[t] = 'level'
         
-        return toneme_id
+        return dict(toneme_id)
 
-    def get_suprasegmental_features(self, supraseg: str) -> defaultdict:
+    def get_suprasegmental_features(self, supraseg: str) -> dict:
         if all([s in TONE_DIACRITICS_MAP for s in supraseg]):
             tone_eq = ''.join([TONE_DIACRITICS_MAP[s] for s in supraseg])
             return self.get_tonal_features(tone_eq)
@@ -322,7 +322,7 @@ class Segment:
             for s in supraseg:
                 for feature, value in DIACRITICS_EFFECTS[s]:
                     features[feature] = max(value, features[feature])
-            return features
+            return dict(features)
 
     def get_manner(self) -> str:
         if self.phone_class in ('CONSONANT', 'GLIDE'):
