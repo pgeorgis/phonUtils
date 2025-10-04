@@ -2,7 +2,6 @@ import os
 import re
 from collections import defaultdict
 from math import log
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -184,8 +183,7 @@ def get_segmentation_regex(all_phones: str,
 
 
 # INITIALIZE ALL CONSTANTS
-SCRIPT_DIR = Path(__file__).parent
-ROOT_DIR = SCRIPT_DIR.parent
+ROOT_DIR = os.path.join(os.getcwd(), 'phonUtils')
 FEATURE_SET, PHONE_FEATURES = load_phone_features(ROOT_DIR)
 PHONE_CLASSES = load_phone_classes(ROOT_DIR)
 DIACRITICS_DATA = load_diacritics_data(ROOT_DIR)
