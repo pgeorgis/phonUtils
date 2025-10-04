@@ -10,7 +10,7 @@ FILE_READER_DEFAULTS = {
     'encoding': 'utf-8',
 }
 
-def binary_feature(feature: str) -> int:
+def binary_feature(feature: str | float) -> int:
     """Converts features of type ['0', '-', '+'] to binary [0, 1]"""
     if feature == '+':
         return 1

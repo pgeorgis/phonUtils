@@ -2,7 +2,7 @@
 
 import re
 
-from phonUtils.phonUtils.constants import (DIACRITIC_REGEX, IPA_DIACRITICS, IPA_NORM_MAP,
+from .constants import (DIACRITIC_REGEX, IPA_DIACRITICS, IPA_NORM_MAP,
                                            VALID_CHARACTERS)
 
 

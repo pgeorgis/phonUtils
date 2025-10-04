@@ -3,14 +3,14 @@ from functools import lru_cache
 from itertools import combinations
 from typing import Iterable, Optional
 
-from phonUtils.phonUtils.constants import (ALVEOLARS, ALVEOLOPALATALS, BILABIALS, DENTALS,
+from .constants import (ALVEOLARS, ALVEOLOPALATALS, BILABIALS, DENTALS,
                                            EPIGLOTTALS, FRONT_VOWEL_REGEX, GLOTTALS, LABIODENTALS,
                                            LATERALS, LIQUIDS, NASAL_REGEX, PALATALS, PHARYNGEALS,
                                            POSTALVEOLARS, RETROFLEXES, RHOTIC_REGEX, UVULARS,
                                            VELARS)
-from phonUtils.phonUtils.segment import Segment
-from phonUtils.phonUtils.sonority import relative_sonority
-from phonUtils.phonUtils.syllables import syllabify
+from .segment import Segment
+from .sonority import relative_sonority
+from .syllables import syllabify
 
 # CONSTANTS
 SEGMENT_CH = 'S'

@@ -3,8 +3,8 @@ from functools import lru_cache
 from scipy.spatial.distance import cosine
 from sklearn.metrics import jaccard_score
 
-from phonUtils.phonUtils.constants import FEATURE_WEIGHTS
-from phonUtils.phonUtils.segment import Segment
+from .constants import FEATURE_WEIGHTS
+from .segment import Segment
 
 MEASURES = {
     'cosine',

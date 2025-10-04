@@ -4,7 +4,7 @@ from collections import defaultdict
 from functools import lru_cache
 from typing import Iterable
 
-from phonUtils.phonUtils.constants import (
+from .constants import (
     # Top-level phone sets
     VOWELS, GLIDES, CONSONANTS, TONEMES,
     # Phone classes by manner of articulation
@@ -23,7 +23,7 @@ from phonUtils.phonUtils.constants import (
     # Phone features
     FEATURE_SET,
 )
-from phonUtils.phonUtils.ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
+from .ipaTools import strip_diacritics, normalize_ipa_ch, verify_charset
 
 
 def segment_in_group(ipa_str: str, group: Iterable):
