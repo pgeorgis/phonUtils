@@ -548,7 +548,7 @@ class Segment:
         Returns the sonority level of a segment according to Parker's (2002) universal sonority hierarchy.
         Determines appropriate sonority level for a segment by checking membership in phonological classes and/or relevant features.
         """
-        from phonUtils.phonUtils.sonority import SONORITY_LEVELS
+        from .sonority import SONORITY_LEVELS
 
         # Vowels and diphthongs
         if self.phone_class in ('VOWEL', 'DIPHTHONG'):
