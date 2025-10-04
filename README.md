@@ -5,16 +5,16 @@
 * [Setup](#setup)
 
 # Setup 
-When setting up for the first time, please create and activate the virtual environment (venv) and install required packages. After the initial set up, only activation of the venv is required. 
+When setting up for the first time, run the `setup.sh` script to create the virtual environment with all dependencies:
 
-- Create the virtual environment:
+```
+./setup.sh
+```
 
-`python3 -m venv venv`
+Then activate the virtual environment:
 
-- Activate virtual environment:
+```
+source venv/bin/activate
+```
 
-`source venv/bin/activate`
-
-- Install required packages:
-
-`venv/bin/pip3 install -r requirements.txt`
+After the initial setup, only activation of the virtual environment with the above command is required.

@@ -1,6 +1,10 @@
-__pycache__/
+**/__pycache__/
 .idea/
 **/.DS_Store
 
 **/*.c
 **/*.html
+
+.vscode
+venv/
+archive/
