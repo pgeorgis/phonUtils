@@ -44,7 +44,20 @@ PLACES_OF_ARTICULATION = [
     "GLOTTAL",
 ]
 
-def build_consonant_table(consonant_set: Iterable[Segment | str], mode='ascii'):
+HEIGHTS = [
+    "CLOSE",
+    "CLOSE-MID",
+    "MID",
+    "OPEN-MID",
+    "OPEN"
+]
+FRONTNESS = [
+    "FRONT",
+    "CENTRAL",
+    "BACK"
+]
+
+def build_consonant_table(consonant_set: Iterable[Segment | str]):
     consonant_set: set[Segment] = set(Segment(seg) if isinstance(seg, str) else seg for seg in consonant_set)
     for seg in consonant_set:
         if seg.phone_class not in ("CONSONANT", "GLIDE"):
@@ -84,18 +97,53 @@ def build_consonant_table(consonant_set: Iterable[Segment | str], mode='ascii'):
             table[manner][place] = ", ".join([seg.segment for seg in table[manner][place]])
 
 
-    try:
-        t = Texttable(max_width=0)
-        t.header([""] + sorted_attested_poa)
-        for manner in sorted_attested_manner:
-            t.add_row([manner] + [table[manner][p] for p in sorted_attested_poa])
-        return t.draw()
-    except ImportError:
-        # fallback: simple text table
-        header = ["{:>15}".format(p) for p in [""] + sorted_attested_poa]
-        lines = [" ".join(header)]
-        for manner in sorted_attested_manner:
-            row = ["{:>15}".format(manner)] + ["{:>15}".format(table[manner][p]) for p in sorted_attested_poa]
-            lines.append(" ".join(row))
-        return "\n".join(lines)
+    t = Texttable(max_width=0)
+    t.header([""] + sorted_attested_poa)
+    for manner in sorted_attested_manner:
+        t.add_row([manner] + [table[manner][p] for p in sorted_attested_poa])
+    return t.draw()
 
+
+def build_vowel_table(vowel_set: Iterable[Segment | str]):
+    vowel_set: set[Segment] = set(Segment(seg) if isinstance(seg, str) else seg for seg in vowel_set)
+    for seg in vowel_set:
+        if seg.phone_class != "VOWEL":
+            raise ValueError(f"Segment <{seg.segment}> is not a vowel")
+
+    # Fill table
+    table = {h: {f: {"unrounded": [], "rounded": []} for f in FRONTNESS} for h in HEIGHTS}
+    for seg in vowel_set:
+        h, f = seg.height, seg.frontness
+        if h not in HEIGHTS or f not in FRONTNESS:
+            continue
+        key = "rounded" if seg.rounded else "unrounded"
+        table[h][f][key].append(seg)
+
+    # Sort vowels in each subcell
+    def _is_stressed(seg):
+        return "ˈ" in seg.segment
+
+    for h in HEIGHTS:
+        for f in FRONTNESS:
+            for key in ("unrounded", "rounded"):
+                table[h][f][key].sort(
+                    key=lambda seg: (_is_stressed(seg) == False, seg.base, seg.segment)
+                )
+
+    # Join the two sublists side by side for display
+    for h in HEIGHTS:
+        for f in FRONTNESS:
+            unrounded = ", ".join(s.segment for s in table[h][f]["unrounded"])
+            rounded = ", ".join(s.segment for s in table[h][f]["rounded"])
+            if unrounded and rounded:
+                table[h][f] = f"{unrounded} | {rounded}"
+            else:
+                table[h][f] = unrounded or rounded or ""
+
+    # Build ASCII table
+    t = Texttable(max_width=0)
+    t.header(["Height \\ Frontness"] + FRONTNESS)
+    for h in HEIGHTS:
+        row = [h] + [table[h][f] for f in FRONTNESS]
+        t.add_row(row)
+    return t.draw()

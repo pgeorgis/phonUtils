@@ -85,6 +85,9 @@ class Segment:
         
         # Get phone class
         self.phone_class = self.get_phone_class()
+        # Vowel features
+        if self.phone_class in ("VOWEL", "DIPTHONG"):
+            self.rounded = self.features["round"] == 1
 
         # Get voicing status, manner, and place of articulation
         if self.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
@@ -406,31 +409,31 @@ class Segment:
         elif self.phone_class == 'VOWEL':
             # Height / Openness
             if CLOSE_VOWEL_REGEX.search(self.base):
-                height = 'CLOSE'
+                self.height = 'CLOSE'
             elif CLOSE_MID_VOWEL_REGEX.search(self.base):
-                height = 'CLOSE-MID'
+                self.height = 'CLOSE-MID'
             elif self.base in {'ə', 'ɚ'}:
-                height = 'MID'
+                self.height = 'MID'
             elif OPEN_MID_VOWEL_REGEX.search(self.base):
-                height = 'OPEN-MID'
+                self.height = 'OPEN-MID'
             elif OPEN_VOWEL_REGEX.search(self.base):
-                height = 'OPEN'
+                self.height = 'OPEN'
             else:
                 raise val_err
             
             # Frontness / Backness
             if FRONT_VOWEL_REGEX.search(self.base):
-                frontness = 'FRONT'
+                self.frontness = 'FRONT'
             elif CENTRAL_VOWEL_REGEX.search(self.base):
-                frontness = 'CENTRAL'
+                self.frontness = 'CENTRAL'
             elif BACK_VOWEL_REGEX.search(self.base):
-                frontness = 'BACK'
+                self.frontness = 'BACK'
             else:
                 raise val_err
             
             # TODO add rounded to manner
 
-            poa = ' '.join([height, frontness])
+            poa = ' '.join([self.height, self.frontness])
 
         elif self.phone_class == 'DIPHTHONG': # TODO add better description for diphthongs
             pass
