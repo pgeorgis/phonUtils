@@ -758,7 +758,7 @@ def segment_ipa(word,
                         i += 1
 
                     # If there is no suitable preceding vowel, try combining with following vowel instead
-                    elif segment_is_vowel(segments[i+1]):
+                    elif i < (len(segments) - 1) and segment_is_vowel(segments[i+1]):
                         updated_segments.append(seg+segments[i+1])
                         i += 2
 
@@ -769,9 +769,14 @@ def segment_ipa(word,
 
                 # Combine an initial non-syllabic vowel onto a following vowel
                 else:
-                    if segment_is_vowel(segments[1]):
-                        updated_segments.append(seg+segments[1])
-                        i += 2
+                    # If no following vowel segment, leave non-syllabic vowel as free-standing segment as fallback
+                    if len(segments) == 1:
+                        updated_segments.append(seg)
+                        i += 1
+                    else:
+                        if segment_is_vowel(segments[1]):
+                            updated_segments.append(seg+segments[1])
+                            i += 2
             else:
                 updated_segments.append(seg)
                 i += 1
