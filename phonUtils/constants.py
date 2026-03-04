@@ -125,12 +125,12 @@ def load_feature_geometry(dir: str) -> dict:
         **FILE_READER_DEFAULTS
     )
     # Preprocess feature geometry data
-    feature_geometry['tier'] = feature_geometry['path'].apply(lambda x: len(x.split(' | ')))
-    feature_geometry['parent'] = feature_geometry['path'].apply(lambda x: x.split(' | ')[-1])
-    feature_geometry['n_sisters'] = feature_geometry['parent'].apply(
-        lambda x: feature_geometry['parent'].to_list().count(x)
+    feature_geometry.loc[:, 'tier'] = feature_geometry.loc[:, 'path'].apply(lambda x: len(x.split(' | ')))
+    feature_geometry.loc[:, 'parent'] = feature_geometry.loc[:, 'path'].apply(lambda x: x.split(' | ')[-1])
+    feature_geometry.loc[:, 'n_sisters'] = feature_geometry.loc[:, 'parent'].apply(
+        lambda x: feature_geometry.loc[:, 'parent'].to_list().count(x)
     )
-    feature_geometry['n_descendants'] = feature_geometry['feature'].apply(
+    feature_geometry.loc[:, 'n_descendants'] = feature_geometry.loc[:, 'feature'].apply(
         lambda x: len([
             i for i, row in feature_geometry.iterrows()
             if x in row['path'].split(' | ')
@@ -139,14 +139,14 @@ def load_feature_geometry(dir: str) -> dict:
 
     # Feature geometry weight calculated as ln(n_distinctions) / (tier**2)
     # where n_distinctions = (n_sisters+1) + (n_descendants)
-    feature_geometry['n_distinctions'] = (feature_geometry['n_sisters'] + 1) + (feature_geometry['n_descendants'])
+    feature_geometry.loc[:, 'n_distinctions'] = (feature_geometry.loc[:, 'n_sisters'] + 1) + (feature_geometry.loc[:, 'n_descendants'])
     weights = np.array([
         log(row['n_distinctions']) / (row['tier']**2)
         for _, row in feature_geometry.iterrows()
     ])
     total_weights = np.sum(weights)
     normalized_weights = weights / total_weights
-    feature_geometry['weight'] = normalized_weights
+    feature_geometry.loc[:, 'weight'] = normalized_weights
     feature_weights = {
         row['feature']: row['weight']
         for _, row in feature_geometry.iterrows()
