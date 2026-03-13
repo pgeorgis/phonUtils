@@ -85,6 +85,9 @@ class Segment:
         
         # Get phone class
         self.phone_class = self.get_phone_class()
+        # Vowel features
+        if self.phone_class in ("VOWEL", "DIPTHONG"):
+            self.rounded = self.features["round"] == 1
 
         # Get voicing status, manner, and place of articulation
         if self.phone_class not in ('TONEME', 'SUPRASEGMENTAL'):
@@ -357,160 +360,106 @@ class Segment:
         else:
             manner = self.phone_class
 
-        # Add features marked only by diacritics
-        if re.search('̚', self.segment):
-            manner = 'UNRELEASED ' + manner
-        elif re.search('ˡ', self.segment):
-            manner = 'LATERAL RELEASED ' + manner
-        if re.search('̃', self.segment):
-            manner = 'NASALIZED ' + manner
-        elif re.match(r'[ᵐᶬⁿᵑ]', self.segment):
-            manner = 'PRENASALIZED ' + manner
-        elif re.search(r'.+[ᵐᶬⁿᵑ]', self.segment):
-            manner = 'NASAL RELEASED ' + manner
-        if re.match(r'[ʰʱ]', self.segment):
-            manner = 'PREASPIRATED ' + manner
-        elif re.search(r'[ʰʱ]', self.segment):
-            manner = 'ASPIRATED ' + manner
-        if re.search('ᶣ|(ʲʷ)|(ʷʲ)', self.segment):
-            manner = 'LABIO-PALATALIZED ' + manner
-        elif re.search('ʲ', self.segment):
-            manner = 'PALATALIZED ' + manner
-        elif re.search('ʷ', self.segment):
-            manner = 'LABIALIZED ' + manner
-        if re.search('˞', self.segment):
-            manner = 'RHOTACIZED ' + manner
-        if re.search('ˤ', self.segment):
-            manner = 'PHARYNGEALIZED ' + manner
-        elif re.search('ˠ', self.segment):
-            manner = 'VELARIZED ' + manner
-        elif re.search('ˀ', self.segment):
-            manner = 'GLOTTALIZED ' + manner
-        elif re.search('̤', self.segment):
-            manner = 'BREATHY ' + manner
-        elif re.search('̰', self.segment):
-            manner = 'CREAKY ' + manner
-        if re.search('͈', self.segment):
-            manner = 'FORTIS ' + manner
-        elif re.search('͉', self.segment):
-            manner = 'LENIS ' + manner
-        if re.search('˭', self.segment):
-            manner = 'TENSE ' + manner
-        if re.search('ʼ', self.segment):
-            manner = 'EJECTIVE ' + manner
-        if re.search('ˈ', self.segment):
-            manner = 'STRESSED ' + manner
-        elif re.search('ˌ', self.segment):
-            manner = 'SECONDARY STRESSED ' + manner
-        if re.search('ː', self.segment):
-            manner = 'LONG ' + manner
-        elif re.search('ˑ', self.segment):
-            manner = 'HALF-LONG ' + manner
-        elif re.search('̆', self.segment):
-            manner = 'EXTRA SHORT ' + manner
-        if re.search(r'[̩̍]', self.segment):
-            manner = 'SYLLABIC ' + manner
-        elif re.search('̯', self.segment) and self.phone_class == 'VOWEL':
-            manner = 'NON-SYLLABIC ' + manner
 
         return manner
 
     def get_poa(self) -> str:
         val_err = ValueError(f'Could not determine place of articulation for {self.segment}')
+        poa = ""
         if self.phone_class in ('CONSONANT', 'GLIDE'):
             if re.search(r'([wʍ])|([kɡ].*͡[pb])', self.segment):
-                return 'LABIAL-VELAR'
+                poa = 'LABIAL-VELAR'
             elif re.search('̼', self.segment):
                 return 'LINGUO-LABIAL'
             elif self.base in BILABIALS:
-                return 'BILABIAL'
+                poa = 'BILABIAL'
             elif self.features['labiodental'] == 1:
-                return 'LABIODENTAL'
+                poa = 'LABIODENTAL'
             elif re.search(r'[θðǀ̪]', self.segment):
-                return 'DENTAL'
+                poa = 'DENTAL'
             elif re.search('̺', self.segment) and self.base in ALVEOLARS:
-                return 'APICO-ALVEOLAR'
+                poa = 'APICO-ALVEOLAR'
             elif re.search('̻', self.segment) and self.base in ALVEOLARS:
-                return 'LAMINAL ALVEOLAR'
+                poa = 'LAMINAL ALVEOLAR'
             elif self.base in ALVEOLARS:
-                return 'ALVEOLAR'
+                poa = 'ALVEOLAR'
             elif self.base in LATERALS:
-                return 'LATERAL'
+                poa = 'LATERAL'
             elif self.base in POSTALVEOLARS:
-                return 'POSTALVEOLAR'
+                poa = 'POSTALVEOLAR'
             elif self.base in ALVEOLOPALATALS:
-                return 'ALVEOLOPALATAL'
+                poa = 'ALVEOLOPALATAL'
             elif self.base in RETROFLEXES:
-                return 'RETROFLEX'
+                poa = 'RETROFLEX'
             elif self.base in PALATALS:
-                return 'PALATAL'
+                poa = 'PALATAL'
             elif self.base in VELARS:
-                return 'VELAR'
+                poa = 'VELAR'
             elif self.base in UVULARS:
-                return 'UVULAR'
+                poa = 'UVULAR'
             elif self.base in PHARYNGEALS:
-                return 'PHARYNGEAL'
+                poa = 'PHARYNGEAL'
             elif self.base in EPIGLOTTALS:
-                return 'EPIGLOTTAL'
+                poa = 'EPIGLOTTAL'
             elif self.base in GLOTTALS:
-                return 'GLOTTAL'
+                poa = 'GLOTTAL'
             else:
                 raise val_err
             
         elif self.phone_class == 'VOWEL':
             # Height / Openness
             if CLOSE_VOWEL_REGEX.search(self.base):
-                height = 'CLOSE'
+                self.height = 'CLOSE'
             elif CLOSE_MID_VOWEL_REGEX.search(self.base):
-                height = 'CLOSE-MID'
+                self.height = 'CLOSE-MID'
             elif self.base in {'ə', 'ɚ'}:
-                height = 'MID'
+                self.height = 'MID'
             elif OPEN_MID_VOWEL_REGEX.search(self.base):
-                height = 'OPEN-MID'
+                self.height = 'OPEN-MID'
             elif OPEN_VOWEL_REGEX.search(self.base):
-                height = 'OPEN'
+                self.height = 'OPEN'
             else:
                 raise val_err
             
             # Frontness / Backness
             if FRONT_VOWEL_REGEX.search(self.base):
-                frontness = 'FRONT'
+                self.frontness = 'FRONT'
             elif CENTRAL_VOWEL_REGEX.search(self.base):
-                frontness = 'CENTRAL'
+                self.frontness = 'CENTRAL'
             elif BACK_VOWEL_REGEX.search(self.base):
-                frontness = 'BACK'
+                self.frontness = 'BACK'
             else:
                 raise val_err
             
             # TODO add rounded to manner
 
-            return ' '.join([height, frontness])
+            poa = ' '.join([self.height, self.frontness])
 
         elif self.phone_class == 'DIPHTHONG': # TODO add better description for diphthongs
-            return ''
+            pass
 
         elif self.phone_class == 'TONEME':
             # Level tones
             if self.features['tone_contour'] == 0:
                 # Extra high level tone
                 if self.features['tone_high'] == 1 and self.features['tone_central'] == 0:
-                    return 'EXTRA HIGH LEVEL TONE'
+                    poa = 'EXTRA HIGH LEVEL TONE'
                 
                 # High level tone
                 elif self.features['tone_high'] == 1:
-                    return 'HIGH LEVEL TONE'
+                    poa = 'HIGH LEVEL TONE'
                 
                 # Mid level tone
                 elif self.features['tone_mid'] == 1:
-                    return 'MID LEVEL TONE'
+                    poa = 'MID LEVEL TONE'
 
                 # Low level tone
                 elif self.features['tone_high'] == 0 and self.features['tone_central'] == 1:
-                    return 'LOW LEVEL TONE'
+                    poa = 'LOW LEVEL TONE'
                 
                 # Extra low level tone
                 elif self.features['tone_high'] == 0 and self.features['tone_central'] == 0:
-                    return 'EXTRA LOW LEVEL TONE'
+                    poa = 'EXTRA LOW LEVEL TONE'
                 
                 else:
                     raise val_err
@@ -535,13 +484,69 @@ class Segment:
                 elif self.features['tone_high'] == 0 and self.features['tone_central'] == 1:
                     contour = 'LOW ' + contour
 
-                return contour
-        
-        elif self.phone_class == 'SUPRASEGMENTAL': # TODO add better description for suprasegmentals
-            return ''
+                poa = contour
+                
+        return poa
+
+    def get_diacritics_label(self) -> str:
+        # Add features marked only by diacritics
+        diacritics_label = ""
+        if '̚' in self.segment:
+            diacritics_label = 'UNRELEASED ' + diacritics_label
+        elif 'ˡ' in self.segment:
+            diacritics_label = 'LATERAL RELEASED ' + diacritics_label
+        if '̃' in self.segment:
+            diacritics_label = 'NASALIZED ' + diacritics_label
+        elif re.match(r'[ᵐᶬⁿᵑ]', self.segment):
+            diacritics_label = 'PRENASALIZED ' + diacritics_label
+        elif re.search(r'.+[ᵐᶬⁿᵑ]', self.segment):
+            diacritics_label = 'NASAL RELEASED ' + diacritics_label
+        if re.match(r'[ʰʱ]', self.segment):
+            diacritics_label = 'PREASPIRATED ' + diacritics_label
+        elif re.search(r'[ʰʱ]', self.segment):
+            diacritics_label = 'ASPIRATED ' + diacritics_label
+        if re.search('ᶣ|(ʲʷ)|(ʷʲ)', self.segment):
+            diacritics_label = 'LABIO-PALATALIZED ' + diacritics_label
+        elif 'ʲ' in self.segment:
+            diacritics_label = 'PALATALIZED ' + diacritics_label
+        elif 'ʷ' in self.segment:
+            diacritics_label = 'LABIALIZED ' + diacritics_label
+        if '˞' in self.segment:
+            diacritics_label = 'RHOTACIZED ' + diacritics_label
+        if 'ˤ' in self.segment:
+            diacritics_label = 'PHARYNGEALIZED ' + diacritics_label
+        elif 'ˠ' in self.segment:
+            diacritics_label = 'VELARIZED ' + diacritics_label
+        elif 'ˀ' in self.segment:
+            diacritics_label = 'GLOTTALIZED ' + diacritics_label
+        elif '̤' in self.segment:
+            diacritics_label = 'BREATHY ' + diacritics_label
+        elif '̰' in self.segment:
+            diacritics_label = 'CREAKY ' + diacritics_label
+        if '͈' in self.segment:
+            diacritics_label = 'FORTIS ' + diacritics_label
+        elif '͉' in self.segment:
+            diacritics_label = 'LENIS ' + diacritics_label
+        if '˭' in self.segment:
+            diacritics_label = 'TENSE ' + diacritics_label
+        if 'ʼ' in self.segment:
+            diacritics_label = 'EJECTIVE ' + diacritics_label
+        if 'ˈ' in self.segment:
+            diacritics_label = 'STRESSED ' + diacritics_label
+        elif 'ˌ' in self.segment:
+            diacritics_label = 'SECONDARY STRESSED ' + diacritics_label
+        if 'ː' in self.segment:
+            diacritics_label = 'LONG ' + diacritics_label
+        elif 'ˑ' in self.segment:
+            diacritics_label = 'HALF-LONG ' + diacritics_label
+        elif '̆' in self.segment:
+            diacritics_label = 'EXTRA SHORT ' + diacritics_label
+        if re.search(r'[̩̍]', self.segment):
+            diacritics_label = 'SYLLABIC ' + diacritics_label
+        elif '̯' in self.segment and self.phone_class == 'VOWEL':
+            diacritics_label = 'NON-SYLLABIC ' + diacritics_label
             
-        else:
-            raise val_err
+        return diacritics_label
 
     def get_sonority(self) -> int:
         """
@@ -650,12 +655,15 @@ class Segment:
 
         if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE'):
             info.append(f'Place of Articulation: {self.poa}')
+        diacritics_label = self.get_diacritics_label()
         if self.phone_class in ('CONSONANT', 'VOWEL', 'GLIDE', 'DIPHTHONG'):
             info.extend([
                 f'Manner of Articulation: {self.manner}',
                 f'Voiced: {self.voiced is True}',
                 f'Sonority: {self.sonority}',
             ])
+        if diacritics_label:
+            info.insert(2, f'Modifications: {diacritics_label}')
         
         elif self.phone_class == 'TONEME':
             shape = re.search(r'((RISING|FALLING|LEVEL)-?(RISING|FALLING)?)', self.poa).group()
@@ -749,7 +757,7 @@ def segment_ipa(word,
                         i += 1
 
                     # If there is no suitable preceding vowel, try combining with following vowel instead
-                    elif segment_is_vowel(segments[i+1]):
+                    elif i < (len(segments) - 1) and segment_is_vowel(segments[i+1]):
                         updated_segments.append(seg+segments[i+1])
                         i += 2
 
@@ -760,9 +768,14 @@ def segment_ipa(word,
 
                 # Combine an initial non-syllabic vowel onto a following vowel
                 else:
-                    if segment_is_vowel(segments[1]):
+                    if len(segments) > 1 and segment_is_vowel(segments[1]):
                         updated_segments.append(seg+segments[1])
                         i += 2
+                    # If no following vowel segment, leave non-syllabic vowel as free-standing segment as fallback
+                    else:
+                        updated_segments.append(seg)
+                        i += 1
+                            
             else:
                 updated_segments.append(seg)
                 i += 1

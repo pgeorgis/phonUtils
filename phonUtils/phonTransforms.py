@@ -29,6 +29,16 @@ DEFAULT_DEVOICE_DICT = {
     }
 
 
+def _check_exceptions(new_ipa_string: str,
+                      fallback_ipa_string: str,
+                      exceptions: Iterable,
+                      exception_counts: dict[int, int]):
+    for i, exc in enumerate(exceptions):
+        if len(re.findall(exc, new_ipa_string)) > exception_counts[i]:
+            return fallback_ipa_string
+    return new_ipa_string
+
+
 def finalDevoicing(ipa_string: str,
                    phones: Iterable = None,
                    devoice_dict: dict = DEFAULT_DEVOICE_DICT,
@@ -54,24 +64,84 @@ def regressiveVoicingAssimilation(ipa_string: str,
     voiced_str = '|'.join(devoice_dict.keys())
     voiceless_str = '|'.join(devoice_dict.values())
 
+    # Count exceptions to assimilation which were already present
+    exception_counts = {}
+    for i, exc in enumerate(exception):
+        exception_counts[i] = len(re.findall(exc, original))
+
     # Voiced C1, voiceless C2
     if to_voiceless:
         for voiced, voiceless in devoice_dict.items():
-            ipa_string = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?([{VOICELESS_CONSONANTS}]|{voiceless_str}|.[̥̊]))', voiceless, ipa_string)
+            new_ipa_string = re.sub(rf'{voiced}(?![̥̊])(?=ʲ?([{VOICELESS_CONSONANTS}]|{voiceless_str}|.[̥̊]))', voiceless, ipa_string)
+            # Cancel the assimilation if it results in an illegal sequence
+            ipa_string = _check_exceptions(new_ipa_string, ipa_string, exception, exception_counts)
 
     # Voiceless C1, voiced C2
     if to_voiced:
         for voiceless, voiced in voicing_dict.items():
-            ipa_string = re.sub(rf'{voiceless}(?=ʲ?(({voiced_str}|[{VOICED_CONSONANTS}])(?![̥̊])|.̬))', voiced, ipa_string)
+            new_ipa_string = re.sub(rf'{voiceless}(?=ʲ?(({voiced_str}|[{VOICED_CONSONANTS}])(?![̥̊])|.̬))', voiced, ipa_string)
+            # Cancel the assimilation if it results in an illegal sequence
+            ipa_string = _check_exceptions(new_ipa_string, ipa_string, exception, exception_counts)
 
     # Postprocess any misplaced diacritics
     ipa_string = re.sub(r'ʲ([̥̊])', r'\1ʲ', ipa_string)
 
     # Cancel the assimilation if it results in an illegal sequence
-    for exc in exception:
-        if re.search(exc, ipa_string):
-            if not re.search(exc, original):
-                return original
+    ipa_string = _check_exceptions(ipa_string, original, exception, exception_counts)
+
+    return ipa_string
+
+
+def progressiveVoicingAssimilation(ipa_string: str,
+                                   devoice_dict: dict = DEFAULT_DEVOICE_DICT,
+                                   voicing_dict: dict = None,
+                                   to_voiceless: bool = True,
+                                   to_voiced: bool = True,
+                                   exception: Iterable = [],
+                                   ):
+    original = ipa_string[:]
+    
+    if voicing_dict is None:
+        # Reverse mapping for voicing
+        voicing_dict = {v: k for k, v in devoice_dict.items()}
+
+    voiced_str = '|'.join(devoice_dict.keys())
+    voiceless_str = '|'.join(devoice_dict.values())
+
+    # Count exceptions to assimilation which were already present
+    exception_counts = {}
+    for i, exc in enumerate(exception):
+        exception_counts[i] = len(re.findall(exc, original))
+
+    # C1 voiced, C2 voiceless -> C2 becomes voiced
+    if to_voiced:
+        for voiceless, voiced in voicing_dict.items():
+            # Look for voiceless C2 preceded by voiced C1
+            new_ipa_string = re.sub(
+                rf'(?<=[{voiced_str}{VOICED_CONSONANTS}]){voiceless}(?![̬])',
+                voiced,
+                ipa_string
+            )
+            # Cancel the assimilation if it results in an illegal sequence
+            ipa_string = _check_exceptions(new_ipa_string, ipa_string, exception, exception_counts)
+
+    # C1 voiceless, C2 voiced -> C2 becomes voiceless
+    if to_voiceless:
+        for voiced, voiceless in devoice_dict.items():
+            # Look for voiced C2 preceded by voiceless C1
+            new_ipa_string = re.sub(
+                rf'(?<=[{voiceless_str}{VOICELESS_CONSONANTS}]){voiced}(?![̥̊])',
+                voiceless,
+                ipa_string
+            )
+            # Cancel the assimilation if it results in an illegal sequence
+            ipa_string = _check_exceptions(new_ipa_string, ipa_string, exception, exception_counts)
+
+    # Postprocess any misplaced diacritics
+    ipa_string = re.sub(r'ʲ([̥̊])', r'\1ʲ', ipa_string)
+
+    # Cancel the assimilation if it results in an illegal sequence
+    ipa_string = _check_exceptions(ipa_string, original, exception, exception_counts)
 
     return ipa_string
 
