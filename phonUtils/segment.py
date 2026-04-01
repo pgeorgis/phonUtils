@@ -751,9 +751,26 @@ def segment_ipa(word,
         #for i, seg in enumerate(segments):
             seg = segments[i]
             if '̯' in seg and segment_is_vowel(seg):
-                if i > 0:
+                if i > 0 and i < len(segments) - 1:
+                    # Check if surrounded by vowels on both sides
+                    if segment_is_vowel(updated_segments[-1]) and  segment_is_vowel(segments[i+1]):
+                        # If surrounded by vowels on both sides, prefer combining with a non-schwa vowel
+                        if 'ə' in updated_segments[-1] and 'ə' not in segments[i+1]:
+                            updated_segments.append(seg+segments[i+1])
+                            i += 2
+                        elif 'ə' not in updated_segments[-1] and 'ə' in segments[i+1]:
+                            updated_segments[-1] += seg
+                            i += 1
+
+                        # Apart from that, there is no clear way to disambiguate 
+                        # which vowel the non-syllabic unit should be combined with
+                        # Thus, default to preceding vowel
+                        else:
+                            updated_segments[-1] += seg
+                            i += 1
+
                     # First try to combine with preceding vowel
-                    if segment_is_vowel(updated_segments[-1]):
+                    elif segment_is_vowel(updated_segments[-1]):
                         updated_segments[-1] += seg
                         i += 1
 
@@ -766,6 +783,11 @@ def segment_ipa(word,
                     else:
                         updated_segments.append(seg)
                         i += 1
+
+                # Combine with preceding vowel
+                elif i > 0 and segment_is_vowel(updated_segments[-1]):
+                    updated_segments[-1] += seg
+                    i += 1                    
 
                 # Combine an initial non-syllabic vowel onto a following vowel
                 else:
