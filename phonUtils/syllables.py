@@ -140,7 +140,7 @@ def syllabify(word: str,
         # Also does not make any difference for word-initial affricates
         initial_seg = segments[0]
         word, matched_affricates = phonTransforms.splitAffricates(" ".join(segments[1:]))
-        word = initial_seg + word
+        word = " ".join([initial_seg, word])
         segments = segment_ipa(word)
         syllabic_i = findSyllabicIndices(segments)
 
