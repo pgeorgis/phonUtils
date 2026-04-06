@@ -141,6 +141,11 @@ def syllabify(word: str,
         initial_seg = segments[0]
         word, matched_affricates = phonTransforms.splitAffricates(" ".join(segments[1:]))
         word = " ".join([initial_seg, word])
+
+        # Revert geminate affricates, which would already span a syllable boundary
+        for affricate_ligature, affricate_split in matched_affricates.items():
+            word = re.sub(f"{affricate_split} {affricate_split}", f"{affricate_ligature} {affricate_ligature}", word)
+
         segments = segment_ipa(word)
         syllabic_i = findSyllabicIndices(segments)
 
